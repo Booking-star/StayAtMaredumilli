@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stay@Maredumilli Admin</title>
+  <link rel="stylesheet" href="styles.css?v=stitch-20260708-2">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="supabase-config.js" defer></script>
+  <script src="admin.js?v=stitch-20260708-2" defer></script>
+</head>
+<body>
+  <main class="app admin-app">
+    <header class="topbar">
+      <a class="wordmark" href="admin.html" aria-label="Stay@Maredumilli admin">
+        <i data-lucide="leaf"></i>
+        <span>Stay@Maredumilli Admin</span>
+      </a>
+      <a class="ghost-btn" href="index.html">Customer site</a>
+      <button id="adminLogoutBtn" class="ghost-btn hidden" type="button">Logout</button>
+    </header>
+
+    <!-- Dashboard Screen -->
+    <section id="adminDashboard" class="screen">
+      <div class="page-head" style="margin-bottom: 12px;">
+        <div>
+          <p class="eyebrow">Stay@Maredumilli</p>
+          <h2>Super Admin Portal</h2>
+        </div>
+      </div>
+
+      <!-- Navigation tabs -->
+      <div class="booking-tabs" style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+        <button id="adminTabInventory" class="ghost-btn active" type="button">Hotel Inventory</button>
+        <button id="adminTabOwners" class="ghost-btn" type="button">Hotel Owners</button>
+      </div>
+
+      <div id="adminStatus" class="booking-summary" style="margin-bottom: 15px; display: none;"></div>
+
+      <!-- Tab Content: Hotel Inventory -->
+      <div id="contentInventory">
+        <form id="adminRoomForm" class="admin-form">
+          <section class="panel">
+            <h3>Room basics</h3>
+            <div class="form-grid">
+              <label>Room display name <input id="adminRoomName" required placeholder="Pushpa Suite"></label>
+              <label>Room type <input id="adminRoomType" required placeholder="Deluxe Forest View"></label>
+              <label>Available rooms <input id="adminAvailableRooms" type="number" min="0" value="1" required></label>
+              <label>Max adults in room <input id="adminMaxAdults" type="number" min="1" value="2" required></label>
+              <label>Weekday price <input id="adminWeekdayPrice" type="number" min="0" value="2499" required></label>
+              <label>Weekend price <input id="adminWeekendPrice" type="number" min="0" value="2999" required></label>
+              <label>Connected Owner
+                <select id="adminRoomOwner" required>
+                  <option value="">Select hotel owner...</option>
+                </select>
+              </label>
+            </div>
+            <label>Room images <input id="adminImages" type="file" accept="image/*" multiple></label>
+            <label>Special attention <textarea id="adminSpecialAttention" rows="3" placeholder="Anything guests should know"></textarea></label>
+          </section>
+
+          <section class="panel">
+            <h3>Amenities</h3>
+            <div class="amenity-checks">
+              <label><input type="checkbox" value="AC"> AC</label>
+              <label><input type="checkbox" value="Non AC"> Non AC</label>
+              <label><input type="checkbox" value="Geyser"> Geyser</label>
+              <label><input type="checkbox" value="Bed"> Bed</label>
+              <label><input type="checkbox" value="TV"> TV</label>
+              <label><input type="checkbox" value="Parking available"> Parking available</label>
+              <label><input type="checkbox" value="Power backup for 6 hrs power cut"> Power backup for 6 hrs</label>
+              <label><input type="checkbox" value="Generator power backup"> Generator power backup</label>
+              <label><input type="checkbox" value="Wifi"> Wifi</label>
+              <label><input type="checkbox" value="Firecamp available at extra Rs.600"> Firecamp extra Rs.600</label>
+              <label><input type="checkbox" value="Swimming pool"> Swimming pool</label>
+              <label><input type="checkbox" value="Pets allowed"> Pets allowed</label>
+            </div>
+            <button class="primary-btn" type="submit">Save Room</button>
+          </section>
+        </form>
+        <section class="panel">
+          <h3>Saved rooms</h3>
+          <div id="adminRoomList" class="admin-room-list"></div>
+        </section>
+      </div>
+
+      <!-- Tab Content: Hotel Owners -->
+      <div id="contentOwners" class="hidden">
+        <section class="panel">
+          <h3>Register Hotel Owner</h3>
+          <form id="adminOwnerForm" class="form-grid">
+            <label>Hotel Name <input id="adminOwnerHotel" required placeholder="Green Valley Resorts"></label>
+            <label>Hotel Owner Name <input id="adminOwnerName" required placeholder="Ashok Kumar"></label>
+            <label>Hotel Owner Number <input id="adminOwnerPhone" required placeholder="+91 99999 99999"></label>
+            <label>Alternative Number <input id="adminOwnerAltPhone" placeholder="+91 88888 88888"></label>
+            <div id="adminOwnerAuthFields" style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <label style="margin: 0;">Username / Email <input id="adminOwnerEmail" type="email" required placeholder="owner@valley.com" autocomplete="username"></label>
+              <label style="margin: 0;">Password <input id="adminOwnerPassword" type="password" required placeholder="••••••••" autocomplete="new-password"></label>
+            </div>
+            <button class="primary-btn" type="submit" style="align-self: end; height: 42px;">Register Owner</button>
+          </form>
+        </section>
+        <section class="panel">
+          <h3>Registered Owners</h3>
+          <div id="adminOwnerList" class="admin-room-list"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Login Screen -->
+    <section id="adminLoginScreen" class="screen">
+      <div class="login-container">
+        <form id="adminLoginForm" class="login-card">
+          <div class="login-header">
+            <i data-lucide="lock" class="login-icon"></i>
+            <h2>Owner Sign In</h2>
+            <p>Access the dashboard to manage rooms and pricing</p>
+          </div>
+          
+          <div id="loginStatus" class="login-status-alert hidden"></div>
+
+          <div class="login-fields">
+            <div class="form-group">
+              <label for="loginEmail">Email address</label>
+              <input type="email" id="loginEmail" placeholder="admin@example.com" required autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label for="loginPassword">Password</label>
+              <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+          </div>
+
+          <button class="primary-btn login-submit-btn" type="submit">Sign In</button>
+        </form>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

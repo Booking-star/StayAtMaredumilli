@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stay@Maredumilli</title>
+  <link rel="stylesheet" href="styles.css?v=stitch-20260707-1">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="https://www.instagram.com/embed.js" defer></script>
+  <script src="supabase-config.js" defer></script>
+  <script src="app.js?v=stitch-20260707-1" defer></script>
+</head>
+<body>
+  <main id="landing" class="landing">
+    <video class="landing-video" autoplay muted loop playsinline></video>
+    <div class="landing-fallback"></div>
+    <section class="landing-copy">
+      <div class="brand-mark">
+        <i data-lucide="leaf"></i>
+        <span>Stay@Maredumilli</span>
+      </div>
+      <h1>Escape to Nature</h1>
+      <p>Welcome to Stay@Maredumilli. Continue to explore stays.</p>
+      <button id="loginBtn" class="google-btn" type="button">
+        <span class="google-g">G</span>
+        Continue with Google
+      </button>
+    </section>
+  </main>
+
+  <div id="app" class="app hidden">
+    <header class="topbar">
+      <a class="wordmark" href="#home" aria-label="Stay@Maredumilli home">
+        <i data-lucide="leaf"></i>
+        <span>Stay@Maredumilli</span>
+      </a>
+    </header>
+    <nav class="bottom-nav">
+      <a href="#home" class="nav-link active"><i data-lucide="home"></i><span>Home</span></a>
+      <a href="#bookings" class="nav-link"><i data-lucide="calendar-check"></i><span>Past Bookings</span></a>
+      <a href="#profile" class="nav-link"><i data-lucide="user-round"></i><span>Profile</span></a>
+    </nav>
+
+    <section id="home" class="screen active">
+      <section>
+        <div class="section-title">
+          <h3>Highlights</h3>
+        </div>
+        <div id="highlights" class="highlights"></div>
+      </section>
+
+      <div id="bookingSummary" class="booking-summary hidden"></div>
+
+      <button id="filterToggle" class="filter-toggle" type="button">
+        <i data-lucide="sliders-horizontal"></i>
+        Search, filter & sort
+        <i data-lucide="chevron-down"></i>
+      </button>
+      <section id="controlsPanel" class="controls hidden">
+        <label class="searchbox">
+          <i data-lucide="search"></i>
+          <input id="searchInput" placeholder="Search rooms, stays, locations">
+        </label>
+        <select id="filterSelect" aria-label="Filter rooms">
+          <option value="all">All stays</option>
+          <option value="liked">Liked by me</option>
+          <option value="available">Available</option>
+          <option value="budget">Budget</option>
+          <option value="family">Family</option>
+        </select>
+        <select id="sortSelect" aria-label="Sort rooms">
+          <option value="recommended">Recommended</option>
+          <option value="priceLow">Price: Low to High</option>
+          <option value="priceHigh">Price: High to Low</option>
+          <option value="rating">Rating</option>
+          <option value="likes">Most Liked</option>
+        </select>
+        <button id="applyFiltersBtn" class="primary-btn" type="button">Apply</button>
+      </section>
+
+      <section id="propertyFeed" class="property-feed" aria-live="polite"></section>
+    </section>
+
+    <section id="bookings" class="screen">
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Your bookings</p>
+          <h2>Past bookings</h2>
+        </div>
+      </div>
+      <div id="bookingsList" class="list-panel"></div>
+    </section>
+
+    <section id="profile" class="screen">
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Profile</p>
+          <h2>Your details and rewards</h2>
+        </div>
+      </div>
+      <div class="profile-grid">
+        <section class="panel">
+          <h3>User details</h3>
+          <label>Name <input id="profileName" placeholder="Guest User"></label>
+          <label>Phone <input id="profilePhone" placeholder="Add phone number"></label>
+          <label>Email <input id="profileEmail" placeholder="guest@example.com"></label>
+          <button id="saveProfileBtn" class="primary-btn" type="button">Save Profile</button>
+        </section>
+        <section class="panel">
+          <h3>Saved booking details</h3>
+          <div id="savedDetails">No booking details saved yet.</div>
+          <button id="editSavedDetailsBtn" class="ghost-btn" type="button">Edit Details</button>
+        </section>
+        <section class="panel referral">
+          <h3>Referral program</h3>
+          <p>Invite a friend. When they complete their first booking, both of you receive Rs.250 off your next stay.</p>
+          <div class="ref-code"><span id="refCode">MAREDU250</span><button id="copyRefBtn" type="button">Copy</button></div>
+        </section>
+        <section class="panel">
+          <h3>Liked stays</h3>
+          <div id="likedList">No liked stays yet.</div>
+        </section>
+        <section class="panel">
+          <h3>Support</h3>
+          <p>WhatsApp support will be connected after the number is provided.</p>
+          <button class="support-btn" type="button"><i data-lucide="message-circle"></i> WhatsApp support</button>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="bookingModal">
+    <form id="bookingForm" method="dialog">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Checkout</p>
+          <h3 id="modalTitle">Confirm your stay</h3>
+        </div>
+        <button id="closeModalBtn" class="icon-btn" aria-label="Close" type="button"><i data-lucide="x"></i></button>
+      </div>
+      <div id="bookingRoomSummary" class="checkout-summary"></div>
+      <label id="firecampField" class="addon-check hidden"><input id="firecampInput" type="checkbox"> Add firecamp for Rs.600</label>
+      <div id="billSummary" class="bill-summary"></div>
+      <div class="form-grid">
+        <label>Adults <input id="adultsInput" type="number" min="1" value="2" required></label>
+        <label>Children <input id="childrenInput" type="number" min="0" value="0" required></label>
+        <label>Rooms <input id="roomsInput" type="number" min="1" value="1" required></label>
+        <label>From <input id="fromInput" type="date" required></label>
+        <label>To <input id="toInput" type="date" required></label>
+        <label>Payment
+          <select id="paymentInput">
+            <option value="20">Pay 20% advance</option>
+            <option value="100">Pay 100% now</option>
+          </select>
+        </label>
+        <label id="couponField" class="hidden">Weekday coupon <input id="couponInput" placeholder="Enter coupon code"></label>
+      </div>
+      <p class="policy">Free cancellation up to 24 hours before check-in. Within 24 hours, the 20% advance may be retained. Date changes depend on availability and price difference.</p>
+      <button class="primary-btn" type="submit">Mock Pay & Confirm</button>
+    </form>
+  </dialog>
+  <dialog id="reelModal" class="reel-modal">
+    <div class="modal-head">
+      <div>
+        <p class="eyebrow">Highlights</p>
+        <h3 id="reelTitle">Maredumilli reel</h3>
+      </div>
+      <button id="closeReelBtn" class="icon-btn" aria-label="Close" type="button"><i data-lucide="x"></i></button>
+    </div>
+    <div id="reelEmbed" class="reel-embed"></div>
+  </dialog>
+</body>
+</html>
