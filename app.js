@@ -71,7 +71,7 @@ async function loadOwnerRooms() {
     return;
   }
   const { data, error } = await supabaseClient
-    .from("rooms")
+    .from("rooms_with_owner_policy")
     .select("*")
     .eq("active", true)
     .order("created_at", { ascending: false });
@@ -275,16 +275,49 @@ function priceLabel(room) {
 
 function priceForDates(room, details = null) {
   const today = new Date();
-  const from = details?.from || today.toISOString().slice(0, 10);
-  const to = details?.to || new Date(today.getTime() + 86400000).toISOString().slice(0, 10);
-  const nights = Math.max(1, Math.ceil((new Date(to) - new Date(from)) / 86400000) || 1);
-  let total = 0;
+  const fromStr = details?.from || today.toISOString().slice(0, 10);
+  const toStr = details?.to || new Date(today.getTime() + 86400000).toISOString().slice(0, 10);
+  const numRooms = Number(details?.rooms || 1);
+  
+  const from = new Date(fromStr);
+  const to = new Date(toStr);
+  const nights = Math.max(1, Math.ceil((to - from) / 86400000) || 1);
+  
+  let websiteTotal = 0;
+  let ownerTotal = 0;
+  
+  const policy = room.weekendPolicy || "mon_fri";
+  
   for (let i = 0; i < nights; i++) {
-    const day = new Date(from);
-    day.setDate(day.getDate() + i);
-    total += [0, 6].includes(day.getDay()) ? (room.weekendPrice || room.price) : (room.weekdayPrice || room.price);
+    const d = new Date(from);
+    d.setDate(d.getDate() + i);
+    const dayOfWeek = d.getDay();
+    
+    let isWeekend = false;
+    if (policy === "mon_thu") {
+      isWeekend = [0, 5, 6].includes(dayOfWeek);
+    } else {
+      isWeekend = [0, 6].includes(dayOfWeek);
+    }
+    
+    const webPrice = isWeekend ? (room.weekendPrice || room.price || 0) : (room.weekdayPrice || room.price || 0);
+    const ownPrice = isWeekend ? (room.weekendOwnerPrice || room.weekdayOwnerPrice || 0) : (room.weekdayOwnerPrice || 0);
+    
+    websiteTotal += webPrice;
+    ownerTotal += ownPrice;
   }
-  return { nights, perDay: Math.round(total / nights), total };
+  
+  const total = websiteTotal * numRooms;
+  const ownerTotalVal = ownerTotal * numRooms;
+  const profit = total - ownerTotalVal;
+  
+  return {
+    nights,
+    perDay: Math.round(websiteTotal / nights),
+    total,
+    ownerTotal: ownerTotalVal,
+    profit
+  };
 }
 function renderSummary() {
   bookingSummary.classList.add("hidden");
@@ -338,6 +371,9 @@ function roomFromSupabase(row) {
     price: row.weekday_price,
     weekdayPrice: row.weekday_price,
     weekendPrice: row.weekend_price,
+    weekdayOwnerPrice: row.weekday_owner_price || 0,
+    weekendOwnerPrice: row.weekend_owner_price || 0,
+    weekendPolicy: row.weekend_policy || "mon_fri",
     availableRooms: row.available_rooms,
     maxAdults: row.max_adults,
     rating: 4.6,
@@ -557,7 +593,7 @@ function fileToDataUrl(file) {
   });
 }
 
-bookingForm.addEventListener("submit", event => {
+bookingForm.addEventListener("submit", async event => {
   event.preventDefault();
   const room = rooms.find(item => item.id === selectedRoomId);
   const adults = Number(document.querySelector("#adultsInput").value);
@@ -568,7 +604,8 @@ bookingForm.addEventListener("submit", event => {
   }
   const pricing = priceForDates(room, {
     from: document.querySelector("#fromInput").value,
-    to: document.querySelector("#toInput").value
+    to: document.querySelector("#toInput").value,
+    rooms: selectedRooms
   });
   bookingDetails = {
     adults,
@@ -591,6 +628,28 @@ bookingForm.addEventListener("submit", event => {
       status: "Confirmed"
     }, ...bookings];
     setStore("stayBookings", bookings);
+
+    // Save to shared database
+    if (supabaseClient) {
+      const { error: dbError } = await supabaseClient.from("bookings").insert({
+        room_id: room.id,
+        customer_name: profile.name || "Customer",
+        customer_phone: profile.phone || "9999999999",
+        customer_email: profile.email || "customer@stay.com",
+        check_in: bookingDetails.from,
+        check_out: bookingDetails.to,
+        num_rooms: bookingDetails.rooms,
+        num_adults: bookingDetails.adults,
+        num_kids: bookingDetails.children,
+        total_price: pricing.total,
+        owner_amount: pricing.ownerTotal,
+        profit_amount: pricing.profit,
+        status: "confirmed"
+      });
+      if (dbError) {
+        console.error("Failed to insert booking to Supabase:", dbError.message);
+      }
+    }
   }
   modal.close();
   if (editingDetailsOnly) {
@@ -661,5 +720,19 @@ window.addEventListener("resize", setLandingVideo);
 window.addEventListener("DOMContentLoaded", () => {
   setLandingVideo();
   loadOwnerRooms().then(render);
+  if (supabaseClient) setupRealtime();
   if (window.lucide) lucide.createIcons();
 });
+
+function setupRealtime() {
+  if (!supabaseClient) return;
+  supabaseClient
+    .channel("customer-realtime-sync")
+    .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
+      loadOwnerRooms().then(render);
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => {
+      loadOwnerRooms().then(render);
+    })
+    .subscribe();
+}

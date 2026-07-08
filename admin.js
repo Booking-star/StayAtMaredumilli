@@ -17,11 +17,7 @@ const supabaseClient = supabaseConfig.url && supabaseConfig.anonKey && window.su
   : null;
 
 const adminDashboard = document.querySelector("#adminDashboard");
-const adminLoginScreen = document.querySelector("#adminLoginScreen");
-const adminLoginForm = document.querySelector("#adminLoginForm");
 const adminLogoutBtn = document.querySelector("#adminLogoutBtn");
-const loginStatus = document.querySelector("#loginStatus");
-const loginSubmitBtn = adminLoginForm ? adminLoginForm.querySelector(".login-submit-btn") : null;
 
 const adminRoomOwner = document.querySelector("#adminRoomOwner");
 const adminOwnerForm = document.querySelector("#adminOwnerForm");
@@ -29,8 +25,10 @@ const adminOwnerList = document.querySelector("#adminOwnerList");
 
 const adminTabInventory = document.querySelector("#adminTabInventory");
 const adminTabOwners = document.querySelector("#adminTabOwners");
+const adminTabSales = document.querySelector("#adminTabSales");
 const contentInventory = document.querySelector("#contentInventory");
 const contentOwners = document.querySelector("#contentOwners");
+const contentSales = document.querySelector("#contentSales");
 
 const adminOwnerHotel = document.querySelector("#adminOwnerHotel");
 const adminOwnerName = document.querySelector("#adminOwnerName");
@@ -38,10 +36,15 @@ const adminOwnerPhone = document.querySelector("#adminOwnerPhone");
 const adminOwnerAltPhone = document.querySelector("#adminOwnerAltPhone");
 const adminOwnerEmail = document.querySelector("#adminOwnerEmail");
 const adminOwnerPassword = document.querySelector("#adminOwnerPassword");
+const adminOwnerWeekendPolicy = document.querySelector("#adminOwnerWeekendPolicy");
 
+const adminWeekdayOwnerPrice = document.querySelector("#adminWeekdayOwnerPrice");
+const adminWeekendOwnerPrice = document.querySelector("#adminWeekendOwnerPrice");
+const adminSalesList = document.querySelector("#adminSalesList");
 
 let ownerRooms = [];
 let hotelOwners = [];
+let allBookings = [];
 let editingRoomId = null;
 
 function setStatus(message) {
@@ -66,7 +69,7 @@ async function loadRooms() {
     return;
   }
   const { data, error } = await supabaseClient
-    .from("rooms")
+    .from("rooms_with_owner_policy")
     .select("*")
     .eq("active", true)
     .order("created_at", { ascending: false });
@@ -85,7 +88,11 @@ function renderRooms() {
       <img src="${room.image_urls?.[0] || ""}" alt="${room.room_name}">
       <div>
         <strong>${room.room_name}</strong>
-        <p>${room.room_type} &middot; ${room.available_rooms} rooms &middot; max ${room.max_adults} adults &middot; Rs.${room.weekday_price}/Rs.${room.weekend_price}</p>
+        <p>${room.room_type} &middot; ${room.available_rooms} rooms &middot; max ${room.max_adults} adults</p>
+        <p style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+          Weekday: Website Rs.${room.weekday_price} (Owner Payout: Rs.${room.weekday_owner_price || 0}) &middot; 
+          Weekend: Website Rs.${room.weekend_price} (Owner Payout: Rs.${room.weekend_owner_price || 0})
+        </p>
       </div>
       <div class="admin-actions">
         <button class="ghost-btn" data-edit="${room.id}" type="button">Edit</button>
@@ -117,7 +124,9 @@ adminRoomForm.addEventListener("submit", async event => {
     available_rooms: Number(document.querySelector("#adminAvailableRooms").value),
     max_adults: Number(document.querySelector("#adminMaxAdults").value),
     weekday_price: Number(document.querySelector("#adminWeekdayPrice").value),
+    weekday_owner_price: Number(adminWeekdayOwnerPrice.value),
     weekend_price: Number(document.querySelector("#adminWeekendPrice").value),
+    weekend_owner_price: Number(adminWeekendOwnerPrice.value),
     owner_id: adminRoomOwner ? adminRoomOwner.value : null,
     amenities,
     special_attention: document.querySelector("#adminSpecialAttention").value,
@@ -159,7 +168,9 @@ function editRoom(id) {
   document.querySelector("#adminAvailableRooms").value = room.available_rooms;
   document.querySelector("#adminMaxAdults").value = room.max_adults;
   document.querySelector("#adminWeekdayPrice").value = room.weekday_price;
+  adminWeekdayOwnerPrice.value = room.weekday_owner_price || 0;
   document.querySelector("#adminWeekendPrice").value = room.weekend_price;
+  adminWeekendOwnerPrice.value = room.weekend_owner_price || 0;
   document.querySelector("#adminSpecialAttention").value = room.special_attention || "";
   if (adminRoomOwner) adminRoomOwner.value = room.owner_id || "";
   adminRoomForm.querySelectorAll(".amenity-checks input").forEach(input => {
@@ -190,51 +201,11 @@ async function uploadImages(files) {
 // Auth UI helper
 function showAuthScreen(showLogin) {
   if (showLogin) {
-    if (adminDashboard) adminDashboard.classList.remove("active");
-    if (adminLoginScreen) adminLoginScreen.classList.add("active");
-    if (adminLogoutBtn) adminLogoutBtn.classList.add("hidden");
+    location.href = "login.html?type=admin";
   } else {
-    if (adminLoginScreen) adminLoginScreen.classList.remove("active");
     if (adminDashboard) adminDashboard.classList.add("active");
     if (adminLogoutBtn) adminLogoutBtn.classList.remove("hidden");
   }
-}
-
-// Handle login submit
-if (adminLoginForm) {
-  adminLoginForm.addEventListener("submit", async event => {
-    event.preventDefault();
-    if (!supabaseClient) {
-      if (loginStatus) {
-        loginStatus.textContent = "Supabase is not connected.";
-        loginStatus.classList.remove("hidden");
-      }
-      return;
-    }
-    if (loginStatus) loginStatus.classList.add("hidden");
-    if (loginSubmitBtn) {
-      loginSubmitBtn.disabled = true;
-      loginSubmitBtn.textContent = "Signing In...";
-    }
-    const email = document.querySelector("#loginEmail").value;
-    const password = document.querySelector("#loginPassword").value;
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
-    if (loginSubmitBtn) {
-      loginSubmitBtn.disabled = false;
-      loginSubmitBtn.textContent = "Sign In";
-    }
-    if (error) {
-      if (loginStatus) {
-        loginStatus.textContent = error.message;
-        loginStatus.classList.remove("hidden");
-      }
-    } else {
-      adminLoginForm.reset();
-    }
-  });
 }
 
 // Handle logout click
@@ -251,20 +222,34 @@ if (adminLogoutBtn) {
 }
 
 function setupAdminTabs() {
-  if (!adminTabInventory || !adminTabOwners) return;
+  if (!adminTabInventory || !adminTabOwners || !adminTabSales) return;
 
   adminTabInventory.addEventListener("click", () => {
     adminTabInventory.classList.add("active");
     adminTabOwners.classList.remove("active");
+    adminTabSales.classList.remove("active");
     contentInventory.classList.remove("hidden");
     contentOwners.classList.add("hidden");
+    contentSales.classList.add("hidden");
   });
 
   adminTabOwners.addEventListener("click", () => {
     adminTabOwners.classList.add("active");
     adminTabInventory.classList.remove("active");
+    adminTabSales.classList.remove("active");
     contentOwners.classList.remove("hidden");
     contentInventory.classList.add("hidden");
+    contentSales.classList.add("hidden");
+  });
+
+  adminTabSales.addEventListener("click", () => {
+    adminTabSales.classList.add("active");
+    adminTabInventory.classList.remove("active");
+    adminTabOwners.classList.remove("active");
+    contentSales.classList.remove("hidden");
+    contentInventory.classList.add("hidden");
+    contentOwners.classList.add("hidden");
+    loadSales();
   });
 }
 
@@ -272,15 +257,18 @@ function setupAdminTabs() {
 window.addEventListener("DOMContentLoaded", () => {
   setupAdminTabs();
   if (supabaseClient) {
+    setupRealtime();
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         showAuthScreen(false);
         await loadOwners();
         await loadRooms();
+        await loadSales();
       } else {
         showAuthScreen(true);
         ownerRooms = [];
         hotelOwners = [];
+        allBookings = [];
         renderRooms();
         renderOwners();
       }
@@ -290,10 +278,27 @@ window.addEventListener("DOMContentLoaded", () => {
     setStatus("Supabase not connected.");
     ownerRooms = [];
     hotelOwners = [];
+    allBookings = [];
     renderRooms();
     renderOwners();
   }
 });
+
+function setupRealtime() {
+  if (!supabaseClient) return;
+  supabaseClient
+    .channel("admin-realtime-sync")
+    .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
+      loadSales();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => {
+      loadRooms();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "hotel_owners" }, () => {
+      loadOwners();
+    })
+    .subscribe();
+}
 
 // Load registered owners
 let editingOwnerId = null;
@@ -500,4 +505,54 @@ if (adminOwnerList) {
       }
     }
   });
+}
+
+async function loadSales() {
+  if (!supabaseClient) return;
+  const { data, error } = await supabaseClient
+    .from("bookings")
+    .select("*, rooms(room_name)")
+    .neq("status", "cancelled")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Failed to load sales:", error.message);
+    return;
+  }
+  allBookings = data || [];
+  renderSales();
+}
+
+function renderSales() {
+  if (!adminSalesList) return;
+  let revenue = 0;
+  let payout = 0;
+  let profit = 0;
+  allBookings.forEach(b => {
+    revenue += b.total_price || 0;
+    payout += b.owner_amount || 0;
+    profit += b.profit_amount || 0;
+  });
+  document.querySelector("#adminTotalRevenue").textContent = "Rs." + revenue.toLocaleString("en-IN");
+  document.querySelector("#adminTotalPayout").textContent = "Rs." + payout.toLocaleString("en-IN");
+  document.querySelector("#adminTotalProfit").textContent = "Rs." + profit.toLocaleString("en-IN");
+
+  adminSalesList.innerHTML = allBookings.length ? allBookings.map(b => `
+    <article class="admin-room-item" style="padding: 14px; border-left: 4px solid var(--primary); border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+      <div style="flex-grow: 1;">
+        <strong style="font-size: 15px; color: var(--text);">${b.rooms?.room_name || "Room blockage/booking"}</strong>
+        <p style="font-size: 13px; color: var(--muted); margin: 4px 0 0;">
+          <strong>Guest:</strong> ${b.customer_name} (${b.customer_phone}) &middot; 
+          <strong>Dates:</strong> ${b.check_in} to ${b.check_out} &middot; 
+          <strong>Rooms:</strong> ${b.num_rooms}
+        </p>
+      </div>
+      <div style="text-align: right;">
+        <strong style="font-size: 15px; color: var(--text);">Revenue: Rs.${b.total_price.toLocaleString("en-IN")}</strong>
+        <p style="font-size: 12px; color: var(--muted); margin: 2px 0 0;">
+          Payout: Rs.${(b.owner_amount || 0).toLocaleString("en-IN")} &middot; 
+          <span style="color: var(--primary); font-weight: bold;">Profit: Rs.${(b.profit_amount || 0).toLocaleString("en-IN")}</span>
+        </p>
+      </div>
+    </article>
+  `).join("") : "No bookings recorded yet.";
 }

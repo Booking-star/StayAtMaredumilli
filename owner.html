@@ -55,9 +55,12 @@
             <h3>Live Room Calendar (Next 10 Days)</h3>
             <p class="eyebrow" style="margin-bottom: 0;">Tap any cell to block a room offline or release a blockage.</p>
           </div>
-          <div class="calendar-legend" style="display: flex; gap: 12px; font-size: 12px; font-weight: 700;">
-            <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 12px; height: 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 3px;"></span> Vacant/Free</span>
-            <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 12px; height: 12px; background: #ffebee; border: 1px solid #ffcdd2; border-radius: 3px;"></span> Blocked / Full</span>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <button id="btnCustomBlock" class="primary-btn" style="height: 38px; padding: 0 16px; font-size: 13px; font-weight: 700; border-radius: 6px;" type="button">Block Custom Range</button>
+            <div class="calendar-legend" style="display: flex; gap: 12px; font-size: 12px; font-weight: 700;">
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 12px; height: 12px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 3px;"></span> Vacant/Free</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 12px; height: 12px; background: #ffebee; border: 1px solid #ffcdd2; border-radius: 3px;"></span> Blocked / Full</span>
+            </div>
           </div>
         </div>
 
@@ -86,33 +89,7 @@
       </section>
     </section>
 
-    <!-- Login Screen -->
-    <section id="ownerLoginScreen" class="screen">
-      <div class="login-container">
-        <form id="ownerLoginForm" class="login-card">
-          <div class="login-header">
-            <i data-lucide="key-round" class="login-icon"></i>
-            <h2>Hotel Owner Sign In</h2>
-            <p>Access your hotel portal to manage bookings and live calendar inventory.</p>
-          </div>
-          
-          <div id="loginStatus" class="login-status-alert hidden"></div>
 
-          <div class="login-fields">
-            <div class="form-group">
-              <label for="loginEmail">Email address</label>
-              <input type="email" id="loginEmail" placeholder="owner@hotel.com" required autocomplete="username">
-            </div>
-            <div class="form-group">
-              <label for="loginPassword">Password</label>
-              <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
-            </div>
-          </div>
-
-          <button class="primary-btn login-submit-btn" type="submit">Sign In</button>
-        </form>
-      </div>
-    </section>
 
     <!-- Quick Booking / Release Modal -->
     <div id="quickBookingModal" class="modal-overlay hidden">
@@ -127,13 +104,23 @@
             <input type="hidden" id="modalRoomId">
             <input type="hidden" id="modalDate">
 
-            <div class="info-row">
+            <div id="modalStaticRoomRow" class="info-row">
               <span class="label">Room:</span>
               <strong id="modalRoomName">-</strong>
             </div>
-            <div class="info-row" style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+            <div id="modalStaticDateRow" class="info-row" style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
               <span class="label">Date:</span>
               <strong id="modalDateStr">-</strong>
+            </div>
+
+            <!-- Custom Block Inputs -->
+            <div id="modalRoomSelectRow" class="form-group hidden" style="margin-bottom: 12px;">
+              <label for="modalRoomSelect">Select Room</label>
+              <select id="modalRoomSelect" class="form-input" style="width: 100%; height: 38px; border-radius: 6px; background: #2a2a2a; color: #fff; border: 1px solid var(--border); padding: 0 8px;"></select>
+            </div>
+            <div id="modalDateSelectRow" class="form-group hidden" style="margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+              <label for="modalCustomDate">Start Date</label>
+              <input id="modalCustomDate" type="date" class="form-input" style="width: 100%; height: 38px; border-radius: 6px; background: #2a2a2a; color: #fff; border: 1px solid var(--border); padding: 0 8px;">
             </div>
 
             <!-- Block Flow -->

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Stay@Maredumilli</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body style="background: #fbfbf8; display: grid; place-items: center; min-height: 100vh; margin: 0;">
+  <div class="login-card" style="box-shadow: 0 20px 40px rgba(0,0,0,0.06); border-radius: 12px; background: #fff; border: 1px solid var(--border);">
+    <div class="login-header">
+      <div class="login-icon"><i data-lucide="shield-check"></i></div>
+      <h2>Stay@Maredumilli</h2>
+      <p>Sign in to manage your portal</p>
+    </div>
+    
+    <div id="loginStatus" class="login-status-alert hidden"></div>
+
+    <form id="unifiedLoginForm" class="login-fields">
+      <div class="form-group">
+        <label>Account Type</label>
+        <div style="display: flex; gap: 20px; margin-top: 6px;">
+          <label style="display: inline-flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; color: var(--text);">
+            <input type="radio" name="accountType" value="owner" checked style="width: auto; margin: 0; cursor: pointer;"> Hotel Owner
+          </label>
+          <label style="display: inline-flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; color: var(--text);">
+            <input type="radio" name="accountType" value="admin" style="width: auto; margin: 0; cursor: pointer;"> Super Admin
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="loginEmail">Email Address</label>
+        <input id="loginEmail" type="email" required placeholder="name@domain.com" autocomplete="username">
+      </div>
+
+      <div class="form-group">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" required placeholder="••••••••" autocomplete="current-password">
+      </div>
+
+      <button class="primary-btn login-submit-btn" type="submit" style="background: var(--accent); color: #fff; font-weight: 700; border-radius: 8px; height: 42px; margin-top: 8px;">Sign In</button>
+    </form>
+  </div>
+
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    const form = document.querySelector("#unifiedLoginForm");
+    const statusDiv = document.querySelector("#loginStatus");
+    const submitBtn = form.querySelector("button[type='submit']");
+    const supabaseConfig = window.STAY_SUPABASE || {};
+    
+    const supabaseClient = supabaseConfig.url && supabaseConfig.anonKey && window.supabase
+      ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey)
+      : null;
+
+    // Prefill account type radio button based on URL param
+    const params = new URLSearchParams(location.search);
+    const preselect = params.get("type");
+    if (preselect === "admin" || preselect === "owner") {
+      form.elements.accountType.value = preselect;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!supabaseClient) {
+        statusDiv.textContent = "Supabase not connected.";
+        statusDiv.classList.remove("hidden");
+        return;
+      }
+      statusDiv.classList.add("hidden");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Signing In...";
+
+      const email = form.elements.loginEmail.value.trim();
+      const password = form.elements.loginPassword.value;
+      const selectedType = form.elements.accountType.value;
+
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+
+        const user = data.user;
+        
+        // Fetch user role from profiles
+        const { data: profile, error: profileError } = await supabaseClient
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        let resolvedRole = profile?.role;
+        // ponytail: fallback check if profile role is not populated but email matches default admin
+        if (!resolvedRole && email === "admin@staymaredumilli.com") {
+          resolvedRole = "admin";
+        }
+
+        if (selectedType === "admin") {
+          if (resolvedRole !== "admin") {
+            await supabaseClient.auth.signOut();
+            throw new Error("Access denied: You are not registered as an Admin.");
+          }
+          location.href = "admin.html";
+        } else {
+          if (resolvedRole !== "owner") {
+            await supabaseClient.auth.signOut();
+            throw new Error("Access denied: You are not registered as a Hotel Owner.");
+          }
+          location.href = "owner.html";
+        }
+      } catch (err) {
+        statusDiv.textContent = err.message;
+        statusDiv.classList.remove("hidden");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign In";
+      }
+    });
+  </script>
+</body>
+</html>

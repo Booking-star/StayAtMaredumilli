@@ -34,6 +34,7 @@
       <div class="booking-tabs" style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
         <button id="adminTabInventory" class="ghost-btn active" type="button">Hotel Inventory</button>
         <button id="adminTabOwners" class="ghost-btn" type="button">Hotel Owners</button>
+        <button id="adminTabSales" class="ghost-btn" type="button">Sales Report</button>
       </div>
 
       <div id="adminStatus" class="booking-summary" style="margin-bottom: 15px; display: none;"></div>
@@ -48,8 +49,10 @@
               <label>Room type <input id="adminRoomType" required placeholder="Deluxe Forest View"></label>
               <label>Available rooms <input id="adminAvailableRooms" type="number" min="0" value="1" required></label>
               <label>Max adults in room <input id="adminMaxAdults" type="number" min="1" value="2" required></label>
-              <label>Weekday price <input id="adminWeekdayPrice" type="number" min="0" value="2499" required></label>
-              <label>Weekend price <input id="adminWeekendPrice" type="number" min="0" value="2999" required></label>
+              <label>Weekday price (Website) <input id="adminWeekdayPrice" type="number" min="0" value="2499" required></label>
+              <label>Weekday price (Pay Owner) <input id="adminWeekdayOwnerPrice" type="number" min="0" value="2000" required></label>
+              <label>Weekend price (Website) <input id="adminWeekendPrice" type="number" min="0" value="2999" required></label>
+              <label>Weekend price (Pay Owner) <input id="adminWeekendOwnerPrice" type="number" min="0" value="2500" required></label>
               <label>Connected Owner
                 <select id="adminRoomOwner" required>
                   <option value="">Select hotel owner...</option>
@@ -94,6 +97,12 @@
             <label>Hotel Owner Name <input id="adminOwnerName" required placeholder="Ashok Kumar"></label>
             <label>Hotel Owner Number <input id="adminOwnerPhone" required placeholder="+91 99999 99999"></label>
             <label>Alternative Number <input id="adminOwnerAltPhone" placeholder="+91 88888 88888"></label>
+            <label>Weekend Policy
+              <select id="adminOwnerWeekendPolicy" required>
+                <option value="mon_fri">Saturday & Sunday (Weekend)</option>
+                <option value="mon_thu">Friday, Saturday & Sunday (Weekend)</option>
+              </select>
+            </label>
             <div id="adminOwnerAuthFields" style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <label style="margin: 0;">Username / Email <input id="adminOwnerEmail" type="email" required placeholder="owner@valley.com" autocomplete="username"></label>
               <label style="margin: 0;">Password <input id="adminOwnerPassword" type="password" required placeholder="••••••••" autocomplete="new-password"></label>
@@ -106,35 +115,34 @@
           <div id="adminOwnerList" class="admin-room-list"></div>
         </section>
       </div>
-    </section>
 
-    <!-- Login Screen -->
-    <section id="adminLoginScreen" class="screen">
-      <div class="login-container">
-        <form id="adminLoginForm" class="login-card">
-          <div class="login-header">
-            <i data-lucide="lock" class="login-icon"></i>
-            <h2>Owner Sign In</h2>
-            <p>Access the dashboard to manage rooms and pricing</p>
-          </div>
-          
-          <div id="loginStatus" class="login-status-alert hidden"></div>
-
-          <div class="login-fields">
-            <div class="form-group">
-              <label for="loginEmail">Email address</label>
-              <input type="email" id="loginEmail" placeholder="admin@example.com" required autocomplete="username">
+      <!-- Tab Content: Sales Report -->
+      <div id="contentSales" class="hidden">
+        <section class="panel" style="margin-bottom: 24px;">
+          <h3>Financial overview</h3>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0;">
+            <div class="card" style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
+              <span style="font-size: 13px; color: var(--muted);">Total Revenue</span>
+              <h2 id="adminTotalRevenue" style="margin: 8px 0 0; color: var(--text);">Rs.0</h2>
             </div>
-            <div class="form-group">
-              <label for="loginPassword">Password</label>
-              <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+            <div class="card" style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
+              <span style="font-size: 13px; color: var(--muted);">Total Owner Payouts</span>
+              <h2 id="adminTotalPayout" style="margin: 8px 0 0; color: var(--accent);">Rs.0</h2>
+            </div>
+            <div class="card" style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
+              <span style="font-size: 13px; color: var(--muted);">Total Platform Profit</span>
+              <h2 id="adminTotalProfit" style="margin: 8px 0 0; color: var(--primary);">Rs.0</h2>
             </div>
           </div>
+        </section>
 
-          <button class="primary-btn login-submit-btn" type="submit">Sign In</button>
-        </form>
+        <section class="panel">
+          <h3>Past Sales Ledger</h3>
+          <div id="adminSalesList" class="admin-room-list"></div>
+        </section>
       </div>
     </section>
+
   </main>
 </body>
 </html>

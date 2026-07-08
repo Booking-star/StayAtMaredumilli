@@ -6,12 +6,8 @@ window.addEventListener("unhandledrejection", (e) => {
   alert("JS Promise Error: " + e.reason);
 });
 
-const ownerLoginForm = document.querySelector("#ownerLoginForm");
 const ownerDashboard = document.querySelector("#ownerDashboard");
-const ownerLoginScreen = document.querySelector("#ownerLoginScreen");
 const ownerLogoutBtn = document.querySelector("#ownerLogoutBtn");
-const loginStatus = document.querySelector("#loginStatus");
-const loginSubmitBtn = ownerLoginForm ? ownerLoginForm.querySelector(".login-submit-btn") : null;
 
 const ownerGreeting = document.querySelector("#ownerGreeting");
 const statPastSales = document.querySelector("#statPastSales");
@@ -57,6 +53,14 @@ const tabCurrent = document.querySelector("#tabCurrent");
 const tabFuture = document.querySelector("#tabFuture");
 const tabPast = document.querySelector("#tabPast");
 
+const btnCustomBlock = document.querySelector("#btnCustomBlock");
+const modalStaticRoomRow = document.querySelector("#modalStaticRoomRow");
+const modalStaticDateRow = document.querySelector("#modalStaticDateRow");
+const modalRoomSelectRow = document.querySelector("#modalRoomSelectRow");
+const modalRoomSelect = document.querySelector("#modalRoomSelect");
+const modalDateSelectRow = document.querySelector("#modalDateSelectRow");
+const modalCustomDate = document.querySelector("#modalCustomDate");
+
 const supabaseConfig = window.STAY_SUPABASE || {};
 const supabaseClient = supabaseConfig.url && supabaseConfig.anonKey && window.supabase
   ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey)
@@ -66,6 +70,7 @@ let currentOwner = null;
 let ownerRooms = [];
 let allBookings = [];
 let activeTab = "current"; // "current", "future", "past"
+let isCustomBlockMode = false;
 
 // Stepper values
 let nightsCount = 1;
@@ -94,11 +99,8 @@ function formatDateWithDay(dateStr) {
 // Toggle sections based on login state
 function showAuthScreen(showLogin) {
   if (showLogin) {
-    if (ownerDashboard) ownerDashboard.classList.remove("active");
-    if (ownerLoginScreen) ownerLoginScreen.classList.add("active");
-    if (ownerLogoutBtn) ownerLogoutBtn.classList.add("hidden");
+    location.href = "login.html?type=owner";
   } else {
-    if (ownerLoginScreen) ownerLoginScreen.classList.remove("active");
     if (ownerDashboard) ownerDashboard.classList.add("active");
     if (ownerLogoutBtn) ownerLogoutBtn.classList.remove("hidden");
   }
@@ -127,7 +129,7 @@ async function loadOwnerData(userId) {
 
   // 2. Fetch Rooms
   const { data: rooms, error: roomsError } = await supabaseClient
-    .from("rooms")
+    .from("rooms_with_owner_policy")
     .select("*")
     .eq("owner_id", userId)
     .eq("active", true);
@@ -312,6 +314,22 @@ function renderBookings() {
 
   if (filtered.length === 0) {
     bookingsCardsContainer.innerHTML = `
+      ${activeTab === "past" ? `
+        <div class="card" style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 13px; color: var(--muted);">Total Completed Bookings</span>
+            <h2 style="margin: 4px 0 0; color: var(--text);">0</h2>
+          </div>
+          <div>
+            <span style="font-size: 13px; color: var(--muted);">Total Nights Sold</span>
+            <h2 style="margin: 4px 0 0; color: var(--text);">0</h2>
+          </div>
+          <div>
+            <span style="font-size: 13px; color: var(--muted);">Total Payout (Your Share)</span>
+            <h2 style="margin: 4px 0 0; color: var(--accent);">Rs.0</h2>
+          </div>
+        </div>
+      ` : ""}
       <div style="padding: 32px; text-align: center; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; background: #fff;">
         No bookings found for this category.
       </div>
@@ -319,7 +337,33 @@ function renderBookings() {
     return;
   }
 
-  bookingsCardsContainer.innerHTML = filtered.map(booking => {
+  let earningsHeaderHtml = "";
+  if (activeTab === "past") {
+    const totalEarnings = filtered.reduce((sum, b) => sum + (b.owner_amount || 0), 0);
+    const totalNights = filtered.reduce((sum, b) => {
+      const diffTime = Math.abs(new Date(b.check_out) - new Date(b.check_in));
+      return sum + Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }, 0);
+
+    earningsHeaderHtml = `
+      <div class="card" style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="font-size: 13px; color: var(--muted);">Total Completed Bookings</span>
+          <h2 style="margin: 4px 0 0; color: var(--text);">${filtered.length}</h2>
+        </div>
+        <div>
+          <span style="font-size: 13px; color: var(--muted);">Total Nights Sold</span>
+          <h2 style="margin: 4px 0 0; color: var(--text);">${totalNights}</h2>
+        </div>
+        <div>
+          <span style="font-size: 13px; color: var(--muted);">Total Payout (Your Share)</span>
+          <h2 style="margin: 4px 0 0; color: var(--accent);">Rs.${totalEarnings.toLocaleString("en-IN")}</h2>
+        </div>
+      </div>
+    `;
+  }
+
+  const cardsHtml = filtered.map(booking => {
     const room = ownerRooms.find(r => r.id === booking.room_id) || {};
     const isOffline = booking.status === "offline_blocked";
     
@@ -338,7 +382,8 @@ function renderBookings() {
           <p><strong>Phone:</strong> ${booking.customer_phone}</p>
           <p><strong>Rooms:</strong> ${booking.num_rooms} Room(s)</p>
           <p><strong>Status:</strong> ${isOffline ? 'Offline Blocked' : 'Customer Confirmed'}</p>
-          ${isOffline ? '' : `<p><strong>Revenue:</strong> ${formatPrice(booking.total_price)}</p>`}
+          <p><strong>Your Share (Payout):</strong> Rs.${(booking.owner_amount || 0).toLocaleString("en-IN")}</p>
+          ${isOffline ? '' : `<p><strong>Total Revenue:</strong> ${formatPrice(booking.total_price)}</p>`}
         </div>
         <div class="booking-card-actions">
           <button class="release-btn" data-cancel-id="${booking.id}">
@@ -348,6 +393,8 @@ function renderBookings() {
       </div>
     `;
   }).join("");
+
+  bookingsCardsContainer.innerHTML = earningsHeaderHtml + cardsHtml;
 
   // Attach cancel listeners
   const cancelButtons = bookingsCardsContainer.querySelectorAll("[data-cancel-id]");
@@ -389,6 +436,12 @@ async function cancelOrReleaseBooking(bookingId) {
 // Open modal and prefill values based on selection
 function openQuickModal(roomId, dateStr, remaining) {
   if (!quickBookingModal) return;
+
+  isCustomBlockMode = false;
+  if (modalStaticRoomRow) modalStaticRoomRow.classList.remove("hidden");
+  if (modalStaticDateRow) modalStaticDateRow.classList.remove("hidden");
+  if (modalRoomSelectRow) modalRoomSelectRow.classList.add("hidden");
+  if (modalDateSelectRow) modalDateSelectRow.classList.add("hidden");
 
   const room = ownerRooms.find(r => r.id === roomId);
   if (!room) return;
@@ -529,8 +582,13 @@ function setupSubmissions() {
     modalSubmitBlock.addEventListener("click", async () => {
       if (!supabaseClient) return;
 
-      const roomId = modalRoomId.value;
-      const checkInStr = modalDate.value;
+      const roomId = isCustomBlockMode ? modalRoomSelect.value : modalRoomId.value;
+      const checkInStr = isCustomBlockMode ? modalCustomDate.value : modalDate.value;
+      
+      if (!roomId || !checkInStr) {
+        alert("Please select a room and start date.");
+        return;
+      }
       
       // Calculate Check-out Str based on nights count
       const checkInDate = new Date(checkInStr);
@@ -543,6 +601,11 @@ function setupSubmissions() {
       const guestName = (modalGuestName.value || "").trim() || "Offline Walk-in";
       const guestPhone = (modalGuestPhone.value || "").trim() || "N/A";
       
+      const room = ownerRooms.find(r => r.id === roomId);
+      if (!room) return;
+
+      const pricing = calculatePricing(room, checkInStr, checkOutStr, roomsCount);
+
       const payload = {
         room_id: roomId,
         customer_name: guestName,
@@ -551,7 +614,9 @@ function setupSubmissions() {
         check_out: checkOutStr,
         num_rooms: roomsCount,
         status: "offline_blocked",
-        total_price: 0
+        total_price: pricing.websiteTotal,
+        owner_amount: pricing.ownerTotal,
+        profit_amount: pricing.profit
       };
 
       // Check double-booking issues for any of the dates
@@ -567,10 +632,6 @@ function setupSubmissions() {
         alert("Availability check error: " + availError.message);
         return;
       }
-
-      // Check max rooms capacity
-      const room = ownerRooms.find(r => r.id === roomId);
-      if (!room) return;
 
       // Find max overlap count
       let maxBooked = 0;
@@ -656,42 +717,7 @@ function setupSubmissions() {
     });
   }
 
-  // Handle Login Submit
-  if (ownerLoginForm) {
-    ownerLoginForm.addEventListener("submit", async event => {
-      event.preventDefault();
-      if (!supabaseClient) {
-        if (loginStatus) {
-          loginStatus.textContent = "Supabase is not connected.";
-          loginStatus.classList.remove("hidden");
-        }
-        return;
-      }
-      if (loginStatus) loginStatus.classList.add("hidden");
-      if (loginSubmitBtn) {
-        loginSubmitBtn.disabled = true;
-        loginSubmitBtn.textContent = "Signing In...";
-      }
-      const email = document.querySelector("#loginEmail").value;
-      const password = document.querySelector("#loginPassword").value;
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-      if (loginSubmitBtn) {
-        loginSubmitBtn.disabled = false;
-        loginSubmitBtn.textContent = "Sign In";
-      }
-      if (error) {
-        if (loginStatus) {
-          loginStatus.textContent = error.message;
-          loginStatus.classList.remove("hidden");
-        }
-      } else {
-        ownerLoginForm.reset();
-      }
-    });
-  }
+
 
   // Handle Logout Click
   if (ownerLogoutBtn) {
@@ -712,8 +738,10 @@ window.addEventListener("DOMContentLoaded", () => {
   setupTabs();
   setupSteppers();
   setupSubmissions();
+  setupCustomBlockerBtn();
   
   if (supabaseClient) {
+    setupRealtime();
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         showAuthScreen(false);
@@ -735,3 +763,94 @@ window.addEventListener("DOMContentLoaded", () => {
     renderBookings();
   }
 });
+
+function setupCustomBlockerBtn() {
+  if (btnCustomBlock) {
+    btnCustomBlock.addEventListener("click", () => {
+      isCustomBlockMode = true;
+      
+      // Toggle modal inputs
+      if (modalStaticRoomRow) modalStaticRoomRow.classList.add("hidden");
+      if (modalStaticDateRow) modalStaticDateRow.classList.add("hidden");
+      if (modalRoomSelectRow) modalRoomSelectRow.classList.remove("hidden");
+      if (modalDateSelectRow) modalDateSelectRow.classList.remove("hidden");
+      
+      // Populate Room Select Dropdown
+      if (modalRoomSelect) {
+        modalRoomSelect.innerHTML = ownerRooms.map(r => `
+          <option value="${r.id}">${r.room_name} (${r.room_type})</option>
+        `).join("");
+      }
+      
+      // Default custom date to today
+      if (modalCustomDate) {
+        modalCustomDate.value = new Date().toISOString().split("T")[0];
+      }
+      
+      // Reset steppers
+      nightsCount = 1;
+      roomsCount = 1;
+      maxRoomsToBlock = 30; // Max rooms allowed to block at once
+      
+      if (valNights) valNights.textContent = nightsCount;
+      if (valRooms) valRooms.textContent = roomsCount;
+      if (modalGuestName) modalGuestName.value = "";
+      if (modalGuestPhone) modalGuestPhone.value = "";
+      if (modalTitle) modalTitle.textContent = "Block Room Offline (Custom Date)";
+      if (modalBlockSection) modalBlockSection.classList.remove("hidden");
+      if (modalReleaseSection) modalReleaseSection.classList.add("hidden");
+      
+      quickBookingModal.classList.remove("hidden");
+    });
+  }
+}
+
+function setupRealtime() {
+  if (!supabaseClient) return;
+  supabaseClient
+    .channel("owner-realtime-sync")
+    .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
+      refreshBookings();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => {
+      if (currentOwner) loadOwnerData(currentOwner.id);
+    })
+    .subscribe();
+}
+
+function calculatePricing(room, fromStr, toStr, numRooms = 1) {
+  const from = new Date(fromStr);
+  const to = new Date(toStr);
+  const nights = Math.max(1, Math.ceil((to - from) / 86400000) || 1);
+  
+  let websiteTotal = 0;
+  let ownerTotal = 0;
+  
+  const policy = room.weekend_policy || "mon_fri";
+  
+  for (let i = 0; i < nights; i++) {
+    const d = new Date(from);
+    d.setDate(d.getDate() + i);
+    const dayOfWeek = d.getDay();
+    
+    let isWeekend = false;
+    if (policy === "mon_thu") {
+      isWeekend = [0, 5, 6].includes(dayOfWeek);
+    } else {
+      isWeekend = [0, 6].includes(dayOfWeek);
+    }
+    
+    const webPrice = isWeekend ? (room.weekend_price || room.weekday_price || 0) : (room.weekday_price || 0);
+    const ownPrice = isWeekend ? (room.weekend_owner_price || room.weekday_owner_price || 0) : (room.weekday_owner_price || 0);
+    
+    websiteTotal += webPrice;
+    ownerTotal += ownPrice;
+  }
+  
+  return {
+    nights,
+    websiteTotal: websiteTotal * numRooms,
+    ownerTotal: ownerTotal * numRooms,
+    profit: (websiteTotal - ownerTotal) * numRooms
+  };
+}
