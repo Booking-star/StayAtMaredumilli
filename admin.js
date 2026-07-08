@@ -397,46 +397,19 @@ if (adminOwnerForm) {
         alert(`Successfully updated owner credentials and profile for ${hotelName}!`);
         editingOwnerId = null;
       } else {
-        // REGISTER MODE: Sign up user in Supabase Auth
-        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              role: 'owner',
-              full_name: ownerName,
-              phone: ownerPhone,
-              alt_phone: altPhone,
-              hotel_name: hotelName
-            }
-          }
+        // REGISTER MODE: Call RPC to register owner programmatically with confirmed email
+        const { data: newUserId, error: rpcError } = await supabaseClient.rpc("admin_create_owner", {
+          new_email: email,
+          new_password: password,
+          o_name: ownerName,
+          o_phone: ownerPhone,
+          a_phone: altPhone,
+          h_name: hotelName,
+          w_policy: adminOwnerWeekendPolicy.value
         });
 
-        if (authError) {
-          console.error("Auth signup failure:", authError);
-          const errMsg = authError.message || authError.error_description || (typeof authError === 'object' ? JSON.stringify(authError) : String(authError));
-          throw new Error("Auth Sign-up failed: " + errMsg);
-        }
-
-        const user = authData?.user;
-        if (!user) {
-          throw new Error("Auth Sign-up did not return user data.");
-        }
-
-        // Insert into hotel_owners table using user.id
-        const { error: profileError } = await supabaseClient
-          .from("hotel_owners")
-          .insert({
-            id: user.id,
-            hotel_name: hotelName,
-            owner_name: ownerName,
-            phone: ownerPhone,
-            alt_phone: altPhone,
-            active: true
-          });
-
-        if (profileError) {
-          throw new Error("Failed to save owner profile: " + profileError.message);
+        if (rpcError) {
+          throw new Error("Registration failed: " + rpcError.message);
         }
 
         alert(`Successfully registered ${ownerName} for ${hotelName}!`);
