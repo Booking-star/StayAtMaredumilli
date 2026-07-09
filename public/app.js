@@ -89,6 +89,24 @@ async function loadOwnerRooms() {
   ownerRooms = data.map(roomFromSupabase);
 }
 
+let allBookings = [];
+
+async function loadAllBookings() {
+  if (!supabaseClient) {
+    allBookings = getStore("stayBookings", []);
+    return;
+  }
+  const { data, error } = await supabaseClient
+    .from("bookings")
+    .select("*")
+    .neq("status", "cancelled");
+  if (error) {
+    console.error(error);
+    return;
+  }
+  allBookings = data || [];
+}
+
 function setLandingVideo() {
   const src = innerWidth >= innerHeight ? "landing.mp4" : "landing-vertical.mp4";
   if (!video.src.endsWith(src)) {
@@ -153,7 +171,7 @@ function filteredRooms() {
     const text = `${room.type} ${room.name} ${room.location} ${room.amenities}`.toLowerCase();
     if (search && !text.includes(search)) return false;
     if (filter === "liked") return likes.includes(room.id);
-    if (filter === "available") return room.availableRooms > 0;
+    if (filter === "available") return getAvailableRoomsCount(room, bookingDetails) > 0;
     if (filter !== "all") return room.tags.includes(filter);
     return true;
   });
@@ -242,6 +260,8 @@ function renderFeed() {
 function roomCard(room) {
   const liked = likes.includes(room.id);
   const index = slides[room.id];
+  const remainingRooms = getAvailableRoomsCount(room, bookingDetails);
+  
   return `
     <article class="room-card">
       <div class="carousel" data-room="${room.id}">
@@ -263,12 +283,18 @@ function roomCard(room) {
           </div>
           ${amenityIcons(room)}
         </div>
-        <div class="meta">
+        <div class="meta" style="display: flex; justify-content: space-between; align-items: center;">
           <span><i data-lucide="map-pin"></i>${room.location}</span>
+          <span style="font-weight: 600; color: ${remainingRooms > 0 ? "var(--accent)" : "var(--danger)"};">
+            ${remainingRooms > 0 ? `${remainingRooms} rooms left` : "Sold Out"}
+          </span>
         </div>
         <div class="price-row">
           <strong>${priceLabel(room)} <small>per room/day</small></strong>
-          <button class="primary-btn" data-action="book" data-room="${room.id}" type="button">Book</button>
+          ${remainingRooms > 0 
+            ? `<button class="primary-btn" data-action="book" data-room="${room.id}" type="button">Book</button>`
+            : `<button class="primary-btn" disabled style="background: #444; border-color: #444; cursor: not-allowed;" type="button">Sold Out</button>`
+          }
         </div>
       </div>
     </article>
@@ -325,6 +351,45 @@ function priceForDates(room, details = null) {
     profit
   };
 }
+
+function getAvailableRoomsCount(room, details = null) {
+  const today = new Date();
+  const fromStr = details?.from || getLocalDateString(today);
+  const toStr = details?.to || getLocalDateString(new Date(today.getTime() + 86400000));
+  
+  // Filter active overlapping bookings for this room
+  const overlapping = allBookings.filter(b => {
+    const isSameRoom = String(b.room_id) === String(room.id);
+    const overlaps = b.check_in < toStr && b.check_out > fromStr;
+    return isSameRoom && overlaps;
+  });
+  
+  // Calculate max booked rooms on any day in this range
+  let maxBooked = 0;
+  const start = new Date(fromStr);
+  const end = new Date(toStr);
+  const nights = Math.max(1, Math.ceil((end - start) / 86400000) || 1);
+  
+  for (let i = 0; i < nights; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    const dStr = getLocalDateString(d);
+    
+    let bookedOnDay = 0;
+    overlapping.forEach(b => {
+      if (b.check_in <= dStr && b.check_out > dStr) {
+        bookedOnDay += Number(b.num_rooms || 1);
+      }
+    });
+    
+    if (bookedOnDay > maxBooked) {
+      maxBooked = bookedOnDay;
+    }
+  }
+  
+  return Math.max(0, Number(room.availableRooms) - maxBooked);
+}
+
 function renderSummary() {
   bookingSummary.classList.add("hidden");
   bookingSummary.innerHTML = "";
@@ -611,6 +676,14 @@ bookingForm.addEventListener("submit", async event => {
     alert(`This room allows maximum ${room.maxAdults} adults per room. Please increase rooms or reduce adults.`);
     return;
   }
+  const remaining = getAvailableRoomsCount(room, {
+    from: document.querySelector("#fromInput").value,
+    to: document.querySelector("#toInput").value
+  });
+  if (selectedRooms > remaining) {
+    alert(`Only ${remaining} room(s) are available on these dates! Please reduce the room count.`);
+    return;
+  }
   const pricing = priceForDates(room, {
     from: document.querySelector("#fromInput").value,
     to: document.querySelector("#toInput").value,
@@ -726,7 +799,46 @@ loginBtn.addEventListener("click", () => {
   landing.classList.add("hidden");
   app.classList.remove("hidden");
   showScreen(location.hash || "#home");
+  
+  // Set date constraints on the search fields
+  const todayStr = getLocalDateString();
+  const searchFrom = document.querySelector("#searchFrom");
+  const searchTo = document.querySelector("#searchTo");
+  if (searchFrom) searchFrom.min = todayStr;
+  if (searchTo) searchTo.min = todayStr;
+  
+  // Pre-fill default values for search fields (today & tomorrow)
+  const tomorrow = new Date(Date.now() + 86400000);
+  if (searchFrom && !searchFrom.value) searchFrom.value = todayStr;
+  if (searchTo && !searchTo.value) searchTo.value = getLocalDateString(tomorrow);
+  
+  const searchQueryModal = document.querySelector("#searchQueryModal");
+  if (searchQueryModal) searchQueryModal.showModal();
 });
+
+const searchQueryForm = document.querySelector("#searchQueryForm");
+if (searchQueryForm) {
+  searchQueryForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const fromVal = document.querySelector("#searchFrom").value;
+    const toVal = document.querySelector("#searchTo").value;
+    const adultsVal = Number(document.querySelector("#searchAdults").value || 2);
+    const kidsVal = Number(document.querySelector("#searchKids").value || 0);
+    
+    bookingDetails = {
+      ...bookingDetails,
+      from: fromVal,
+      to: toVal,
+      adults: adultsVal,
+      children: kidsVal,
+      rooms: 1
+    };
+    setStore("stayBookingDetails", bookingDetails);
+    
+    document.querySelector("#searchQueryModal")?.close();
+    render();
+  });
+}
 window.addEventListener("hashchange", () => showScreen(location.hash || "#home"));
 window.addEventListener("scroll", () => {
   clearTimeout(scrollResetTimer);
@@ -735,7 +847,9 @@ window.addEventListener("scroll", () => {
 window.addEventListener("resize", setLandingVideo);
 window.addEventListener("DOMContentLoaded", () => {
   setLandingVideo();
-  loadOwnerRooms().then(render);
+  loadAllBookings().then(() => {
+    loadOwnerRooms().then(render);
+  });
   
   // Set date constraints
   const todayStr = getLocalDateString();
@@ -753,7 +867,7 @@ function setupRealtime() {
   supabaseClient
     .channel("customer-realtime-sync")
     .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
-      loadOwnerRooms().then(render);
+      loadAllBookings().then(() => loadOwnerRooms().then(render));
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => {
       loadOwnerRooms().then(render);
