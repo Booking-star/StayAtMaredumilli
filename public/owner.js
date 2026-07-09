@@ -6,6 +6,12 @@ window.addEventListener("unhandledrejection", (e) => {
   alert("JS Promise Error: " + e.reason);
 });
 
+function getLocalDateString(date = new Date()) {
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+  return localDate.toISOString().split("T")[0];
+}
+
 const ownerDashboard = document.querySelector("#ownerDashboard");
 const ownerLogoutBtn = document.querySelector("#ownerLogoutBtn");
 
@@ -176,10 +182,10 @@ async function refreshBookings() {
 }
 
 function calculateStats() {
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = getLocalDateString();
   const threeDaysLater = new Date();
   threeDaysLater.setDate(threeDaysLater.getDate() + 3);
-  const threeDaysLaterStr = threeDaysLater.toISOString().split("T")[0];
+  const threeDaysLaterStr = getLocalDateString(threeDaysLater);
 
   let pastSalesSum = 0;
   let currentCount = 0;
@@ -297,10 +303,10 @@ function renderCalendarGrid() {
 function renderBookings() {
   if (!bookingsCardsContainer) return;
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = getLocalDateString();
   const threeDaysLater = new Date();
   threeDaysLater.setDate(threeDaysLater.getDate() + 3);
-  const threeDaysLaterStr = threeDaysLater.toISOString().split("T")[0];
+  const threeDaysLaterStr = getLocalDateString(threeDaysLater);
 
   let filtered = [];
 

@@ -26,6 +26,12 @@ const supabaseClient = supabaseConfig.url && supabaseConfig.anonKey && window.su
   ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey)
   : null;
 
+function getLocalDateString(date = new Date()) {
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+  return localDate.toISOString().split("T")[0];
+}
+
 const defaultRooms = [];
 
 const highlightReels = [
@@ -275,8 +281,8 @@ function priceLabel(room) {
 
 function priceForDates(room, details = null) {
   const today = new Date();
-  const fromStr = details?.from || today.toISOString().slice(0, 10);
-  const toStr = details?.to || new Date(today.getTime() + 86400000).toISOString().slice(0, 10);
+  const fromStr = details?.from || getLocalDateString(today);
+  const toStr = details?.to || getLocalDateString(new Date(today.getTime() + 86400000));
   const numRooms = Number(details?.rooms || 1);
   
   const from = new Date(fromStr);
@@ -398,12 +404,15 @@ function openBooking(roomId, editOnly = false) {
     adults: 2,
     children: 0,
     rooms: 1,
-    from: today.toISOString().slice(0, 10),
-    to: tomorrow.toISOString().slice(0, 10),
+    from: getLocalDateString(today),
+    to: getLocalDateString(tomorrow),
     payment: "20",
     firecamp: false,
     coupon: ""
   };
+  document.querySelector("#bookingName").value = defaults.name || profile.name || "";
+  document.querySelector("#bookingPhone").value = defaults.phone || profile.phone || "";
+  document.querySelector("#bookingEmail").value = defaults.email || profile.email || "";
   document.querySelector("#adultsInput").value = defaults.adults;
   document.querySelector("#childrenInput").value = defaults.children;
   document.querySelector("#roomsInput").value = defaults.rooms;
@@ -607,7 +616,14 @@ bookingForm.addEventListener("submit", async event => {
     to: document.querySelector("#toInput").value,
     rooms: selectedRooms
   });
+  const guestName = document.querySelector("#bookingName").value.trim();
+  const guestPhone = document.querySelector("#bookingPhone").value.trim();
+  const guestEmail = document.querySelector("#bookingEmail").value.trim();
+
   bookingDetails = {
+    name: guestName,
+    phone: guestPhone,
+    email: guestEmail,
     adults,
     children: Number(document.querySelector("#childrenInput").value),
     rooms: selectedRooms,
@@ -633,9 +649,9 @@ bookingForm.addEventListener("submit", async event => {
     if (supabaseClient) {
       const { error: dbError } = await supabaseClient.from("bookings").insert({
         room_id: room.id,
-        customer_name: profile.name || "Customer",
-        customer_phone: profile.phone || "9999999999",
-        customer_email: profile.email || "customer@stay.com",
+        customer_name: guestName || profile.name || "Customer",
+        customer_phone: guestPhone || profile.phone || "9999999999",
+        customer_email: guestEmail || profile.email || "customer@stay.com",
         check_in: bookingDetails.from,
         check_out: bookingDetails.to,
         num_rooms: bookingDetails.rooms,
@@ -720,6 +736,14 @@ window.addEventListener("resize", setLandingVideo);
 window.addEventListener("DOMContentLoaded", () => {
   setLandingVideo();
   loadOwnerRooms().then(render);
+  
+  // Set date constraints
+  const todayStr = getLocalDateString();
+  const fromInput = document.querySelector("#fromInput");
+  const toInput = document.querySelector("#toInput");
+  if (fromInput) fromInput.min = todayStr;
+  if (toInput) toInput.min = todayStr;
+
   if (supabaseClient) setupRealtime();
   if (window.lucide) lucide.createIcons();
 });
