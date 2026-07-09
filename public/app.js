@@ -34,12 +34,7 @@ function getLocalDateString(date = new Date()) {
 
 const defaultRooms = [];
 
-const highlightReels = [
-  { title: "Reel 1", url: "https://www.instagram.com/reel/DaehkAePf9t/" },
-  { title: "Reel 2", url: "https://www.instagram.com/reel/DaZdWt7v2kA/" },
-  { title: "Reel 3", url: "https://www.instagram.com/reel/DaHWCwLPKYt/" },
-  { title: "Reel 4", url: "https://www.instagram.com/reel/DaCghXTywVE/" }
-];
+let highlightReels = [];
 
 let selectedRoomId = null;
 let editingDetailsOnly = false;
@@ -145,7 +140,7 @@ function renderAdminStatus() {
 function renderHighlights() {
   highlights.innerHTML = highlightReels.map((reel, index) => `
     <button class="highlight reel-highlight" data-action="openReel" data-reel="${index}" type="button" aria-label="Play ${reel.title}">
-      <span class="reel-ring"><i data-lucide="play"></i></span>
+      <span class="reel-ring" style="background: linear-gradient(rgba(0,0,0,0.18), rgba(0,0,0,0.28)), url('${reel.image_url}') center/cover;"><i data-lucide="play"></i></span>
       <span>${reel.title}</span>
     </button>
   `).join("");
@@ -720,6 +715,7 @@ bookingForm.addEventListener("submit", async event => {
 
     // Save to shared database
     if (supabaseClient) {
+      const influencerId = localStorage.getItem("influencer_id");
       const { error: dbError } = await supabaseClient.from("bookings").insert({
         room_id: room.id,
         customer_name: guestName || profile.name || "Customer",
@@ -733,7 +729,8 @@ bookingForm.addEventListener("submit", async event => {
         total_price: pricing.total,
         owner_amount: pricing.ownerTotal,
         profit_amount: pricing.profit,
-        status: "confirmed"
+        status: "confirmed",
+        influencer_id: influencerId || null
       });
       if (dbError) {
         console.error("Failed to insert booking to Supabase:", dbError.message);
@@ -847,7 +844,10 @@ window.addEventListener("scroll", () => {
 window.addEventListener("resize", setLandingVideo);
 window.addEventListener("DOMContentLoaded", () => {
   setLandingVideo();
-  loadAllBookings().then(() => {
+  Promise.all([
+    loadAllBookings(),
+    loadHighlights()
+  ]).then(() => {
     loadOwnerRooms().then(render);
   });
   
@@ -858,7 +858,25 @@ window.addEventListener("DOMContentLoaded", () => {
   if (fromInput) fromInput.min = todayStr;
   if (toInput) toInput.min = todayStr;
 
-  if (supabaseClient) setupRealtime();
+  if (supabaseClient) {
+    setupRealtime();
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    if (refCode) {
+      localStorage.setItem('influencer_ref_code', refCode);
+      supabaseClient.rpc('increment_influencer_visits', { ref_code: refCode })
+        .then(() => {
+          return supabaseClient.from('influencers').select('id').eq('code', refCode.toLowerCase()).eq('active', true).single();
+        })
+        .then(({ data }) => {
+          if (data) {
+            localStorage.setItem('influencer_id', data.id);
+          }
+        })
+        .catch(err => console.error("Influencer tracking error:", err));
+    }
+  }
   if (window.lucide) lucide.createIcons();
 });
 
@@ -873,4 +891,17 @@ function setupRealtime() {
       loadOwnerRooms().then(render);
     })
     .subscribe();
+}
+
+async function loadHighlights() {
+  if (!supabaseClient) return;
+  const { data, error } = await supabaseClient
+    .from("highlights")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.error("Failed to load highlights:", error.message);
+    return;
+  }
+  highlightReels = data || [];
 }

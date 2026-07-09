@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Stay@Maredumilli Admin</title>
-  <link rel="stylesheet" href="styles.css?v=stitch-20260708-2">
+  <link rel="stylesheet" href="styles.css?v=influencers-fix">
   <link rel="manifest" href="manifest.json">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="supabase-config.js" defer></script>
-  <script src="admin.js?v=stitch-20260708-2" defer></script>
+  <script src="admin.js?v=influencers-fix" defer></script>
 </head>
 <body>
   <main class="app admin-app">
@@ -37,6 +37,8 @@
         <button id="adminTabInventory" class="ghost-btn active" type="button">Hotel Inventory</button>
         <button id="adminTabOwners" class="ghost-btn" type="button">Hotel Owners</button>
         <button id="adminTabSales" class="ghost-btn" type="button">Sales Report</button>
+        <button id="adminTabInfluencers" class="ghost-btn" type="button">Influencers</button>
+        <button id="adminTabHighlights" class="ghost-btn" type="button">Highlights</button>
       </div>
 
       <div id="adminStatus" class="booking-summary" style="margin-bottom: 15px; display: none;"></div>
@@ -126,7 +128,7 @@
       <div id="contentSales" class="hidden">
         <section class="panel" style="margin-bottom: 24px;">
           <h3>Financial overview</h3>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 16px 0;">
             <div class="card" style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
               <span style="font-size: 13px; color: var(--muted);">Total Revenue</span>
               <h2 id="adminTotalRevenue" style="margin: 8px 0 0; color: var(--text);">Rs.0</h2>
@@ -145,6 +147,53 @@
         <section class="panel">
           <h3>Past Sales Ledger</h3>
           <div id="adminSalesList" class="admin-room-list"></div>
+        </section>
+      </div>
+
+      <!-- Tab Content: Influencer Collaboration -->
+      <div id="contentInfluencers" class="hidden">
+        <section class="panel" style="margin-bottom: 24px;">
+          <h3>Add New Influencer</h3>
+          <form id="adminInfluencerForm" class="admin-form">
+            <div class="form-grid">
+              <label>Influencer Name <input id="adminInfluencerName" required placeholder="John Doe"></label>
+              <label>Referral Code <input id="adminInfluencerCode" required placeholder="john5"></label>
+            </div>
+            <button class="primary-btn" type="submit" style="margin-top: 15px; background: var(--accent); color: #fff; font-weight: bold; border-radius: 8px;">Register Influencer</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <h3>Active Collaborators</h3>
+          <div id="adminInfluencerList" class="admin-room-list"></div>
+        </section>
+      </div>
+
+      <!-- Tab Content: Highlights Manager -->
+      <div id="contentHighlights" class="hidden">
+        <section class="panel" style="margin-bottom: 24px;">
+          <h3 id="highlightsFormTitle">Add New Highlight / Reel</h3>
+          <form id="adminHighlightForm" class="admin-form">
+            <input type="hidden" id="adminHighlightId">
+            <div class="form-grid">
+              <label>Highlight Title <input id="adminHighlightTitle" required placeholder="Nature Trail"></label>
+              <label>Instagram Reel Link <input id="adminHighlightUrl" required placeholder="https://www.instagram.com/reel/..."></label>
+              <label style="grid-column: span 2;">Cover Image <input id="adminHighlightImage" type="file" accept="image/*"></label>
+            </div>
+            <div id="highlightImagePreviewContainer" class="hidden" style="margin-top: 12px;">
+              <p style="font-size: 13px; color: var(--muted); margin: 0 0 6px;">Current Image Preview:</p>
+              <img id="highlightImagePreview" src="" style="width: 82px; height: 82px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent);">
+            </div>
+            <div style="margin-top: 15px; display: flex; gap: 12px;">
+              <button class="primary-btn" type="submit" style="background: var(--accent); color: #fff; font-weight: bold; border-radius: 8px;">Save Highlight</button>
+              <button class="ghost-btn hidden" id="adminHighlightCancelBtn" type="button" style="border-radius: 8px;">Cancel Edit</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel">
+          <h3>Saved Highlights</h3>
+          <div id="adminHighlightsList" class="admin-room-list"></div>
         </section>
       </div>
     </section>

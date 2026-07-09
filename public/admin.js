@@ -29,6 +29,12 @@ const adminTabSales = document.querySelector("#adminTabSales");
 const contentInventory = document.querySelector("#contentInventory");
 const contentOwners = document.querySelector("#contentOwners");
 const contentSales = document.querySelector("#contentSales");
+const adminTabInfluencers = document.querySelector("#adminTabInfluencers");
+const contentInfluencers = document.querySelector("#contentInfluencers");
+const adminInfluencerList = document.querySelector("#adminInfluencerList");
+const adminTabHighlights = document.querySelector("#adminTabHighlights");
+const contentHighlights = document.querySelector("#contentHighlights");
+const adminHighlightsList = document.querySelector("#adminHighlightsList");
 
 const adminOwnerHotel = document.querySelector("#adminOwnerHotel");
 const adminOwnerName = document.querySelector("#adminOwnerName");
@@ -295,34 +301,74 @@ if (adminLogoutBtn) {
 }
 
 function setupAdminTabs() {
-  if (!adminTabInventory || !adminTabOwners || !adminTabSales) return;
+  if (!adminTabInventory || !adminTabOwners || !adminTabSales || !adminTabInfluencers || !adminTabHighlights) return;
 
   adminTabInventory.addEventListener("click", () => {
     adminTabInventory.classList.add("active");
     adminTabOwners.classList.remove("active");
     adminTabSales.classList.remove("active");
+    adminTabInfluencers.classList.remove("active");
+    adminTabHighlights.classList.remove("active");
     contentInventory.classList.remove("hidden");
     contentOwners.classList.add("hidden");
     contentSales.classList.add("hidden");
+    contentInfluencers.classList.add("hidden");
+    contentHighlights.classList.add("hidden");
   });
 
   adminTabOwners.addEventListener("click", () => {
     adminTabOwners.classList.add("active");
     adminTabInventory.classList.remove("active");
     adminTabSales.classList.remove("active");
+    adminTabInfluencers.classList.remove("active");
+    adminTabHighlights.classList.remove("active");
     contentOwners.classList.remove("hidden");
     contentInventory.classList.add("hidden");
     contentSales.classList.add("hidden");
+    contentInfluencers.classList.add("hidden");
+    contentHighlights.classList.add("hidden");
   });
 
   adminTabSales.addEventListener("click", () => {
     adminTabSales.classList.add("active");
     adminTabInventory.classList.remove("active");
     adminTabOwners.classList.remove("active");
+    adminTabInfluencers.classList.remove("active");
+    adminTabHighlights.classList.remove("active");
     contentSales.classList.remove("hidden");
     contentInventory.classList.add("hidden");
     contentOwners.classList.add("hidden");
+    contentInfluencers.classList.add("hidden");
+    contentHighlights.classList.add("hidden");
     loadSales();
+  });
+
+  adminTabInfluencers.addEventListener("click", () => {
+    adminTabInfluencers.classList.add("active");
+    adminTabInventory.classList.remove("active");
+    adminTabOwners.classList.remove("active");
+    adminTabSales.classList.remove("active");
+    adminTabHighlights.classList.remove("active");
+    contentInfluencers.classList.remove("hidden");
+    contentInventory.classList.add("hidden");
+    contentOwners.classList.add("hidden");
+    contentSales.classList.add("hidden");
+    contentHighlights.classList.add("hidden");
+    loadInfluencers();
+  });
+
+  adminTabHighlights.addEventListener("click", () => {
+    adminTabHighlights.classList.add("active");
+    adminTabInventory.classList.remove("active");
+    adminTabOwners.classList.remove("active");
+    adminTabSales.classList.remove("active");
+    adminTabInfluencers.classList.remove("active");
+    contentHighlights.classList.remove("hidden");
+    contentInventory.classList.add("hidden");
+    contentOwners.classList.add("hidden");
+    contentSales.classList.add("hidden");
+    contentInfluencers.classList.add("hidden");
+    loadHighlights();
   });
 }
 
@@ -583,7 +629,7 @@ function renderSales() {
   document.querySelector("#adminTotalProfit").textContent = "Rs." + profit.toLocaleString("en-IN");
 
   adminSalesList.innerHTML = allBookings.length ? allBookings.map(b => `
-    <article class="admin-room-item" style="padding: 14px; border-left: 4px solid var(--primary); border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+    <article class="sales-item">
       <div style="flex-grow: 1;">
         <strong style="font-size: 15px; color: var(--text);">${b.rooms?.room_name || "Room blockage/booking"}</strong>
         <p style="font-size: 13px; color: var(--muted); margin: 4px 0 0;">
@@ -640,3 +686,262 @@ if (window.navigator.standalone === false || !window.matchMedia('(display-mode: 
     pwaInstallBtn.style.display = 'inline-flex';
   }
 }
+
+// Influencer Collaboration Functions
+async function loadInfluencers() {
+  if (!supabaseClient) return;
+  const { data: bookingsData } = await supabaseClient
+    .from("bookings")
+    .select("*, rooms(room_name)")
+    .neq("status", "cancelled");
+  allBookings = bookingsData || [];
+
+  const { data, error } = await supabaseClient
+    .from("influencers")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    setStatus(error.message);
+    return;
+  }
+  
+  renderInfluencers(data);
+}
+
+function renderInfluencers(influencersList) {
+  if (!adminInfluencerList) return;
+  
+  if (influencersList.length === 0) {
+    adminInfluencerList.innerHTML = `<p style="padding: 12px; color: var(--muted); text-align: center;">No influencers registered yet.</p>`;
+    return;
+  }
+  
+  const siteUrl = window.location.origin;
+  
+  adminInfluencerList.innerHTML = influencersList.map(inf => {
+    const bookings = allBookings.filter(b => b.influencer_id === inf.id);
+    const bookingsCount = bookings.length;
+    const revenue = bookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+    const refLink = `${siteUrl}/?ref=${inf.code}`;
+    
+    return `
+      <article class="influencer-item">
+        <div style="flex-grow: 1;">
+          <strong style="font-size: 16px; color: var(--text);">${inf.name}</strong>
+          <p style="font-size: 13px; color: var(--muted); margin: 4px 0 0;">
+            <strong>Code:</strong> <code style="background: #2a2a2a; padding: 2px 6px; border-radius: 4px; color: var(--accent); font-weight: bold;">${inf.code}</code> &middot; 
+            <strong>Visits:</strong> ${inf.visits} &middot;
+            <strong>Bookings:</strong> ${bookingsCount}
+          </p>
+          <p style="font-size: 12px; color: var(--muted); margin: 6px 0 0; display: flex; align-items: center; gap: 6px;">
+            <strong>Link:</strong> <a href="${refLink}" target="_blank" style="color: var(--primary); text-decoration: underline;">${refLink}</a>
+            <button class="ghost-btn copy-link-btn" data-link="${refLink}" type="button" style="padding: 2px 6px; font-size: 10px; border-color: rgba(255,255,255,0.15);">Copy</button>
+          </p>
+        </div>
+        <div style="text-align: right;">
+          <strong style="font-size: 16px; color: var(--text);">Revenue: Rs.${revenue.toLocaleString("en-IN")}</strong>
+          <p style="margin: 4px 0 0;">
+            <button class="ghost-btn delete-influencer-btn" data-id="${inf.id}" type="button" style="color: var(--danger); border-color: rgba(214,41,118,0.2); padding: 4px 8px; font-size: 11px;">Remove</button>
+          </p>
+        </div>
+      </article>
+    `;
+  }).join("");
+  
+  // Attach Copy button listeners
+  adminInfluencerList.querySelectorAll(".copy-link-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      navigator.clipboard.writeText(btn.dataset.link);
+      btn.textContent = "Copied!";
+      setTimeout(() => { btn.textContent = "Copy"; }, 1500);
+    });
+  });
+
+  // Attach Delete button listeners
+  adminInfluencerList.querySelectorAll(".delete-influencer-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Are you sure you want to remove this influencer?")) return;
+      const { error } = await supabaseClient.from("influencers").delete().eq("id", btn.dataset.id);
+      if (error) {
+        alert(error.message);
+      } else {
+        loadInfluencers();
+      }
+    });
+  });
+}
+
+// Add influencer submit listener on load
+window.addEventListener("DOMContentLoaded", () => {
+  const influencerForm = document.querySelector("#adminInfluencerForm");
+  if (influencerForm) {
+    influencerForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.querySelector("#adminInfluencerName").value.trim();
+      const code = document.querySelector("#adminInfluencerCode").value.trim().toLowerCase();
+      
+      const { error } = await supabaseClient.from("influencers").insert({ name, code });
+      if (error) {
+        alert(error.message);
+      } else {
+        influencerForm.reset();
+        loadInfluencers();
+      }
+    });
+  }
+});
+
+// Highlights Manager Logic
+let allHighlights = [];
+
+async function loadHighlights() {
+  if (!supabaseClient) return;
+  const { data, error } = await supabaseClient
+    .from("highlights")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) {
+    setStatus(error.message);
+    return;
+  }
+  allHighlights = data || [];
+  renderHighlightsAdmin();
+}
+
+function renderHighlightsAdmin() {
+  if (!adminHighlightsList) return;
+  
+  if (allHighlights.length === 0) {
+    adminHighlightsList.innerHTML = `<p style="padding: 12px; color: var(--muted); text-align: center;">No highlights added yet.</p>`;
+    return;
+  }
+  
+  adminHighlightsList.innerHTML = allHighlights.map(h => `
+    <article class="admin-room-item" style="padding: 12px; border-left: 4px solid var(--accent); border-radius: 8px; margin-bottom: 12px; display: grid; grid-template-columns: 72px 1fr auto; gap: 12px; align-items: center;">
+      <img src="${h.image_url}" alt="${h.title}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent);">
+      <div>
+        <strong style="font-size: 15px; color: var(--text);">${h.title}</strong>
+        <p style="font-size: 12px; color: var(--muted); margin: 4px 0 0; word-break: break-all;">
+          <strong>Link:</strong> <a href="${h.url}" target="_blank" style="color: var(--primary); text-decoration: underline;">${h.url}</a>
+        </p>
+      </div>
+      <div class="admin-actions">
+        <button class="ghost-btn edit-highlight-btn" data-id="${h.id}" type="button">Edit</button>
+        <button class="ghost-btn delete-highlight-btn" data-id="${h.id}" type="button" style="color: var(--danger); border-color: rgba(214,41,118,0.2);">Delete</button>
+      </div>
+    </article>
+  `).join("");
+
+  // Attach Edit button listeners
+  adminHighlightsList.querySelectorAll(".edit-highlight-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const h = allHighlights.find(item => item.id === btn.dataset.id);
+      if (!h) return;
+      
+      document.querySelector("#adminHighlightId").value = h.id;
+      document.querySelector("#adminHighlightTitle").value = h.title;
+      document.querySelector("#adminHighlightUrl").value = h.url;
+      
+      // Show Preview
+      document.querySelector("#highlightImagePreview").src = h.image_url;
+      document.querySelector("#highlightImagePreviewContainer").classList.remove("hidden");
+      
+      document.querySelector("#highlightsFormTitle").textContent = "Edit Highlight";
+      document.querySelector("#adminHighlightCancelBtn").classList.remove("hidden");
+      
+      document.querySelector("#contentHighlights").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
+  // Attach Delete button listeners
+  adminHighlightsList.querySelectorAll(".delete-highlight-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Are you sure you want to delete this highlight?")) return;
+      const { error } = await supabaseClient.from("highlights").delete().eq("id", btn.dataset.id);
+      if (error) {
+        alert(error.message);
+      } else {
+        loadHighlights();
+      }
+    });
+  });
+}
+
+async function uploadHighlightImage(file) {
+  if (!supabaseClient) return "";
+  const safeName = file.name.replace(/[^a-z0-9.]/gi, "-");
+  const path = `highlights/${Date.now()}-${safeName}`;
+  const { error } = await supabaseClient.storage
+    .from(supabaseConfig.roomBucket || "room-images")
+    .upload(path, file, { upsert: true });
+  if (error) throw error;
+  const { data } = supabaseClient.storage
+    .from(supabaseConfig.roomBucket || "room-images")
+    .getPublicUrl(path);
+  return data.publicUrl;
+}
+
+function resetHighlightForm() {
+  const form = document.querySelector("#adminHighlightForm");
+  if (form) form.reset();
+  document.querySelector("#adminHighlightId").value = "";
+  document.querySelector("#highlightImagePreviewContainer").classList.add("hidden");
+  document.querySelector("#highlightsFormTitle").textContent = "Add New Highlight / Reel";
+  document.querySelector("#adminHighlightCancelBtn").classList.add("hidden");
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  const highlightForm = document.querySelector("#adminHighlightForm");
+  const cancelBtn = document.querySelector("#adminHighlightCancelBtn");
+  
+  if (highlightForm) {
+    highlightForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.querySelector("#adminHighlightId").value;
+      const title = document.querySelector("#adminHighlightTitle").value.trim();
+      const url = document.querySelector("#adminHighlightUrl").value.trim();
+      const fileInput = document.querySelector("#adminHighlightImage");
+      const file = fileInput.files[0];
+      
+      try {
+        let imageUrl = "";
+        
+        if (file) {
+          imageUrl = await uploadHighlightImage(file);
+        } else if (id) {
+          const existing = allHighlights.find(item => item.id === id);
+          if (existing) imageUrl = existing.image_url;
+        }
+        
+        if (!imageUrl) {
+          alert("Please select a cover image.");
+          return;
+        }
+        
+        if (id) {
+          const { error } = await supabaseClient
+            .from("highlights")
+            .update({ title, url, image_url: imageUrl })
+            .eq("id", id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabaseClient
+            .from("highlights")
+            .insert({ title, url, image_url: imageUrl });
+          if (error) throw error;
+        }
+        
+        resetHighlightForm();
+        loadHighlights();
+      } catch (err) {
+        alert("Error saving highlight: " + err.message);
+      }
+    });
+  }
+  
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", () => {
+      resetHighlightForm();
+    });
+  }
+});
