@@ -23,16 +23,11 @@ const adminRoomOwner = document.querySelector("#adminRoomOwner");
 const adminOwnerForm = document.querySelector("#adminOwnerForm");
 const adminOwnerList = document.querySelector("#adminOwnerList");
 
-const adminTabInventory = document.querySelector("#adminTabInventory");
-const adminTabOwners = document.querySelector("#adminTabOwners");
-const adminTabSales = document.querySelector("#adminTabSales");
 const contentInventory = document.querySelector("#contentInventory");
 const contentOwners = document.querySelector("#contentOwners");
 const contentSales = document.querySelector("#contentSales");
-const adminTabInfluencers = document.querySelector("#adminTabInfluencers");
 const contentInfluencers = document.querySelector("#contentInfluencers");
 const adminInfluencerList = document.querySelector("#adminInfluencerList");
-const adminTabHighlights = document.querySelector("#adminTabHighlights");
 const contentHighlights = document.querySelector("#contentHighlights");
 const adminHighlightsList = document.querySelector("#adminHighlightsList");
 const adminSectionSelect = document.querySelector("#adminSectionSelect");
@@ -302,29 +297,22 @@ if (adminLogoutBtn) {
 }
 
 function setupAdminTabs() {
-  if (!adminTabInventory || !adminTabOwners || !adminTabSales || !adminTabInfluencers || !adminTabHighlights) return;
-
-  document.querySelectorAll("[data-admin-section]").forEach(button => {
-    button.addEventListener("click", () => showAdminSection(button.dataset.adminSection));
-  });
   adminSectionSelect?.addEventListener("change", () => showAdminSection(adminSectionSelect.value));
   showAdminSection("inventory");
 }
 
 function showAdminSection(section) {
   const sections = {
-    inventory: { tab: adminTabInventory, content: contentInventory },
-    owners: { tab: adminTabOwners, content: contentOwners },
-    sales: { tab: adminTabSales, content: contentSales, load: loadSales },
-    influencers: { tab: adminTabInfluencers, content: contentInfluencers, load: loadInfluencers },
-    highlights: { tab: adminTabHighlights, content: contentHighlights, load: loadHighlights }
+    inventory: { content: contentInventory },
+    owners: { content: contentOwners },
+    sales: { content: contentSales, load: loadSales },
+    influencers: { content: contentInfluencers, load: loadInfluencers },
+    highlights: { content: contentHighlights, load: loadHighlights }
   };
   if (!sections[section]) section = "inventory";
-  Object.values(sections).forEach(({ tab, content }) => {
-    tab?.classList.remove("active");
+  Object.values(sections).forEach(({ content }) => {
     content?.classList.add("hidden");
   });
-  sections[section].tab?.classList.add("active");
   sections[section].content?.classList.remove("hidden");
   if (adminSectionSelect) adminSectionSelect.value = section;
   sections[section].load?.();

@@ -32,8 +32,9 @@
         </div>
       </div>
 
-      <!-- Navigation tabs -->
-      <div class="admin-section-nav">
+      <!-- Navigation Dropdown -->
+      <div style="margin-bottom: 24px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <label for="adminSectionSelect" style="font-size: 14px; font-weight: bold; color: var(--muted);">Select Dashboard View:</label>
         <select id="adminSectionSelect" class="admin-section-select" aria-label="Choose admin section">
           <option value="inventory">Hotel Inventory</option>
           <option value="owners">Hotel Owners</option>
@@ -41,13 +42,6 @@
           <option value="influencers">Influencers</option>
           <option value="highlights">Highlights</option>
         </select>
-        <div class="booking-tabs admin-tabs">
-          <button id="adminTabInventory" class="ghost-btn active" type="button" data-admin-section="inventory">Hotel Inventory</button>
-          <button id="adminTabOwners" class="ghost-btn" type="button" data-admin-section="owners">Hotel Owners</button>
-          <button id="adminTabSales" class="ghost-btn" type="button" data-admin-section="sales">Sales Report</button>
-          <button id="adminTabInfluencers" class="ghost-btn" type="button" data-admin-section="influencers">Influencers</button>
-          <button id="adminTabHighlights" class="ghost-btn" type="button" data-admin-section="highlights">Highlights</button>
-        </div>
       </div>
 
       <div id="adminStatus" class="booking-summary" style="margin-bottom: 15px; display: none;"></div>

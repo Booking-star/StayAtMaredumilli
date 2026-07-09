@@ -22,8 +22,9 @@ const config = {
 };
 
 const publicDir = path.join(process.cwd(), "public");
-fs.rmSync(publicDir, { recursive: true, force: true });
-fs.mkdirSync(publicDir);
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir);
+}
 
 for (const file of ["index.html", "admin.html", "owner.html", "login.html", "styles.css", "app.js", "admin.js", "owner.js", "landing.mp4", "landing-vertical.mp4", "manifest.json", "sw.js"]) {
   fs.copyFileSync(file, path.join(publicDir, file));

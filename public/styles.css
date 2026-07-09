@@ -1239,9 +1239,24 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 }
 
 .admin-section-select {
-  display: none;
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
   min-height: 44px;
-  font-weight: 800;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.admin-section-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
 }
 
 /* Custom Calendar selector inside Modal */
