@@ -46,6 +46,7 @@ let ownerRooms = [];
 let hotelOwners = [];
 let allBookings = [];
 let editingRoomId = null;
+let currentRoomImages = [];
 
 function setStatus(message) {
   adminStatus.textContent = message;
@@ -108,11 +109,20 @@ adminRoomForm.addEventListener("submit", async event => {
   if (!supabaseClient) return showError("Supabase not connected.");
   setSaving(true);
   setStatus("Saving room and uploading images...");
-  const files = Array.from(document.querySelector("#adminImages").files);
-  const editingRoom = ownerRooms.find(room => room.id === editingRoomId);
   let imageUrls = [];
   try {
-    imageUrls = files.length ? await uploadImages(files) : editingRoom?.image_urls || [];
+    const uploadPromises = currentRoomImages.map(async (img, idx) => {
+      if (img.file) {
+        const uploadedUrl = await uploadRoomImage(img.file);
+        return { url: uploadedUrl, order: img.order ?? (idx + 1) };
+      } else {
+        return { url: img.url, order: img.order ?? (idx + 1) };
+      }
+    });
+    const resolved = await Promise.all(uploadPromises);
+    imageUrls = resolved
+      .sort((a, b) => a.order - b.order)
+      .map(img => img.url);
   } catch (error) {
     setSaving(false);
     return showError(error.message);
@@ -141,6 +151,8 @@ adminRoomForm.addEventListener("submit", async event => {
     return showError(error.message);
   }
   editingRoomId = null;
+  currentRoomImages = [];
+  renderImageOrderList();
   adminRoomForm.reset();
   await loadRooms();
   setSaving(false);
@@ -163,6 +175,8 @@ function editRoom(id) {
   const room = ownerRooms.find(item => item.id === id);
   if (!room) return;
   editingRoomId = id;
+  currentRoomImages = (room.image_urls || []).map((url, index) => ({ url, order: index + 1 }));
+  renderImageOrderList();
   document.querySelector("#adminRoomName").value = room.room_name;
   document.querySelector("#adminRoomType").value = room.room_type;
   document.querySelector("#adminAvailableRooms").value = room.available_rooms;
@@ -181,22 +195,77 @@ function editRoom(id) {
   adminRoomForm.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-async function uploadImages(files) {
-  const urls = [];
-  for (const file of files) {
-    const safeName = file.name.replace(/[^a-z0-9.]/gi, "-");
-    const path = `rooms/${Date.now()}-${safeName}`;
-    const { error } = await supabaseClient.storage
-      .from(supabaseConfig.roomBucket || "room-images")
-      .upload(path, file, { upsert: true });
-    if (error) throw error;
-    const { data } = supabaseClient.storage
-      .from(supabaseConfig.roomBucket || "room-images")
-      .getPublicUrl(path);
-    urls.push(data.publicUrl);
-  }
-  return urls;
+async function uploadRoomImage(file) {
+  if (!supabaseClient) return fileToDataUrl(file);
+  const safeName = file.name.replace(/[^a-z0-9.]/gi, "-");
+  const path = `rooms/${Date.now()}-${safeName}`;
+  const { error } = await supabaseClient.storage
+    .from(supabaseConfig.roomBucket || "room-images")
+    .upload(path, file, { upsert: true });
+  if (error) throw error;
+  const { data } = supabaseClient.storage
+    .from(supabaseConfig.roomBucket || "room-images")
+    .getPublicUrl(path);
+  return data.publicUrl;
 }
+
+function renderImageOrderList() {
+  const container = document.querySelector("#imageOrderContainer");
+  const list = document.querySelector("#imageOrderList");
+  if (!container || !list) return;
+  
+  if (currentRoomImages.length === 0) {
+    container.classList.add("hidden");
+    return;
+  }
+  
+  container.classList.remove("hidden");
+  list.innerHTML = currentRoomImages.map((img, index) => `
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px; background: #252525; border-radius: 6px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <img src="${img.url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+        <span style="font-size: 13px; color: #ccc; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          ${img.file ? img.file.name : "Existing Image"}
+        </span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 12px; color: #888;">Order:</span>
+        <input type="number" class="image-order-input" data-index="${index}" min="1" value="${img.order || ""}" placeholder="${index + 1}" style="width: 60px; height: 30px; background: #2a2a2a; border: 1px solid var(--border); color: #fff; text-align: center; border-radius: 4px;">
+        <button type="button" class="ghost-btn remove-img-btn" data-index="${index}" style="color: var(--danger); border-color: rgba(214,41,118,0.2); padding: 4px 8px; font-size: 11px;">Remove</button>
+      </div>
+    </div>
+  `).join("");
+  
+  list.querySelectorAll(".image-order-input").forEach(input => {
+    input.addEventListener("input", (e) => {
+      const idx = parseInt(e.target.dataset.index, 10);
+      currentRoomImages[idx].order = e.target.value ? parseInt(e.target.value, 10) : null;
+    });
+  });
+  
+  list.querySelectorAll(".remove-img-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const idx = parseInt(e.currentTarget.dataset.index, 10);
+      currentRoomImages.splice(idx, 1);
+      renderImageOrderList();
+    });
+  });
+}
+
+document.querySelector("#adminImages")?.addEventListener("change", (e) => {
+  const files = Array.from(e.target.files);
+  const newImages = files.map((file, index) => {
+    const url = URL.createObjectURL(file);
+    return { file, url, order: index + 1 };
+  });
+  
+  if (editingRoomId) {
+    currentRoomImages = [...currentRoomImages, ...newImages];
+  } else {
+    currentRoomImages = newImages;
+  }
+  renderImageOrderList();
+});
 
 // Auth UI helper
 function showAuthScreen(showLogin) {
