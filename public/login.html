@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login | Stay@Maredumilli</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=stitch-20260708-2">
+  <link rel="manifest" href="manifest.json">
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -44,6 +45,7 @@
 
       <button class="primary-btn login-submit-btn" type="submit" style="background: var(--accent); color: #fff; font-weight: 700; border-radius: 8px; height: 42px; margin-top: 8px;">Sign In</button>
     </form>
+    <button id="pwaInstallBtn" class="ghost-btn" type="button" style="display: none; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 12px; border-color: rgba(0,0,0,0.1);"><i data-lucide="download"></i> Install App on Home Screen</button>
   </div>
 
   <script>
@@ -131,6 +133,44 @@
         submitBtn.textContent = "Sign In";
       }
     });
+
+    // ponytail: PWA service worker and installation prompt logic
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(err => console.error("SW failed:", err));
+    }
+
+    let deferredPrompt;
+    const pwaInstallBtn = document.querySelector("#pwaInstallBtn");
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (pwaInstallBtn) pwaInstallBtn.style.display = 'inline-flex';
+    });
+
+    if (pwaInstallBtn) {
+      pwaInstallBtn.addEventListener('click', async () => {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+          alert("To install this app on iOS:\n1. Tap the Share button in Safari (at the bottom or top of the screen).\n2. Scroll down the menu and tap 'Add to Home Screen'.");
+        } else if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log("Install prompt outcome:", outcome);
+          deferredPrompt = null;
+          pwaInstallBtn.style.display = 'none';
+        } else {
+          alert("To add this app to your Home Screen, use your browser's menu (e.g. tap 'Install App' or 'Add to home screen').");
+        }
+      });
+    }
+
+    if (window.navigator.standalone === false || !window.matchMedia('(display-mode: standalone)').matches) {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIOS && pwaInstallBtn) {
+        pwaInstallBtn.style.display = 'inline-flex';
+      }
+    }
   </script>
 </body>
 </html>

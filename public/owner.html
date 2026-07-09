@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Stay@Maredumilli Owner Portal</title>
   <link rel="stylesheet" href="styles.css?v=stitch-20260708-2">
+  <link rel="manifest" href="manifest.json">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="supabase-config.js" defer></script>
@@ -19,6 +20,7 @@
       </a>
       <div class="header-actions" style="display: flex; gap: 12px; align-items: center;">
         <a class="ghost-btn" href="index.html">Customer site</a>
+        <button id="pwaInstallBtn" class="ghost-btn" type="button" style="display: none; align-items: center; gap: 6px;"><i data-lucide="download"></i> Install App</button>
         <button id="ownerLogoutBtn" class="ghost-btn hidden" type="button">Logout</button>
       </div>
     </header>

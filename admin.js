@@ -602,3 +602,41 @@ function renderSales() {
     </article>
   `).join("") : "No bookings recorded yet.";
 }
+
+// ponytail: PWA service worker and installation prompt logic
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(err => console.error("SW failed:", err));
+}
+
+let deferredPrompt;
+const pwaInstallBtn = document.querySelector("#pwaInstallBtn");
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (pwaInstallBtn) pwaInstallBtn.style.display = 'inline-flex';
+});
+
+if (pwaInstallBtn) {
+  pwaInstallBtn.addEventListener('click', async () => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      alert("To install this app on iOS:\n1. Tap the Share button in Safari (at the bottom or top of the screen).\n2. Scroll down the menu and tap 'Add to Home Screen'.");
+    } else if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log("Install prompt outcome:", outcome);
+      deferredPrompt = null;
+      pwaInstallBtn.style.display = 'none';
+    } else {
+      alert("To add this app to your Home Screen, use your browser's menu (e.g. tap 'Install App' or 'Add to home screen').");
+    }
+  });
+}
+
+if (window.navigator.standalone === false || !window.matchMedia('(display-mode: standalone)').matches) {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS && pwaInstallBtn) {
+    pwaInstallBtn.style.display = 'inline-flex';
+  }
+}
