@@ -242,13 +242,18 @@ async function savePaymentSettings(event) {
     button.textContent = "Saving...";
   }
   try {
-    const { error } = await withTimeout(
-      supabaseClient
-        .from("site_settings")
-        .upsert({ key: "payment", value, updated_at: new Date().toISOString() })
-    );
-    if (error) throw error;
-    fillPaymentForm(value);
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const response = await withTimeout(fetch("/api/payment-settings", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${sessionData.session?.access_token || ""}`
+      },
+      body: JSON.stringify(value)
+    }));
+    const saved = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(saved.error || "Payment settings were not saved.");
+    fillPaymentForm(saved);
     notifyAdmin(`Payment settings saved. Mode: ${value.mode}${value.upiId ? `, UPI: ${value.upiId}` : ""}.`);
   } catch (error) {
     notifyAdmin(`Payment mode save failed: ${error.message}`, true);

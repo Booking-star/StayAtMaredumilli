@@ -1,8 +1,40 @@
 export default async function handler(req, res) {
-  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+  if (!["GET", "POST"].includes(req.method)) return res.status(405).json({ error: "Method not allowed" });
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return res.status(200).json({ mode: "manual", upiId: "" });
+
+  if (req.method === "POST") {
+    const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    const userResponse = token && await fetch(`${url}/auth/v1/user`, {
+      headers: { apikey: key, authorization: `Bearer ${token}` }
+    });
+    const user = userResponse?.ok ? await userResponse.json() : null;
+    const profileResponse = user?.id && await fetch(`${url}/rest/v1/profiles?id=eq.${user.id}&select=role`, {
+      headers: { apikey: key, authorization: `Bearer ${key}` }
+    });
+    const profile = profileResponse?.ok ? (await profileResponse.json())?.[0] : null;
+    if (user?.email !== "admin@staymaredumilli.com" && profile?.role !== "admin") {
+      return res.status(403).json({ error: "Admin only" });
+    }
+
+    const value = {
+      mode: ["manual", "mock", "razorpay"].includes(req.body?.mode) ? req.body.mode : "manual",
+      upiId: String(req.body?.upiId || "").trim()
+    };
+    const saveResponse = await fetch(`${url}/rest/v1/site_settings?on_conflict=key`, {
+      method: "POST",
+      headers: {
+        apikey: key,
+        authorization: `Bearer ${key}`,
+        "content-type": "application/json",
+        prefer: "resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify({ key: "payment", value, updated_at: new Date().toISOString() })
+    });
+    if (!saveResponse.ok) return res.status(500).json({ error: await saveResponse.text() });
+    return res.status(200).json(value);
+  }
 
   const response = await fetch(`${url}/rest/v1/site_settings?key=eq.payment&select=value`, {
     headers: {
