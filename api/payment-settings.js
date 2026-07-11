@@ -5,6 +5,7 @@ export default async function handler(req, res) {
   if (!url || !key) return res.status(200).json({ mode: "manual", upiId: "" });
 
   if (req.method === "POST") {
+    const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     const token = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
     const userResponse = token && await fetch(`${url}/auth/v1/user`, {
       headers: { apikey: key, authorization: `Bearer ${token}` }
@@ -19,8 +20,8 @@ export default async function handler(req, res) {
     }
 
     const value = {
-      mode: ["manual", "mock", "razorpay"].includes(req.body?.mode) ? req.body.mode : "manual",
-      upiId: String(req.body?.upiId || "").trim()
+      mode: ["manual", "mock", "razorpay"].includes(body.mode) ? body.mode : "manual",
+      upiId: String(body.upiId || "").trim()
     };
     const saveResponse = await fetch(`${url}/rest/v1/site_settings?on_conflict=key`, {
       method: "POST",
@@ -33,7 +34,14 @@ export default async function handler(req, res) {
       body: JSON.stringify({ key: "payment", value, updated_at: new Date().toISOString() })
     });
     if (!saveResponse.ok) return res.status(500).json({ error: await saveResponse.text() });
-    return res.status(200).json(value);
+    const verifyResponse = await fetch(`${url}/rest/v1/site_settings?key=eq.payment&select=value`, {
+      headers: { apikey: key, authorization: `Bearer ${key}` }
+    });
+    const saved = verifyResponse.ok ? (await verifyResponse.json())?.[0]?.value : null;
+    if (saved?.upiId !== value.upiId || saved?.mode !== value.mode) {
+      return res.status(500).json({ error: "Payment settings did not persist. Check Supabase service role key." });
+    }
+    return res.status(200).json(saved);
   }
 
   const response = await fetch(`${url}/rest/v1/site_settings?key=eq.payment&select=value`, {

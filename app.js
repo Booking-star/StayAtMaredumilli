@@ -1,5 +1,6 @@
 const landing = document.querySelector("#landing");
 const app = document.querySelector("#app");
+const bottomNav = document.querySelector("#bottomNav");
 const loginBtn = document.querySelector("#loginBtn");
 const video = document.querySelector(".landing-video");
 const feed = document.querySelector("#propertyFeed");
@@ -886,6 +887,7 @@ function openSearchQuery() {
 function enterApp(showSearch = true) {
   landing.classList.add("hidden");
   app.classList.remove("hidden");
+  bottomNav?.classList.remove("hidden");
   showScreen(location.hash || "#home");
   if (showSearch && !bookingDetails && !pendingBookingId()) openSearchQuery();
 }
@@ -1440,6 +1442,7 @@ document.querySelector("#logoutBtn")?.addEventListener("click", async () => {
   if (!confirm("Log out from Stay@Maredumilli?")) return;
   await supabaseClient?.auth.signOut().catch(() => {});
   ["stayAuthUserKey", "stayProfile", "stayBookingDetails", "stayLoginStartedAt", "stay-customer-auth"].forEach(key => localStorage.removeItem(key));
+  bottomNav?.classList.add("hidden");
   location.reload();
 });
 document.querySelector(".support-btn").addEventListener("click", () => {

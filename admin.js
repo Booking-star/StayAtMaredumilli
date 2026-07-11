@@ -237,6 +237,12 @@ async function savePaymentSettings(event) {
   const value = { mode: paymentMode.value, upiId: paymentUpiId?.value?.trim() || "" };
   if (value.mode === "manual" && !value.upiId) return notifyAdmin("Enter UPI ID before saving manual payment mode.", true);
   const button = adminPaymentForm.querySelector("button[type='submit']");
+  const resetButton = () => {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Save Payment Mode";
+    }
+  };
   if (button) {
     button.disabled = true;
     button.textContent = "Saving...";
@@ -254,14 +260,13 @@ async function savePaymentSettings(event) {
     const saved = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(saved.error || "Payment settings were not saved.");
     fillPaymentForm(saved);
+    resetButton();
     notifyAdmin(`Payment settings saved. Mode: ${value.mode}${value.upiId ? `, UPI: ${value.upiId}` : ""}.`);
   } catch (error) {
+    resetButton();
     notifyAdmin(`Payment mode save failed: ${error.message}`, true);
   } finally {
-    if (button) {
-      button.disabled = false;
-      button.textContent = "Save Payment Mode";
-    }
+    resetButton();
   }
 }
 

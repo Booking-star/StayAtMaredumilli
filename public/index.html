@@ -47,12 +47,6 @@
         <span>Stay@Maredumilli</span>
       </a>
     </header>
-    <nav class="bottom-nav">
-      <a href="#home" class="nav-link active"><i data-lucide="home"></i><span>Home</span></a>
-      <a href="#bookings" class="nav-link"><i data-lucide="calendar-check"></i><span>Past Bookings</span></a>
-      <a href="#profile" class="nav-link"><i data-lucide="user-round"></i><span>Profile</span></a>
-    </nav>
-
     <section id="home" class="screen active">
       <section>
         <div class="section-title">
@@ -138,8 +132,14 @@
           <p><a href="/policies/terms-of-service">Terms of Service</a></p>
           <p><a href="/policies/cancellation-policy">Cancellation Policy</a></p>
           <p><a href="/policies/check-in-policy">Check-in Policy</a></p>
-        </section>
-      </div>
+    </section>
+  </div>
+
+  <nav id="bottomNav" class="bottom-nav hidden">
+    <a href="#home" class="nav-link active"><i data-lucide="home"></i><span>Home</span></a>
+    <a href="#bookings" class="nav-link"><i data-lucide="calendar-check"></i><span>Past Bookings</span></a>
+    <a href="#profile" class="nav-link"><i data-lucide="user-round"></i><span>Profile</span></a>
+  </nav>
     </section>
     <footer class="site-footer">
       <a href="/policies/terms-of-service">Terms</a>
@@ -189,9 +189,9 @@
         <label>Payment screenshot <input id="paymentScreenshotInput" type="file" accept="image/*"></label>
       </div>
       <p class="policy"><strong>No cancellations and no refunds.</strong> Once payment is made, the booking amount is not refundable for any reason. Need help before payment? Use Profile > Support.</p>
-      <label class="addon-check policy-consent"><input id="policyConsentInput" type="checkbox" required> I have read and agree to the <a href="/policies/terms-of-service" target="_blank" rel="noopener">Terms of Service</a> and <a href="/policies/cancellation-policy" target="_blank" rel="noopener">Cancellation Policy</a>, including the no-cancellation and no-refund policy.</label>
-      <label class="addon-check"><input id="travelInterestInput" type="checkbox"> I am interested in Maredumilli travel packages. You can contact me one day before check-in.</label>
-      <label id="firecampField" class="addon-check hidden"><input id="firecampInput" type="checkbox"> Add firecamp for Rs.600</label>
+      <label class="addon-check policy-consent"><input id="policyConsentInput" type="checkbox" required><span>I have read and agree to the <a href="/policies/terms-of-service" target="_blank" rel="noopener">Terms of Service</a> and <a href="/policies/cancellation-policy" target="_blank" rel="noopener">Cancellation Policy</a>, including the no-cancellation and no-refund policy.</span></label>
+      <label class="addon-check"><input id="travelInterestInput" type="checkbox"><span>I am interested in Maredumilli travel packages. You can contact me one day before check-in.</span></label>
+      <label id="firecampField" class="addon-check hidden"><input id="firecampInput" type="checkbox"><span>Add firecamp for Rs.600</span></label>
       <button class="primary-btn" type="submit">Pay & Confirm</button>
     </form>
   </dialog>
