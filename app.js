@@ -1393,6 +1393,7 @@ document.querySelector("#saveProfileBtn").addEventListener("click", () => {
   };
   setStore("stayProfile", profile);
   saveCustomerProfile();
+  alert("Profile saved.");
 });
 
 document.querySelector("#editSavedDetailsBtn").addEventListener("click", () => openBooking(null, true));

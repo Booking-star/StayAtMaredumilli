@@ -117,6 +117,12 @@ function setStatus(message) {
   adminStatus.textContent = message;
 }
 
+function notifyAdmin(message, isError = false) {
+  setStatus(message);
+  alert(message);
+  if (isError) console.error(message);
+}
+
 function setSaving(isSaving) {
   saveButton.disabled = isSaving;
   saveButton.textContent = isSaving ? "Saving..." : editingRoomId ? "Update Room" : "Save Room";
@@ -214,17 +220,32 @@ async function savePricingSettings(event) {
   const { error } = await supabaseClient
     .from("site_settings")
     .upsert({ key: "dynamic_pricing", value: settings, updated_at: new Date().toISOString() });
-  setStatus(error ? `Pricing save failed: ${error.message}` : "Saved dynamic pricing settings.");
+  if (error) return notifyAdmin(`Pricing save failed: ${error.message}`, true);
+  notifyAdmin("Dynamic pricing settings saved.");
 }
 
 async function savePaymentSettings(event) {
   event.preventDefault();
-  if (!supabaseClient) return;
+  if (!supabaseClient) return notifyAdmin("Supabase is not connected. Payment mode was not saved.", true);
   const value = { mode: paymentMode.value, upiId: paymentUpiId?.value?.trim() || "" };
-  const { error } = await supabaseClient
+  if (value.mode === "manual" && !value.upiId) return notifyAdmin("Enter UPI ID before saving manual payment mode.", true);
+  const button = adminPaymentForm.querySelector("button[type='submit']");
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Saving...";
+  }
+  const { data, error } = await supabaseClient
     .from("site_settings")
-    .upsert({ key: "payment", value, updated_at: new Date().toISOString() });
-  setStatus(error ? `Payment mode save failed: ${error.message}` : `Payment mode saved: ${value.mode}`);
+    .upsert({ key: "payment", value, updated_at: new Date().toISOString() })
+    .select("value")
+    .single();
+  if (button) {
+    button.disabled = false;
+    button.textContent = "Save Payment Mode";
+  }
+  if (error) return notifyAdmin(`Payment mode save failed: ${error.message}`, true);
+  fillPaymentForm(data?.value || value);
+  notifyAdmin(`Payment settings saved. Mode: ${value.mode}${value.upiId ? `, UPI: ${value.upiId}` : ""}.`);
 }
 
 async function loadRooms() {
@@ -352,7 +373,7 @@ adminRoomForm.addEventListener("submit", async event => {
   closeRoomForm();
   await loadRooms();
   setSaving(false);
-  setStatus("Saved. Room is now available on the customer site.");
+  notifyAdmin("Saved. Room is now available on the customer site.");
   adminRoomList.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
@@ -366,8 +387,9 @@ adminRoomList.addEventListener("click", async event => {
   if (!button || !supabaseClient) return;
   if (!confirm("Delete this room?")) return;
   const { error } = await supabaseClient.from("rooms").update({ active: false }).eq("id", button.dataset.delete);
-  if (error) return setStatus(error.message);
+  if (error) return notifyAdmin(error.message, true);
   await loadRooms();
+  notifyAdmin("Room deleted from customer site.");
 });
 
 async function blockRoomFromAdmin(roomId, checkIn, checkOut, rooms) {
@@ -396,10 +418,10 @@ async function blockRoomFromAdmin(roomId, checkIn, checkOut, rooms) {
     p_influencer_id: null,
     p_firecamp: false
   });
-  if (error) return alert(error.message);
+  if (error) return notifyAdmin(error.message, true);
   await loadSales();
   updateBlockHint();
-  setStatus("Room blocked.");
+  notifyAdmin("Room blocked for the selected dates.");
 }
 
 adminBlockForm?.addEventListener("submit", async event => {
@@ -911,11 +933,12 @@ adminSalesList?.addEventListener("click", async event => {
       p_booking_id: confirmManual.dataset.confirmManualPayment,
       p_confirm: true
     });
-    if (error) return alert(error.message);
-    await loadSales();
-    await loadUpcomingBookings();
-    updateBlockHint();
-    return;
+  if (error) return notifyAdmin(error.message, true);
+  await loadSales();
+  await loadUpcomingBookings();
+  updateBlockHint();
+  notifyAdmin("Payment confirmed. Booking is now confirmed.");
+  return;
   }
 
   const cancelManual = event.target.closest("[data-cancel-manual-payment]");
@@ -924,19 +947,21 @@ adminSalesList?.addEventListener("click", async event => {
       p_booking_id: cancelManual.dataset.cancelManualPayment,
       p_confirm: false
     });
-    if (error) return alert(error.message);
+    if (error) return notifyAdmin(error.message, true);
     await loadSales();
     await loadUpcomingBookings();
     updateBlockHint();
+    notifyAdmin("Booking cancelled and room(s) released.");
     return;
   }
 
   const button = event.target.closest("[data-release-block]");
   if (!button || !supabaseClient || !confirm("Release this blocked room?")) return;
   const { error } = await supabaseClient.from("bookings").update({ status: "cancelled" }).eq("id", button.dataset.releaseBlock);
-  if (error) return alert(error.message);
+  if (error) return notifyAdmin(error.message, true);
   await loadSales();
   updateBlockHint();
+  notifyAdmin("Blocked room released.");
 });
 
 async function loadUpcomingBookings() {
@@ -1000,10 +1025,11 @@ async function updateUpcomingBooking(bookingId, status) {
     payload.status = "cancelled";
   }
   const { error } = await supabaseClient.from("bookings").update(payload).eq("id", bookingId);
-  if (error) return alert(error.message);
+  if (error) return notifyAdmin(error.message, true);
   await loadUpcomingBookings();
   await loadSales();
   updateBlockHint();
+  notifyAdmin("Upcoming booking status updated.");
 }
 
 adminUpcomingList?.addEventListener("click", event => {
@@ -1129,9 +1155,10 @@ function renderInfluencers(influencersList) {
       if (!confirm("Are you sure you want to remove this influencer?")) return;
       const { error } = await supabaseClient.from("influencers").delete().eq("id", btn.dataset.id);
       if (error) {
-        alert(error.message);
+        notifyAdmin(error.message, true);
       } else {
         loadInfluencers();
+        notifyAdmin("Influencer removed.");
       }
     });
   });
@@ -1148,10 +1175,11 @@ window.addEventListener("DOMContentLoaded", () => {
       
       const { error } = await supabaseClient.from("influencers").insert({ name, code });
       if (error) {
-        alert(error.message);
+        notifyAdmin(error.message, true);
       } else {
         influencerForm.reset();
         loadInfluencers();
+        notifyAdmin("Influencer registered.");
       }
     });
   }
@@ -1225,9 +1253,10 @@ function renderHighlightsAdmin() {
       if (!confirm("Are you sure you want to delete this highlight?")) return;
       const { error } = await supabaseClient.from("highlights").delete().eq("id", btn.dataset.id);
       if (error) {
-        alert(error.message);
+        notifyAdmin(error.message, true);
       } else {
         loadHighlights();
+        notifyAdmin("Highlight deleted.");
       }
     });
   });
@@ -1300,8 +1329,9 @@ window.addEventListener("DOMContentLoaded", () => {
         
         resetHighlightForm();
         loadHighlights();
+        notifyAdmin(id ? "Highlight updated." : "Highlight saved.");
       } catch (err) {
-        alert("Error saving highlight: " + err.message);
+        notifyAdmin("Error saving highlight: " + err.message, true);
       }
     });
   }
