@@ -345,11 +345,13 @@ using (
 )
 with check (status = 'cancelled');
 
-revoke select on public.bookings from anon, authenticated;
+revoke select on public.bookings from anon;
+grant select on public.bookings to authenticated;
 grant update(status, booking_confirmation_status, last_contact_attempt_at) on public.bookings to authenticated;
 
 drop view if exists public.admin_bookings;
-create view public.admin_bookings as
+create view public.admin_bookings
+with (security_invoker = false) as
 select
   b.*,
   r.room_name,
