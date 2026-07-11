@@ -72,6 +72,7 @@ let bookingDetails = getStore("stayBookingDetails", null);
 let bookings = getStore("stayBookings", []);
 let profile = getStore("stayProfile", {});
 let expandedAmenities = [];
+let availabilityRefreshTimer = null;
 
 const defaultPricingSettings = {
   occupancy80Surcharge: 200,
@@ -613,6 +614,52 @@ function applyTripDetails({ from, to, adults, children }) {
   setStore("stayBookingDetails", bookingDetails);
   render();
   return true;
+}
+
+function syncTripDetails(details, { alertErrors = false } = {}) {
+  const error = validateTripValues(details);
+  if (error) {
+    if (alertErrors) alert(error);
+    return false;
+  }
+  bookingDetails = {
+    ...bookingDetails,
+    ...details,
+    adults: Number(details.adults),
+    children: Number(details.children),
+    rooms: Number(details.rooms || bookingDetails?.rooms || 1)
+  };
+  setStore("stayBookingDetails", bookingDetails);
+  return true;
+}
+
+function checkoutDetailsFromForm() {
+  return {
+    adults: document.querySelector("#adultsInput").value,
+    children: document.querySelector("#childrenInput").value,
+    rooms: document.querySelector("#roomsInput").value,
+    from: document.querySelector("#fromInput").value,
+    to: document.querySelector("#toInput").value,
+    payment: document.querySelector("#paymentInput").value,
+    coupon: document.querySelector("#couponInput").value,
+    travelInterest: travelInterestInput.checked,
+    firecamp: firecampInput.checked
+  };
+}
+
+function refreshAvailabilityUI(room = null) {
+  if (feed && !feed.closest(".hidden")) renderFeed();
+  renderProfile();
+  if (room && modal?.open) renderCheckoutSummary(room, checkoutDetailsFromForm());
+  if (window.lucide) lucide.createIcons();
+}
+
+function scheduleAvailabilityRefresh(room = null) {
+  clearTimeout(availabilityRefreshTimer);
+  availabilityRefreshTimer = setTimeout(async () => {
+    if (supabaseClient) await loadAllBookings();
+    refreshAvailabilityUI(room);
+  }, 250);
 }
 
 function renderBookings() {
@@ -1316,14 +1363,10 @@ document.querySelector("#applyFiltersBtn").addEventListener("click", () => {
       document.querySelector("#toInput").value = nextDate;
     }
 
-    renderCheckoutSummary(room, detailsForRoom(room, {
-      adults: document.querySelector("#adultsInput").value,
-      children: document.querySelector("#childrenInput").value,
-      rooms: document.querySelector("#roomsInput").value,
-      from: document.querySelector("#fromInput").value,
-      to: document.querySelector("#toInput").value,
-      payment: document.querySelector("#paymentInput").value
-    }));
+    const details = detailsForRoom(room, checkoutDetailsFromForm());
+    syncTripDetails(details);
+    renderCheckoutSummary(room, details);
+    scheduleAvailabilityRefresh(room);
   });
 });
 feed.addEventListener("scroll", event => {
@@ -1419,6 +1462,18 @@ window.addEventListener("DOMContentLoaded", async () => {
       searchTo.min = nextDate;
       searchTo.value = nextDate;
     }
+  });
+  ["#searchFrom", "#searchTo", "#searchAdults", "#searchKids"].forEach(selector => {
+    document.querySelector(selector)?.addEventListener("input", () => {
+      const details = {
+        from: document.querySelector("#searchFrom").value,
+        to: document.querySelector("#searchTo").value,
+        adults: document.querySelector("#searchAdults").value || 2,
+        children: document.querySelector("#searchKids").value || 0,
+        rooms: 1
+      };
+      if (syncTripDetails(details)) scheduleAvailabilityRefresh();
+    });
   });
 
   if (supabaseClient) {
