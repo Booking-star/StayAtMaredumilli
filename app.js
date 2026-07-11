@@ -733,16 +733,16 @@ function profileFromUser(user) {
     email: user?.email || profile.email || ""
   };
   setStore("stayProfile", profile);
-  saveCustomerProfile();
+  saveCustomerProfile().catch(() => {});
 }
 
-function saveCustomerProfile() {
-  if (!supabaseClient) return;
-  supabaseClient.rpc("upsert_customer_profile", {
+async function saveCustomerProfile() {
+  if (!supabaseClient) return { error: null };
+  return supabaseClient.rpc("upsert_customer_profile", {
     p_name: profile.name || "",
     p_email: profile.email || "",
     p_phone: profile.phone || ""
-  }).then(() => {}, () => {});
+  });
 }
 
 async function createMockBooking(room, details, pricing, status = "confirmed") {
@@ -801,14 +801,20 @@ function setManualPaymentLinks(amount, room) {
     tn: `${room?.name || "Stay"} booking`
   });
   const disabled = !upiId || amount <= 0;
+  const query = params.toString();
+  const genericUrl = `upi://pay?${query}`;
+  const phonePeUrl = `phonepe://pay?${query}`;
   [manualPhonePeLink, manualUpiLink].forEach(link => {
     if (!link) return;
     link.classList.toggle("disabled", disabled);
     link.setAttribute("aria-disabled", disabled ? "true" : "false");
-    link.dataset.paymentUrl = disabled ? "" : `upi://pay?${params.toString()}`;
+    link.dataset.paymentUrl = disabled ? "" : genericUrl;
   });
-  if (manualPhonePeLink) manualPhonePeLink.href = disabled ? "javascript:void(0)" : `upi://pay?${params.toString()}`;
-  if (manualUpiLink) manualUpiLink.href = disabled ? "javascript:void(0)" : `upi://pay?${params.toString()}`;
+  if (manualPhonePeLink) {
+    manualPhonePeLink.href = disabled ? "javascript:void(0)" : phonePeUrl;
+    manualPhonePeLink.dataset.paymentUrl = disabled ? "" : phonePeUrl;
+  }
+  if (manualUpiLink) manualUpiLink.href = disabled ? "javascript:void(0)" : genericUrl;
 }
 
 function openUpiPayment(event) {
@@ -1403,15 +1409,26 @@ bookingForm.addEventListener("submit", async event => {
   if (successMessage) showSuccess(successMessage);
 });
 
-document.querySelector("#saveProfileBtn").addEventListener("click", () => {
+document.querySelector("#saveProfileBtn").addEventListener("click", async event => {
+  const button = event.currentTarget;
   profile = {
     name: document.querySelector("#profileName").value,
     phone: document.querySelector("#profilePhone").value,
     email: document.querySelector("#profileEmail").value
   };
   setStore("stayProfile", profile);
-  saveCustomerProfile();
-  alert("Profile saved.");
+  button.disabled = true;
+  button.textContent = "Saving...";
+  try {
+    const { error } = await saveCustomerProfile();
+    if (error) throw error;
+    alert("Profile saved.");
+  } catch (error) {
+    alert(`Profile save failed: ${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Save Profile";
+  }
 });
 
 document.querySelector("#editSavedDetailsBtn").addEventListener("click", () => openBooking(null, true));

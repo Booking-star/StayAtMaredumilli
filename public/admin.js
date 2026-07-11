@@ -123,6 +123,13 @@ function notifyAdmin(message, isError = false) {
   if (isError) console.error(message);
 }
 
+function withTimeout(promise, message = "Request timed out. Please check your internet and try again.") {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(message)), 12000))
+  ]);
+}
+
 function setSaving(isSaving) {
   saveButton.disabled = isSaving;
   saveButton.textContent = isSaving ? "Saving..." : editingRoomId ? "Update Room" : "Save Room";
@@ -234,18 +241,23 @@ async function savePaymentSettings(event) {
     button.disabled = true;
     button.textContent = "Saving...";
   }
-  const { data, error } = await supabaseClient
-    .from("site_settings")
-    .upsert({ key: "payment", value, updated_at: new Date().toISOString() })
-    .select("value")
-    .single();
-  if (button) {
-    button.disabled = false;
-    button.textContent = "Save Payment Mode";
+  try {
+    const { error } = await withTimeout(
+      supabaseClient
+        .from("site_settings")
+        .upsert({ key: "payment", value, updated_at: new Date().toISOString() })
+    );
+    if (error) throw error;
+    fillPaymentForm(value);
+    notifyAdmin(`Payment settings saved. Mode: ${value.mode}${value.upiId ? `, UPI: ${value.upiId}` : ""}.`);
+  } catch (error) {
+    notifyAdmin(`Payment mode save failed: ${error.message}`, true);
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Save Payment Mode";
+    }
   }
-  if (error) return notifyAdmin(`Payment mode save failed: ${error.message}`, true);
-  fillPaymentForm(data?.value || value);
-  notifyAdmin(`Payment settings saved. Mode: ${value.mode}${value.upiId ? `, UPI: ${value.upiId}` : ""}.`);
 }
 
 async function loadRooms() {
