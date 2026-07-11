@@ -161,9 +161,17 @@ async function loadPricingSettings() {
 }
 
 async function loadPaymentSettings() {
-  if (!supabaseClient) return;
-  const { data, error } = await supabaseClient.rpc("get_payment_settings");
-  if (error) return;
+  let data = null;
+  try {
+    const response = await fetch("/api/payment-settings", { cache: "no-store" });
+    if (response.ok) data = await response.json();
+  } catch (_) {}
+  if (!data && supabaseClient) {
+    const result = await supabaseClient.rpc("get_payment_settings");
+    if (result.error) return;
+    data = result.data;
+  }
+  if (!data) return;
   paymentSettings = ["manual", "mock", "razorpay"].includes(data?.mode)
     ? { mode: data.mode, upiId: data.upiId || "" }
     : { mode: "manual", upiId: "" };
@@ -648,7 +656,6 @@ function checkoutDetailsFromForm() {
     from: document.querySelector("#fromInput").value,
     to: document.querySelector("#toInput").value,
     payment: document.querySelector("#paymentInput").value,
-    coupon: document.querySelector("#couponInput").value,
     travelInterest: travelInterestInput.checked,
     firecamp: firecampInput.checked
   };
@@ -968,8 +975,7 @@ function openBooking(roomId, editOnly = false) {
     from: getLocalDateString(today),
     to: getLocalDateString(tomorrow),
     payment: "20",
-    firecamp: false,
-    coupon: ""
+    firecamp: false
   });
   if (!defaults.to || defaults.to <= defaults.from) defaults.to = getNextDateString(defaults.from);
   document.querySelector("#bookingName").value = defaults.name || profile.name || "";
@@ -983,7 +989,6 @@ function openBooking(roomId, editOnly = false) {
   document.querySelector("#toInput").min = getNextDateString(defaults.from);
   document.querySelector("#toInput").value = defaults.to;
   document.querySelector("#paymentInput").value = defaults.payment || "20";
-  document.querySelector("#couponInput").value = defaults.coupon || "";
   if (policyConsentInput) policyConsentInput.checked = false;
   travelInterestInput.checked = Boolean(defaults.travelInterest);
   firecampInput.checked = Boolean(defaults.firecamp) && hasFirecamp(room);
@@ -1010,11 +1015,9 @@ function renderCheckoutSummary(room, details) {
   const total = roomTotal + firecampTotal;
   const paymentPercent = Number(document.querySelector("#paymentInput")?.value || fitted.payment || 20);
   const payNow = Math.round(total * paymentPercent / 100);
-  const weekdayOnly = isWeekdayOnly(fitted.from, fitted.to);
-  document.querySelector("#couponField").classList.toggle("hidden", !weekdayOnly);
   const manualMode = paymentSettings.mode !== "razorpay" && paymentSettings.mode !== "mock";
   manualPaymentBox?.classList.toggle("hidden", !manualMode);
-  if (manualUpiId) manualUpiId.textContent = paymentSettings.upiId || "UPI ID will be shared on WhatsApp";
+  if (manualUpiId) manualUpiId.textContent = paymentSettings.upiId || "UPI ID not set";
   if (paymentScreenshotInput) paymentScreenshotInput.required = manualMode;
   if (manualMode) setManualPaymentLinks(payNow, room);
   firecampField.classList.toggle("hidden", !hasFirecamp(room));
@@ -1038,16 +1041,6 @@ function renderCheckoutSummary(room, details) {
     ${manualMode ? `<p>After payment, upload the screenshot below. Our team confirms manually within 10 minutes.</p>` : ""}
   `;
 }
-function isWeekdayOnly(from, to) {
-  const start = new Date(from);
-  const end = new Date(to);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return false;
-  for (let day = new Date(start); day < end; day.setDate(day.getDate() + 1)) {
-    if ([0, 6].includes(day.getDay())) return false;
-  }
-  return true;
-}
-
 function syncSlideFromScroll(slider) {
   const roomId = slider.closest(".carousel")?.dataset.room;
   if (!roomId) return;
@@ -1322,7 +1315,6 @@ bookingForm.addEventListener("submit", async event => {
     from: document.querySelector("#fromInput").value,
     to: document.querySelector("#toInput").value,
     payment: document.querySelector("#paymentInput").value,
-    coupon: document.querySelector("#couponInput").value,
     travelInterest: travelInterestInput.checked,
     firecamp: firecampInput.checked && hasFirecamp(room)
   };
