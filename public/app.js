@@ -711,6 +711,23 @@ function setAppVisible(visible) {
   landing.classList.toggle("hidden", visible);
   app.classList.toggle("hidden", !visible);
   document.querySelector(".bottom-nav")?.classList.toggle("hidden", !visible);
+  positionBottomNav();
+}
+
+function positionBottomNav() {
+  const nav = document.querySelector(".bottom-nav:not(.hidden)");
+  if (!nav) return;
+  if (!window.visualViewport) {
+    nav.style.top = "";
+    nav.style.bottom = "";
+    return;
+  }
+  requestAnimationFrame(() => {
+    const viewport = window.visualViewport;
+    const bottomGap = 12;
+    nav.style.top = `${Math.max(0, viewport.offsetTop + viewport.height - nav.offsetHeight - bottomGap)}px`;
+    nav.style.bottom = "auto";
+  });
 }
 
 function recoverFromUpiReturn() {
@@ -1184,7 +1201,13 @@ if (searchQueryForm) {
   });
 }
 window.addEventListener("hashchange", () => showScreen(location.hash || "#home"));
-window.addEventListener("resize", setLandingVideo);
+window.addEventListener("resize", () => {
+  setLandingVideo();
+  positionBottomNav();
+});
+window.visualViewport?.addEventListener("resize", positionBottomNav);
+window.visualViewport?.addEventListener("scroll", positionBottomNav);
+window.addEventListener("scroll", positionBottomNav, { passive: true });
 window.addEventListener("focus", handleTabReturn);
 window.addEventListener("pageshow", handleTabReturn);
 window.addEventListener("pagehide", rememberVisibleState);

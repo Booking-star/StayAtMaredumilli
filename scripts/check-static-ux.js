@@ -9,6 +9,8 @@ const index = read("index.html");
 const css = read("styles.css");
 const shared = read("shared.js");
 const book = read("book.js");
+const app = read("app.js");
+const verifyPayment = read("api/verify-payment.js");
 const seo = read("scripts/generate-seo-pages.js");
 const vercel = read("vercel.json");
 
@@ -19,12 +21,14 @@ if (!index.includes("app-room-ui.js")) fail("Room UI helper must load before app
 if (!/<\/div>\s*<nav class="bottom-nav hidden">/.test(index)) fail("Bottom nav must live outside #app.");
 if (!/\.bottom-nav\s*{[\s\S]*position:\s*fixed\s*!important/.test(css)) fail("Bottom nav must stay fixed.");
 if (!/\.bottom-nav\s*{[\s\S]*transform:\s*none\s*!important/.test(css)) fail("Bottom nav must not use transform on mobile.");
+if (!app.includes("function positionBottomNav") || !app.includes("visualViewport")) fail("Bottom nav must be pinned to the mobile visual viewport.");
 if (!css.includes("--bottom-nav-space: 156px")) fail("Mobile bottom spacing must protect content from nav overlap.");
 if (!/supabase\|row-level security\|permission denied\|violates/.test(shared)) fail("Backend errors must be masked for customers.");
 if (!book.includes('loading="lazy" decoding="async"')) fail("Booking room image should not block checkout rendering.");
 if (book.includes("adultsInput.value = fitted.adults")) fail("Adult input must not be rewritten while typing.");
 if (!book.includes('e.target.id === "adultsInput" && e.type === "change"')) fail("Adult room auto-fit should run on commit, not every keystroke.");
 if (!book.includes('localStorage.setItem("stayProfile"')) fail("Booking contact details should persist to profile.");
+if (!verifyPayment.includes("async function razorpayPayment") || !verifyPayment.includes("validSignature")) fail("Razorpay verify must have server-side fallback.");
 if (!seo.includes('decoding="async"')) fail("SEO hotel images should decode asynchronously.");
 if (!vercel.includes('"X-Frame-Options"') || !vercel.includes('"DENY"')) fail("Clickjacking header missing.");
 
