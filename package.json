@@ -1,7 +1,7 @@
 {
   "scripts": {
     "build": "node scripts/write-config.js && node scripts/generate-seo-pages.js",
-    "check:small": "node scripts/check-payment-api-auth.js && node scripts/check-shared-trip.js && node scripts/check-static-ux.js && node scripts/check-sql-hardening.js",
+    "check:small": "node scripts/check-payment-api-auth.js && node scripts/check-shared-trip.js && node scripts/check-static-ux.js && node scripts/check-sql-hardening.js && node scripts/check-asset-size.js",
     "check:browser": "powershell -ExecutionPolicy Bypass -File scripts/browser-smoke-edge.ps1",
     "check:release": "npm run build && npm run check:small && npm run check:browser"
   }
