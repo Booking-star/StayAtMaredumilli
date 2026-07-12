@@ -780,7 +780,7 @@ async function createMockBooking(room, details, pricing, status = "confirmed", s
       p_firecamp: details.firecamp,
       p_screenshot_url: screenshotUrl
     })
-  }, 25000);
+  }, 8000);
   if (!response.ok) throw new Error(result.error || "Booking could not be confirmed.");
   return result.id || Date.now();
 }
@@ -865,7 +865,15 @@ function recoverFromUpiReturn() {
   landing.classList.add("hidden");
   app.classList.remove("hidden");
   showScreen("#home");
-  openPendingBookingIfReady();
+}
+
+function forceSafariRepaint() {
+  if (document.visibilityState === "hidden") return;
+  document.body.style.webkitTransform = "translateZ(0)";
+  document.body.offsetHeight;
+  requestAnimationFrame(() => {
+    document.body.style.webkitTransform = "";
+  });
 }
 
 function restoreVisibleState() {
@@ -887,24 +895,20 @@ function restoreVisibleState() {
   if (!app.classList.contains("hidden")) {
     window.scrollTo(0, 0);
     document.scrollingElement?.scrollTo(0, 0);
-    if ((modal.open || sessionStorage.getItem("stayModalWasOpen") === "1") && selectedRoomId && rooms.some(room => room.id === selectedRoomId)) {
-      sessionStorage.removeItem("stayModalWasOpen");
-      modal.close();
-      openBooking(selectedRoomId);
-    }
   }
 }
 
 function handleTabReturn() {
   recoverFromUpiReturn();
   restoreVisibleState();
+  forceSafariRepaint();
   setTimeout(restoreVisibleState, 80);
   setTimeout(restoreVisibleState, 400);
   setTimeout(restoreVisibleState, 1200);
+  setTimeout(forceSafariRepaint, 80);
 }
 
 function rememberVisibleState() {
-  if (modal.open) sessionStorage.setItem("stayModalWasOpen", "1");
   if (selectedRoomId) localStorage.setItem("stayPendingRoomId", selectedRoomId);
 }
 
