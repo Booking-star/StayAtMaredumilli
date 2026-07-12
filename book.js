@@ -62,7 +62,7 @@ function firecampPrice(roomsCount = 1) {
   return Number(roomsCount || 1) <= 2 ? 600 : 1000;
 }
 
-function minRoomsForAdults(roomObj, adults = 1) {
+function minRoomsNeededForAdults(roomObj, adults = 1) {
   return window.minRoomsForAdults(Number(roomObj?.maxAdults || 1), adults);
 }
 
@@ -778,7 +778,7 @@ async function handleUserSession(session) {
             from: fromInput.value,
             to: toInput.value
           });
-          roomsInput.value = Math.min(minRoomsForAdults(room, Number(e.target.value || 1)), rem || 1);
+          roomsInput.value = Math.min(minRoomsNeededForAdults(room, Number(e.target.value || 1)), rem || 1);
         }
         if (e.target.id === "fromInput") {
           const nextDate = getNextDateString(e.target.value);

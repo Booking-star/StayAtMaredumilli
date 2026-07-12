@@ -88,8 +88,7 @@ function openPendingBookingIfReady() {
   const roomId = pendingBookingId();
   if (!roomId || !rooms.some(room => room.id === roomId)) return false;
   localStorage.removeItem("stayPendingRoomId");
-  showScreen("#home");
-  openBooking(roomId);
+  location.href = `/book.html?room=${roomId}&from=${document.querySelector("#checkin")?.value || ""}&to=${document.querySelector("#checkout")?.value || ""}&adults=${document.querySelector("#guestsAdults")?.value || 1}&children=${document.querySelector("#guestsKids")?.value || 0}`;
   return true;
 }
 
@@ -316,9 +315,7 @@ function roomCard(room, cardIndex = 0) {
   `;
 }
 
-function minRoomsForAdults(room, adults = 1) {
-  return window.minRoomsForAdults(Number(room?.maxAdults || 1), adults);
-}
+
 
 function detailsForRoom(room, details = null) {
   return normalizeTripDetails(details, room?.maxAdults || 1);
