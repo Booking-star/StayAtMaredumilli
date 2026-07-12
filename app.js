@@ -861,10 +861,10 @@ function restoreVisibleState() {
     showScreen(location.hash || "#home");
   }
   if (!app.classList.contains("hidden")) {
-    const active = document.querySelector(".screen.active") || document.querySelector("#home");
-    const rect = active.getBoundingClientRect();
-    if (rect.bottom < 0 || rect.top > innerHeight) active.scrollIntoView({ block: "start" });
-    if (modal.open && selectedRoomId && rooms.some(room => room.id === selectedRoomId)) {
+    window.scrollTo(0, 0);
+    document.scrollingElement?.scrollTo(0, 0);
+    if ((modal.open || sessionStorage.getItem("stayModalWasOpen") === "1") && selectedRoomId && rooms.some(room => room.id === selectedRoomId)) {
+      sessionStorage.removeItem("stayModalWasOpen");
       modal.close();
       openBooking(selectedRoomId);
     }
@@ -876,6 +876,12 @@ function handleTabReturn() {
   restoreVisibleState();
   setTimeout(restoreVisibleState, 80);
   setTimeout(restoreVisibleState, 400);
+  setTimeout(restoreVisibleState, 1200);
+}
+
+function rememberVisibleState() {
+  if (modal.open) sessionStorage.setItem("stayModalWasOpen", "1");
+  if (selectedRoomId) localStorage.setItem("stayPendingRoomId", selectedRoomId);
 }
 
 async function captureWaitlist(room) {
@@ -1574,6 +1580,8 @@ window.addEventListener("hashchange", () => showScreen(location.hash || "#home")
 window.addEventListener("resize", setLandingVideo);
 window.addEventListener("focus", handleTabReturn);
 window.addEventListener("pageshow", handleTabReturn);
+window.addEventListener("pagehide", rememberVisibleState);
+window.addEventListener("blur", rememberVisibleState);
 document.addEventListener("visibilitychange", handleTabReturn);
 window.addEventListener("DOMContentLoaded", async () => {
   capturePendingBookingParam();
