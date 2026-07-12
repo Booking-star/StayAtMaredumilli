@@ -756,7 +756,7 @@ async function saveCustomerProfile() {
 async function createMockBooking(room, details, pricing, status = "confirmed", screenshotUrl = "") {
   if (!supabaseClient) return Date.now();
   const { data: sessionData } = await supabaseClient.auth.getSession();
-  const response = await fetch("/api/manual-booking", {
+  const { response, data: result } = await fetchJsonWithTimeout("/api/manual-booking", {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -778,8 +778,7 @@ async function createMockBooking(room, details, pricing, status = "confirmed", s
       p_firecamp: details.firecamp,
       p_screenshot_url: screenshotUrl
     })
-  });
-  const result = await response.json().catch(() => ({}));
+  }, 25000);
   if (!response.ok) throw new Error(result.error || "Booking could not be confirmed.");
   return result.id || Date.now();
 }
@@ -1215,6 +1214,21 @@ function fileToDataUrl(file) {
   });
 }
 
+async function fetchJsonWithTimeout(url, options = {}, ms = 25000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    const data = await response.json().catch(() => ({}));
+    return { response, data };
+  } catch (error) {
+    if (error.name === "AbortError") throw new Error("Booking is taking too long. Please check your bookings tab before trying again.");
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function loadRazorpayCheckout() {
   if (window.Razorpay) return Promise.resolve();
   return new Promise((resolve, reject) => {
@@ -1356,7 +1370,9 @@ bookingForm.addEventListener("submit", async event => {
         if (!holdResponse.ok) throw new Error(hold.error || "Could not hold rooms for payment.");
         bookingId = await startRazorpayPayment(hold, bookingDetails, room, pricing);
       } else {
+        if (manualMode) submitBtn.textContent = "Reading screenshot...";
         const screenshotUrl = manualMode ? await uploadPaymentScreenshot(screenshotFile, null) : "";
+        submitBtn.textContent = "Confirming booking...";
         bookingId = await createMockBooking(room, bookingDetails, pricing, manualMode ? "pending_payment" : "confirmed", screenshotUrl);
         if (manualMode) {
           bookingDetails.paymentScreenshotUrl = screenshotUrl;
@@ -1371,10 +1387,11 @@ bookingForm.addEventListener("submit", async event => {
         price: pricing.perDay,
         status: manualMode ? "Payment submitted" : "Confirmed"
       }, ...bookings];
-      await loadAllBookings();
+      submitBtn.textContent = "Finalizing...";
+      await loadAllBookings().catch(() => {});
       setStore("stayBookings", bookings);
       const travelLeadSaved = bookingDetails.travelInterest
-        ? await saveTravelInterestLead(room, bookingDetails)
+        ? await saveTravelInterestLead(room, bookingDetails).catch(() => false)
         : false;
       successMessage = manualMode
         ? `Payment screenshot uploaded. Reference ID: ${bookingReference(bookingId)}. Your room is held now. Our team will verify payment and confirm or cancel the booking within 5-10 minutes.`
