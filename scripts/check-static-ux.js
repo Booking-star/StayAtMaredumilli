@@ -16,6 +16,7 @@ if ((index.match(/terms-of-service/g) || []).length !== 1) fail("Terms link shou
 if ((index.match(/cancellation-policy/g) || []).length !== 1) fail("Cancellation link should appear once on home/profile.");
 if (!index.includes("support-list")) fail("Support should use formatted rows, not one paragraph.");
 if (!index.includes("app-room-ui.js")) fail("Room UI helper must load before app.js.");
+if (!/<\/div>\s*<nav class="bottom-nav hidden">/.test(index)) fail("Bottom nav must live outside #app.");
 if (!/\.bottom-nav\s*{[\s\S]*position:\s*fixed\s*!important/.test(css)) fail("Bottom nav must stay fixed.");
 if (!/\.bottom-nav\s*{[\s\S]*transform:\s*none\s*!important/.test(css)) fail("Bottom nav must not use transform on mobile.");
 if (!css.includes("--bottom-nav-space: 156px")) fail("Mobile bottom spacing must protect content from nav overlap.");

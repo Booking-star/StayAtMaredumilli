@@ -707,12 +707,17 @@ function openUpiPayment(event) {
   }, 1800);
 }
 
+function setAppVisible(visible) {
+  landing.classList.toggle("hidden", visible);
+  app.classList.toggle("hidden", !visible);
+  document.querySelector(".bottom-nav")?.classList.toggle("hidden", !visible);
+}
+
 function recoverFromUpiReturn() {
   const openedAt = Number(sessionStorage.getItem("stayUpiOpenedAt") || 0);
   if (!openedAt || document.visibilityState === "hidden" || Date.now() - openedAt < 1000) return;
   sessionStorage.removeItem("stayUpiOpenedAt");
-  landing.classList.add("hidden");
-  app.classList.remove("hidden");
+  setAppVisible(true);
   showScreen("#home");
 }
 
@@ -732,10 +737,10 @@ function restoreVisibleState() {
   if (appHidden && landingHidden) {
     const hasCustomerState = localStorage.getItem("stayAuthUserKey") || getStore("stayProfile", {})?.email;
     if (hasCustomerState) {
-      app.classList.remove("hidden");
+      setAppVisible(true);
       showScreen(location.hash || "#home");
     } else {
-      landing.classList.remove("hidden");
+      setAppVisible(false);
       setLandingVideo();
     }
   } else if (!appHidden && !document.querySelector(".screen.active")) {
@@ -824,8 +829,7 @@ function openSearchQuery() {
 }
 
 function enterApp(showSearch = true) {
-  landing.classList.add("hidden");
-  app.classList.remove("hidden");
+  setAppVisible(true);
   showScreen(location.hash || "#home");
   if (showSearch && !bookingDetails && !pendingBookingId()) openSearchQuery();
 }
@@ -1123,8 +1127,7 @@ document.querySelector("#logoutBtn")?.addEventListener("click", async () => {
   bookings = [];
   bookingDetails = null;
   selectedRoomId = null;
-  app.classList.add("hidden");
-  landing.classList.remove("hidden");
+  setAppVisible(false);
   loginBtn.disabled = false;
 });
 document.querySelector(".support-btn").addEventListener("click", () => {
