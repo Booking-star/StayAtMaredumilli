@@ -327,7 +327,9 @@ function openUpiPayment(event) {
 }
 
 async function startRazorpayPayment(order, details, roomObj, pricing) {
+  let paymentCompleted = false;
   const releaseHold = async () => {
+    if (paymentCompleted) return;
     const { data: sessionData } = await supabaseClient.auth.getSession();
     await fetch("/api/release-payment-hold", {
       method: "POST",
@@ -356,6 +358,7 @@ async function startRazorpayPayment(order, details, roomObj, pricing) {
         room_id: roomObj.id
       },
       handler: async response => {
+        paymentCompleted = true;
         try {
           const verify = await fetch("/api/verify-payment", {
             method: "POST",
@@ -376,6 +379,7 @@ async function startRazorpayPayment(order, details, roomObj, pricing) {
       },
       modal: {
         ondismiss: async () => {
+          if (paymentCompleted) return;
           await releaseHold();
           reject(new Error("Payment was not completed. Rooms were released."));
         }

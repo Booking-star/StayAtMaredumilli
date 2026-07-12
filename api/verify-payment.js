@@ -122,13 +122,15 @@ function validSignature(orderId, paymentId, signature) {
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  let hold_id;
+  let razorpay_order_id;
+  let razorpay_payment_id;
   try {
-    const {
-      hold_id,
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature
-    } = req.body || {};
+    const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+    hold_id = body.hold_id;
+    razorpay_order_id = body.razorpay_order_id;
+    razorpay_payment_id = body.razorpay_payment_id;
+    const razorpay_signature = body.razorpay_signature;
     if (!hold_id || !razorpay_order_id || !razorpay_payment_id) {
       throw new Error("Missing payment verification details.");
     }
@@ -156,7 +158,11 @@ module.exports = async function handler(req, res) {
     }
     res.status(200).json({ booking_id: bookingId });
   } catch (error) {
-    console.error("Payment verification failed:", error.message);
+    console.error("Payment verification failed:", error.message, {
+      hold_id,
+      razorpay_order_id,
+      razorpay_payment_id
+    });
     res.status(400).json({ error: "Payment verification failed." });
   }
 };
