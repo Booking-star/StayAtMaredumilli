@@ -770,6 +770,10 @@ async function createMockBooking(room, details, pricing, status = "confirmed") {
     p_influencer_id: localStorage.getItem("influencer_id") || null,
     p_firecamp: details.firecamp
   });
+  // ponytail: live DB may not have the pending_payment enum/function update yet; confirmed still blocks rooms.
+  if (error && status === "pending_payment" && /invalid booking status/i.test(error.message)) {
+    return createMockBooking(room, details, pricing, "confirmed");
+  }
   if (error) throw error;
   return data || Date.now();
 }
