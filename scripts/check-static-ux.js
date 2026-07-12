@@ -30,6 +30,8 @@ if (!book.includes('e.target.id === "adultsInput" && e.type === "change"')) fail
 if (!book.includes('localStorage.setItem("stayProfile"')) fail("Booking contact details should persist to profile.");
 if (!verifyPayment.includes("async function razorpayPayment") || !verifyPayment.includes("validSignature")) fail("Razorpay verify must have server-side fallback.");
 if (!verifyPayment.includes("bookingByPayment") || !verifyPayment.includes('hold.status === "confirmed"')) fail("Razorpay verify must be idempotent after webhook confirmation.");
+if (!verifyPayment.includes("createBookingFromPaidHold") || !verifyPayment.includes("manual_review")) fail("Captured Razorpay payments must not leave customers with a failure screen.");
+if (!book.includes("manual_review") || !book.includes("Payment received - confirmation pending")) fail("Checkout must handle paid manual-review responses.");
 if (!seo.includes('decoding="async"')) fail("SEO hotel images should decode asynchronously.");
 if (!vercel.includes('"X-Frame-Options"') || !vercel.includes('"DENY"')) fail("Clickjacking header missing.");
 

@@ -358,7 +358,7 @@ async function startRazorpayPayment(order, details, roomObj, pricing) {
           });
           const data = await verify.json().catch(() => ({}));
           if (!verify.ok) throw new Error(data.error || "Payment verification failed.");
-          resolve(data.booking_id);
+          resolve(data);
         } catch (error) {
           reject(error);
         }
@@ -562,6 +562,7 @@ async function handleCheckoutFormSubmit(event) {
   
   try {
     let bookingId;
+    let manualReview = false;
     if (paymentSettings.mode === "razorpay") {
       const influencerId = localStorage.getItem("influencer_id");
       const { data: sessionData } = await supabaseClient.auth.getSession();
@@ -588,7 +589,9 @@ async function handleCheckoutFormSubmit(event) {
       });
       const hold = await holdResponse.json().catch(() => ({}));
       if (!holdResponse.ok) throw new Error(hold.error || "Could not hold rooms for payment.");
-      bookingId = await startRazorpayPayment(hold, savedDetailsObj, room, pricing);
+      const paymentResult = await startRazorpayPayment(hold, savedDetailsObj, room, pricing);
+      bookingId = paymentResult.booking_id;
+      manualReview = Boolean(paymentResult.manual_review);
     } else {
       submitBtn.textContent = "Confirming booking...";
       bookingId = await createMockBooking(room, savedDetailsObj, pricing, manualMode ? "pending_payment" : "confirmed");
@@ -608,13 +611,13 @@ async function handleCheckoutFormSubmit(event) {
       roomName: room.name,
       roomImage: room.images[0],
       price: pricing.perDay,
-      status: manualMode ? "Payment submitted" : "Confirmed"
+      status: manualReview ? "Payment received - confirmation pending" : (manualMode ? "Payment submitted" : "Confirmed")
     };
     
     localStorage.setItem("stayBookings", JSON.stringify([newBooking, ...bookings]));
     if (savedDetailsObj.travelInterest) await saveTravelInterestLead(room, savedDetailsObj).catch(() => false);
     
-    showSuccess(bookingReference(bookingId), manualMode);
+    showSuccess(bookingReference(bookingId), manualMode || manualReview);
   } catch (error) {
     alert(friendlyBookingError(error.message));
     submitBtn.disabled = false;

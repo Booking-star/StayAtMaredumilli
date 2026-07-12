@@ -36,10 +36,28 @@ async function bookingByPayment(paymentId) {
   return data?.[0]?.id || null;
 }
 
+async function supabaseWrite(path, body, method = "POST") {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const response = await fetch(`${url}/rest/v1/${path}`, {
+    method,
+    headers: {
+      apikey: key,
+      authorization: `Bearer ${key}`,
+      "content-type": "application/json",
+      prefer: "return=representation"
+    },
+    body: JSON.stringify(body)
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.message || "Supabase write failed.");
+  return data;
+}
+
 async function getHold(holdId) {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${url}/rest/v1/booking_holds?id=eq.${holdId}&select=razorpay_order_id,payable_amount,status,razorpay_payment_id`, {
+  const response = await fetch(`${url}/rest/v1/booking_holds?id=eq.${holdId}&select=*`, {
     headers: {
       apikey: key,
       authorization: `Bearer ${key}`
@@ -48,6 +66,34 @@ async function getHold(holdId) {
   const data = await response.json().catch(() => []);
   if (!response.ok || !data?.[0]) throw new Error("Payment hold not found.");
   return data[0];
+}
+
+async function createBookingFromPaidHold(hold, paymentId) {
+  const existing = await bookingByPayment(paymentId);
+  if (existing) return existing;
+  const rows = await supabaseWrite("bookings", {
+    room_id: hold.room_id,
+    customer_name: hold.customer_name || "Customer",
+    customer_phone: hold.customer_phone || "N/A",
+    customer_email: hold.customer_email || null,
+    check_in: hold.check_in,
+    check_out: hold.check_out,
+    num_rooms: hold.num_rooms,
+    num_adults: hold.num_adults,
+    num_kids: hold.num_kids,
+    total_price: hold.total_price,
+    owner_amount: hold.owner_amount,
+    profit_amount: hold.profit_amount,
+    status: "confirmed",
+    payment_option: hold.payment_option,
+    payment_id: paymentId,
+    influencer_id: hold.influencer_id || null,
+    firecamp: Boolean(hold.firecamp)
+  });
+  const bookingId = rows?.[0]?.id;
+  if (!bookingId) throw new Error("Paid booking fallback did not return a booking.");
+  await supabaseWrite(`booking_holds?id=eq.${hold.id}`, { status: "confirmed", razorpay_payment_id: paymentId }, "PATCH");
+  return bookingId;
 }
 
 async function razorpayPayment(paymentId) {
@@ -105,9 +151,13 @@ module.exports = async function handler(req, res) {
     try {
       bookingId = await confirmHold(hold_id, razorpay_payment_id);
     } catch (error) {
-      if (!/no longer active|already|duplicate/i.test(error.message || "")) throw error;
-      bookingId = await bookingByPayment(razorpay_payment_id);
-      if (!bookingId) throw error;
+      console.error("Confirm hold failed after verified payment:", error.message);
+      try {
+        bookingId = await createBookingFromPaidHold(hold, razorpay_payment_id);
+      } catch (fallbackError) {
+        console.error("Paid booking fallback failed:", fallbackError.message);
+        return res.status(200).json({ booking_id: `PAY-${String(razorpay_payment_id).slice(-8)}`, manual_review: true });
+      }
     }
     res.status(200).json({ booking_id: bookingId });
   } catch (error) {

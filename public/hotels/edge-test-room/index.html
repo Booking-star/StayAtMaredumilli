@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edge Test Room - Maredumilli | Stay@Maredumilli</title>
+  <meta name="description" content="Deluxe Room stay in Maredumilli. Amenities: AC, Geyser, Wifi">
+  
+  <link rel="canonical" href="https://stayatmaredumilli.com/hotels/edge-test-room">
+  <meta property="og:title" content="Edge Test Room - Maredumilli | Stay@Maredumilli">
+  <meta property="og:description" content="Deluxe Room stay in Maredumilli. Amenities: AC, Geyser, Wifi">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://stayatmaredumilli.com/hotels/edge-test-room">
+  
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css?v=hotel-detail">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Hotel","name":"Edge Test Room","description":"Deluxe Room stay in Maredumilli. Amenities: AC, Geyser, Wifi","url":"https://stayatmaredumilli.com/hotels/edge-test-room","address":{"@type":"PostalAddress","addressLocality":"Maredumilli","addressRegion":"Andhra Pradesh","addressCountry":"IN"},"priceRange":"Rs.50+"}</script>
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const roomId = "5aea67ff-5908-4fa8-8b09-1e6f7705e354";
+  let index = 0;
+  const page = document.querySelector(".hotel-detail-page");
+  const slides = page?.querySelector(".hotel-detail-slides");
+  const dots = [...(page?.querySelectorAll(".dots span") || [])];
+  const like = page?.querySelector(".hotel-like");
+  const likes = () => JSON.parse(localStorage.getItem("stayLikes") || "[]");
+  const saveLikes = value => localStorage.setItem("stayLikes", JSON.stringify(value));
+  const sync = () => {
+    if (slides) slides.style.transform = "translateX(-" + (index * 100) + "%)";
+    dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
+    const liked = likes().includes(roomId);
+    like?.classList.toggle("liked", liked);
+    const label = like?.querySelector("span");
+    if (label) label.textContent = liked ? "1" : "0";
+  };
+  page?.querySelector(".hotel-prev")?.addEventListener("click", () => { index = Math.max(0, index - 1); sync(); });
+  page?.querySelector(".hotel-next")?.addEventListener("click", () => { index = Math.min(dots.length - 1, index + 1); sync(); });
+  like?.addEventListener("click", () => {
+    const current = likes();
+    saveLikes(current.includes(roomId) ? current.filter(id => id !== roomId) : [...current, roomId]);
+    sync();
+  });
+  page?.querySelector("[data-book-room]")?.addEventListener("click", () => {
+    localStorage.setItem("stayPendingRoomId", roomId);
+    location.href = "/book.html?room=" + encodeURIComponent(roomId);
+  });
+  sync();
+});
+</script>
+</head>
+<body class="policy-page">
+  <main class="hotel-detail-page" data-room-id="5aea67ff-5908-4fa8-8b09-1e6f7705e354">
+    <nav class="hotel-detail-nav">
+      <a class="wordmark" href="/" aria-label="Stay@Maredumilli home">Stay@Maredumilli</a>
+      <a class="ghost-btn" href="/hotels">All hotels</a>
+    </nav>
+    <section class="hotel-detail-hero">
+      <div class="hotel-detail-carousel">
+        <div class="hotel-detail-slides">
+          
+        </div>
+        <button class="heart image-heart hotel-like" type="button" aria-label="Like Edge Test Room">&#9825; <span>0</span></button>
+        
+      </div>
+      <div class="hotel-detail-copy">
+        <p class="room-type">Deluxe Room</p>
+        <h1>Edge Test Room</h1>
+        <p>Deluxe Room stay in Maredumilli. Amenities: AC, Geyser, Wifi</p>
+        <div class="hotel-stat-grid">
+          <span><strong>Rs.50</strong><small>per room/day</small></span>
+          <span><strong>2</strong><small>max adults/room</small></span>
+          <span><strong>3</strong><small>rooms available</small></span>
+        </div>
+        <div class="amenity-icons seo-amenities"><span>AC</span><span>Geyser</span><span>Wifi</span></div>
+        <button class="primary-btn seo-book-btn" data-book-room="5aea67ff-5908-4fa8-8b09-1e6f7705e354" type="button">Book Edge Test Room</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
