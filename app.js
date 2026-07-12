@@ -846,7 +846,10 @@ function recoverFromUpiReturn() {
   const openedAt = Number(sessionStorage.getItem("stayUpiOpenedAt") || 0);
   if (!openedAt || document.visibilityState === "hidden" || Date.now() - openedAt < 1000) return;
   sessionStorage.removeItem("stayUpiOpenedAt");
-  location.reload();
+  landing.classList.add("hidden");
+  app.classList.remove("hidden");
+  showScreen("#home");
+  openPendingBookingIfReady();
 }
 
 async function captureWaitlist(room) {
