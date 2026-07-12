@@ -22,10 +22,24 @@ async function confirmHold(holdId, paymentId) {
   return data;
 }
 
+async function bookingByPayment(paymentId) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const response = await fetch(`${url}/rest/v1/bookings?payment_id=eq.${encodeURIComponent(paymentId)}&select=id&limit=1`, {
+    headers: {
+      apikey: key,
+      authorization: `Bearer ${key}`
+    }
+  });
+  const data = await response.json().catch(() => []);
+  if (!response.ok) throw new Error(data?.message || "Could not load confirmed booking.");
+  return data?.[0]?.id || null;
+}
+
 async function getHold(holdId) {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${url}/rest/v1/booking_holds?id=eq.${holdId}&select=razorpay_order_id,payable_amount`, {
+  const response = await fetch(`${url}/rest/v1/booking_holds?id=eq.${holdId}&select=razorpay_order_id,payable_amount,status,razorpay_payment_id`, {
     headers: {
       apikey: key,
       authorization: `Bearer ${key}`
@@ -74,6 +88,9 @@ module.exports = async function handler(req, res) {
     }
     const hold = await getHold(hold_id);
     if (hold.razorpay_order_id !== razorpay_order_id) throw new Error("Payment order does not match this booking hold.");
+    if (hold.status === "confirmed" && hold.razorpay_payment_id === razorpay_payment_id) {
+      return res.status(200).json({ booking_id: await bookingByPayment(razorpay_payment_id) || hold_id });
+    }
     if (!validSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature)) {
       const payment = await razorpayPayment(razorpay_payment_id);
       if (
@@ -84,7 +101,14 @@ module.exports = async function handler(req, res) {
         throw new Error("Payment signature mismatch.");
       }
     }
-    const bookingId = await confirmHold(hold_id, razorpay_payment_id);
+    let bookingId;
+    try {
+      bookingId = await confirmHold(hold_id, razorpay_payment_id);
+    } catch (error) {
+      if (!/no longer active|already|duplicate/i.test(error.message || "")) throw error;
+      bookingId = await bookingByPayment(razorpay_payment_id);
+      if (!bookingId) throw error;
+    }
     res.status(200).json({ booking_id: bookingId });
   } catch (error) {
     console.error("Payment verification failed:", error.message);
