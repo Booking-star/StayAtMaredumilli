@@ -76,6 +76,6 @@ module.exports = async function handler(req, res) {
     });
   } catch (error) {
     console.error("Payment hold failed:", error.message);
-    res.status(400).json({ error: "Payment hold failed. Please check availability and try again." });
+    res.status(400).json({ error: error.message || "Payment hold failed. Please check availability and try again." });
   }
 };

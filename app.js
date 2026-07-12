@@ -1059,86 +1059,6 @@ function roomFromSupabase(row) {
   };
 }
 
-function openBooking(roomId, editOnly = false) {
-  selectedRoomId = roomId || selectedRoomId || rooms[0].id;
-  editingDetailsOnly = editOnly;
-  const room = rooms.find(item => item.id === selectedRoomId);
-  modalTitle.textContent = editOnly ? "Edit saved details" : `Confirm ${room.name}`;
-  const today = new Date();
-  const tomorrow = new Date(Date.now() + 86400000);
-  const defaults = fitDetailsToAvailability(room, bookingDetails || {
-    adults: 2,
-    children: 0,
-    rooms: 1,
-    from: getLocalDateString(today),
-    to: getLocalDateString(tomorrow),
-    payment: "20",
-    firecamp: false
-  });
-  if (!defaults.to || defaults.to <= defaults.from) defaults.to = getNextDateString(defaults.from);
-  document.querySelector("#bookingName").value = defaults.name || profile.name || "";
-  document.querySelector("#bookingPhone").value = defaults.phone || profile.phone || "";
-  document.querySelector("#bookingEmail").value = defaults.email || profile.email || "";
-  document.querySelector("#adultsInput").value = defaults.adults;
-  document.querySelector("#childrenInput").value = defaults.children;
-  document.querySelector("#roomsInput").value = defaults.rooms;
-  document.querySelector("#roomsInput").max = defaults.maxRooms || "";
-  document.querySelector("#fromInput").value = defaults.from;
-  document.querySelector("#toInput").min = getNextDateString(defaults.from);
-  document.querySelector("#toInput").value = defaults.to;
-  document.querySelector("#paymentInput").value = defaults.payment || "20";
-  if (policyConsentInput) policyConsentInput.checked = false;
-  travelInterestInput.checked = Boolean(defaults.travelInterest);
-  firecampInput.checked = Boolean(defaults.firecamp) && hasFirecamp(room);
-  renderCheckoutSummary(room, defaults);
-  modal.showModal();
-}
-
-function renderCheckoutSummary(room, details) {
-  const fitted = fitDetailsToAvailability(room, details);
-  const roomsInput = document.querySelector("#roomsInput");
-  const adultsInput = document.querySelector("#adultsInput");
-  const submitBtn = bookingForm.querySelector('button[type="submit"]');
-  if (adultsInput) adultsInput.value = fitted.adults;
-  if (roomsInput) {
-    roomsInput.value = fitted.rooms;
-    roomsInput.max = fitted.maxRooms || "";
-  }
-  if (submitBtn) submitBtn.disabled = !fitted.maxRooms;
-  const pricing = priceForDates(room, fitted);
-  const selectedRooms = Number(fitted.rooms || 1);
-  const roomTotal = pricing.total;
-  const firecampAmount = firecampPrice(selectedRooms);
-  const firecampTotal = firecampInput.checked && hasFirecamp(room) ? firecampAmount : 0;
-  const total = roomTotal + firecampTotal;
-  const paymentPercent = Number(document.querySelector("#paymentInput")?.value || fitted.payment || 20);
-  const payNow = Math.round(total * paymentPercent / 100);
-  const manualMode = paymentSettings.mode !== "razorpay" && paymentSettings.mode !== "mock";
-  manualPaymentBox?.classList.toggle("hidden", !manualMode);
-  if (manualUpiId) manualUpiId.textContent = paymentSettings.upiId || "UPI ID not set";
-  if (paymentScreenshotInput) paymentScreenshotInput.required = manualMode;
-  if (manualMode) setManualPaymentLinks(payNow, room);
-  firecampField.classList.toggle("hidden", !hasFirecamp(room));
-  firecampField.lastChild.textContent = ` Add firecamp for Rs.${firecampAmount.toLocaleString("en-IN")}`;
-  bookingRoomSummary.innerHTML = `
-    <img src="${escapeHtml(safeUrl(room.images[0]))}" alt="${escapeHtml(room.name)}">
-    <div>
-      <strong>${escapeHtml(room.name)}</strong>
-      <p>${escapeHtml(room.type)} &middot; Rs.${pricing.perDay.toLocaleString("en-IN")} per room/day</p>
-      <span>Check-in 11:00 AM &middot; Check-out 10:00 AM next day</span>
-    </div>
-  `;
-  billSummary.innerHTML = `
-    <strong>Bill summary</strong>
-    <p>${pricing.nights} night(s) x ${selectedRooms} room(s): Rs.${roomTotal.toLocaleString("en-IN")}</p>
-    ${firecampTotal ? `<p>Firecamp add-on: Rs.${firecampTotal.toLocaleString("en-IN")}</p>` : ""}
-    <p>Adults: ${fitted.adults || 1} &middot; Kids: ${fitted.children || 0}</p>
-    ${fitted.partialFit ? `<p class="capacity-warning">Booking ${fitted.maxAdults} adult(s) here. Please book the remaining ${fitted.requestedAdults - fitted.maxAdults} adult(s) in another hotel.</p>` : ""}
-    <b>Total: Rs.${total.toLocaleString("en-IN")}</b>
-    <b>Pay now (${paymentPercent}%): Rs.${payNow.toLocaleString("en-IN")}</b>
-    ${manualMode ? `<p>After payment, upload the screenshot below. Our team confirms manually within 10 minutes.</p>` : ""}
-  `;
-}
 function syncSlideFromScroll(slider) {
   const roomId = slider.closest(".carousel")?.dataset.room;
   if (!roomId) return;
@@ -1194,9 +1114,19 @@ document.addEventListener("click", event => {
   if (button.dataset.action === "toggleAmenities") {
     expandedAmenities = expandedAmenities.includes(room.id) ? expandedAmenities.filter(id => id !== room.id) : [...expandedAmenities, room.id];
   }
-  if (button.dataset.action === "book") openBooking(room.id);
+  if (button.dataset.action === "book") {
+    const from = bookingDetails?.from || "";
+    const to = bookingDetails?.to || "";
+    const adults = bookingDetails?.adults || 2;
+    const children = bookingDetails?.children || 0;
+    const roomsCount = bookingDetails?.rooms || 1;
+    window.location.href = `/book.html?room=${room.id}&from=${from}&to=${to}&adults=${adults}&children=${children}&rooms=${roomsCount}`;
+    return;
+  }
   if (button.dataset.action === "waitlist") captureWaitlist(room);
-  if (button.dataset.action === "editDetails") openBooking(null, true);
+  if (button.dataset.action === "editDetails") {
+    window.location.hash = "#home";
+  }
   if (button.dataset.action === "openReel") openReel(Number(button.dataset.reel));
   if (button.dataset.action === "deleteOwnerRoom") {
     deleteOwnerRoom(button.dataset.room);
@@ -1322,186 +1252,6 @@ async function fetchJsonWithTimeout(url, options = {}, ms = 25000) {
   }
 }
 
-function loadRazorpayCheckout() {
-  if (window.Razorpay) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = resolve;
-    script.onerror = () => reject(new Error("Could not load Razorpay checkout."));
-    document.head.appendChild(script);
-  });
-}
-
-async function startRazorpayPayment(order, details, room, pricing) {
-  await loadRazorpayCheckout();
-  return new Promise((resolve, reject) => {
-    const checkout = new Razorpay({
-      key: order.key_id,
-      amount: order.amount * 100,
-      currency: "INR",
-      name: "Stay@Maredumilli",
-      description: `${room.name} booking`,
-      order_id: order.order_id,
-      prefill: {
-        name: details.name || profile.name || "",
-        email: details.email || profile.email || "",
-        contact: details.phone || profile.phone || ""
-      },
-      notes: {
-        hold_id: order.hold_id,
-        room_id: room.id
-      },
-      handler: async response => {
-        try {
-          const verify = await fetch("/api/verify-payment", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              hold_id: order.hold_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature
-            })
-          });
-          const data = await verify.json().catch(() => ({}));
-          if (!verify.ok) throw new Error(data.error || "Payment verification failed.");
-          resolve(data.booking_id);
-        } catch (error) {
-          reject(error);
-        }
-      },
-      modal: {
-        ondismiss: () => reject(new Error("Payment was not completed. Rooms will be released after 5 minutes."))
-      }
-    });
-    checkout.open();
-  });
-}
-
-bookingForm.addEventListener("submit", async event => {
-  event.preventDefault();
-  if (policyConsentInput && !policyConsentInput.checked && !editingDetailsOnly) {
-    alert("Please accept the Terms of Service and Cancellation Policy before payment.");
-    return;
-  }
-  const room = rooms.find(item => item.id === selectedRoomId);
-  const adults = Number(document.querySelector("#adultsInput").value);
-  const minRooms = minRoomsForAdults(room, adults);
-  const remaining = getAvailableRoomsCount(room, {
-    from: document.querySelector("#fromInput").value,
-    to: document.querySelector("#toInput").value
-  });
-  const selectedRooms = Math.min(Math.max(Number(document.querySelector("#roomsInput").value), minRooms), remaining);
-  document.querySelector("#roomsInput").value = selectedRooms || 1;
-  if (!remaining) {
-    const maxAdultsAvailable = remaining * Math.max(1, Number(room.maxAdults || 1));
-    alert(`Only ${remaining} room(s) are available here for these dates. This hotel can take up to ${maxAdultsAvailable} adult(s). Please reduce guests or book the remaining people in another hotel.`);
-    return;
-  }
-  const pricing = priceForDates(room, {
-    from: document.querySelector("#fromInput").value,
-    to: document.querySelector("#toInput").value,
-    rooms: selectedRooms
-  });
-  const guestName = document.querySelector("#bookingName").value.trim();
-  const guestPhone = document.querySelector("#bookingPhone").value.trim();
-  const guestEmail = document.querySelector("#bookingEmail").value.trim();
-  const manualMode = paymentSettings.mode !== "razorpay" && paymentSettings.mode !== "mock";
-  const screenshotFile = paymentScreenshotInput?.files?.[0] || null;
-  if (manualMode && !paymentSettings.upiId?.trim() && !editingDetailsOnly) {
-    alert("UPI payment is not configured yet. Please contact support.");
-    return;
-  }
-  if (manualMode && !screenshotFile && !editingDetailsOnly) {
-    alert("Please pay by UPI and upload the payment screenshot before confirming.");
-    return;
-  }
-
-  bookingDetails = {
-    name: guestName,
-    phone: guestPhone,
-    email: guestEmail,
-    adults,
-    children: Number(document.querySelector("#childrenInput").value),
-    rooms: selectedRooms,
-    from: document.querySelector("#fromInput").value,
-    to: document.querySelector("#toInput").value,
-    payment: document.querySelector("#paymentInput").value,
-    travelInterest: travelInterestInput.checked,
-    firecamp: firecampInput.checked && hasFirecamp(room)
-  };
-  setStore("stayBookingDetails", bookingDetails);
-  let successMessage = "";
-  if (!editingDetailsOnly) {
-    const submitBtn = bookingForm.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.textContent = paymentSettings.mode === "razorpay" ? "Opening payment..." : "Submitting...";
-    try {
-      let bookingId;
-      if (paymentSettings.mode === "razorpay") {
-        const influencerId = localStorage.getItem("influencer_id");
-        const holdResponse = await fetch("/api/create-payment-hold", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            p_room_id: room.id,
-            p_customer_name: guestName || profile.name || "Customer",
-            p_customer_phone: guestPhone || profile.phone || "9999999999",
-            p_customer_email: guestEmail || profile.email || "customer@stay.com",
-            p_check_in: bookingDetails.from,
-            p_check_out: bookingDetails.to,
-            p_num_rooms: bookingDetails.rooms,
-            p_num_adults: bookingDetails.adults,
-            p_num_kids: bookingDetails.children,
-            p_payment_option: bookingDetails.payment,
-            p_influencer_id: influencerId || null,
-            p_firecamp: bookingDetails.firecamp
-          })
-        });
-        const hold = await holdResponse.json().catch(() => ({}));
-        if (!holdResponse.ok) throw new Error(hold.error || "Could not hold rooms for payment.");
-        bookingId = await startRazorpayPayment(hold, bookingDetails, room, pricing);
-      } else {
-        submitBtn.textContent = "Confirming booking...";
-        bookingId = await createMockBooking(room, bookingDetails, pricing, manualMode ? "pending_payment" : "confirmed");
-        if (manualMode) attachManualScreenshotLater(bookingId, screenshotFile);
-      }
-      bookings = [{
-        ...bookingDetails,
-        id: bookingId || Date.now(),
-        reference: bookingReference(bookingId),
-        roomName: room.name,
-        roomImage: room.images[0],
-        price: pricing.perDay,
-        status: manualMode ? "Payment submitted" : "Confirmed"
-      }, ...bookings];
-      loadAllBookings().catch(() => {});
-      setStore("stayBookings", bookings);
-      if (bookingDetails.travelInterest) saveTravelInterestLead(room, bookingDetails).catch(() => false);
-      successMessage = manualMode
-        ? `Payment submitted. Reference ID: ${bookingReference(bookingId)}. Your room is held now. Our team will verify payment and confirm or cancel the booking within 5-10 minutes.`
-        : `Booking confirmed. Reference ID: ${bookingReference(bookingId)}. Welcome to Stay@Maredumilli!`;
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Pay & Confirm";
-    } catch (error) {
-      alert(friendlyBookingError(error.message));
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Pay & Confirm";
-      return;
-    }
-  }
-  modal.close();
-  if (editingDetailsOnly) {
-    editingDetailsOnly = false;
-    render();
-  } else {
-    location.hash = "#bookings";
-    showScreen("#bookings");
-  }
-  if (successMessage) showSuccess(successMessage);
-});
-
 document.querySelector("#saveProfileBtn").addEventListener("click", async event => {
   const button = event.currentTarget;
   profile = {
@@ -1524,11 +1274,7 @@ document.querySelector("#saveProfileBtn").addEventListener("click", async event 
   }
 });
 
-document.querySelector("#editSavedDetailsBtn").addEventListener("click", () => openBooking(null, true));
-document.querySelector("#closeModalBtn").addEventListener("click", () => modal.close());
-modal.addEventListener("click", event => {
-  if (event.target === modal) modal.close();
-});
+
 document.querySelector("#closeReelBtn").addEventListener("click", () => reelModal.close());
 document.querySelector("#closeBookingDetailsBtn")?.addEventListener("click", () => bookingDetailsModal.close());
 document.querySelector("#closeSuccessBtn")?.addEventListener("click", () => successModal.close());
@@ -1570,32 +1316,7 @@ document.querySelector("#applyFiltersBtn").addEventListener("click", () => {
   document.querySelector("#controlsPanel").classList.add("hidden");
   render();
 });
-["#adultsInput", "#childrenInput", "#roomsInput", "#fromInput", "#toInput", "#firecampInput"].forEach(selector => {
-  document.querySelector(selector).addEventListener("input", (e) => {
-    const room = rooms.find(item => item.id === selectedRoomId);
-    if (!room) return;
 
-    // Automatically calculate needed rooms based on max capacity per room
-    if (e.target.id === "adultsInput") {
-      const adultsVal = Number(e.target.value || 1);
-      const remaining = getAvailableRoomsCount(room, {
-        from: document.querySelector("#fromInput").value,
-        to: document.querySelector("#toInput").value
-      });
-      document.querySelector("#roomsInput").value = Math.min(minRoomsForAdults(room, adultsVal), remaining || 1);
-    }
-    if (e.target.id === "fromInput") {
-      const nextDate = getNextDateString(e.target.value);
-      document.querySelector("#toInput").min = nextDate;
-      document.querySelector("#toInput").value = nextDate;
-    }
-
-    const details = detailsForRoom(room, checkoutDetailsFromForm());
-    syncTripDetails(details);
-    renderCheckoutSummary(room, details);
-    scheduleAvailabilityRefresh(room);
-  });
-});
 feed.addEventListener("scroll", event => {
   if (event.target.classList.contains("slides")) syncSlideFromScroll(event.target);
 }, true);

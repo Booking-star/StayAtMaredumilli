@@ -208,7 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   page?.querySelector("[data-book-room]")?.addEventListener("click", () => {
     localStorage.setItem("stayPendingRoomId", roomId);
-    location.href = "/?book=" + encodeURIComponent(roomId);
+    location.href = "/book.html?room=" + encodeURIComponent(roomId);
   });
   sync();
 });

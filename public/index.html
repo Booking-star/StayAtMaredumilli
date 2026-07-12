@@ -148,58 +148,6 @@
       <a href="faq.html">FAQ</a>
     </footer>
   </div>
-
-  <dialog id="bookingModal">
-    <form id="bookingForm" method="dialog">
-      <div class="modal-head">
-        <div>
-          <p class="eyebrow">Checkout</p>
-          <h3 id="modalTitle">Confirm your stay</h3>
-        </div>
-        <button id="closeModalBtn" class="icon-btn" aria-label="Close" type="button"><i data-lucide="x"></i></button>
-      </div>
-      <div id="bookingRoomSummary" class="checkout-summary"></div>
-      <div id="billSummary" class="bill-summary"></div>
-      <div class="form-grid booking-contact-grid">
-        <label>Your Name <input id="bookingName" required placeholder="John Doe" style="width: 100%;"></label>
-        <label>Your Phone <input id="bookingPhone" type="tel" required placeholder="+91 99999 99999" style="width: 100%;"></label>
-        <label>Your Email <input id="bookingEmail" type="email" required placeholder="john@domain.com" style="width: 100%;"></label>
-      </div>
-      <div class="form-grid booking-detail-grid">
-        <label>Adults <input id="adultsInput" type="number" min="1" value="2" required></label>
-        <label>Children <input id="childrenInput" type="number" min="0" value="0" required></label>
-        <label>Rooms <input id="roomsInput" type="number" min="1" value="1" required></label>
-        <label>From <input id="fromInput" type="date" required></label>
-        <label>To <input id="toInput" type="date" required></label>
-        <label>Payment
-          <select id="paymentInput">
-            <option value="20">Pay 20% advance</option>
-            <option value="100">Pay 100% now</option>
-          </select>
-        </label>
-      </div>
-      <div id="manualPaymentBox" class="manual-payment-box hidden">
-        <strong>Manual UPI payment</strong>
-        <p>Tap PhonePe / UPI to pay the shown amount to <b id="manualUpiId">UPI ID not set</b>, then upload the payment screenshot. Rooms will be held while our team verifies payment in 5-10 minutes.</p>
-        <div class="manual-payment-actions">
-          <a id="manualPhonePeLink" class="ghost-btn" href="javascript:void(0)" rel="noopener">Pay with PhonePe / UPI</a>
-          <a id="manualUpiLink" class="ghost-btn" href="javascript:void(0)" rel="noopener">Open UPI app</a>
-        </div>
-        <label>Payment screenshot <input id="paymentScreenshotInput" type="file" accept="image/*"></label>
-      </div>
-      <p class="policy"><strong>No cancellations and no refunds.</strong> Once payment is made, the booking amount is not refundable for any reason. Need help before payment? Use Profile > Support.</p>
-      <label class="addon-check policy-consent"><input id="policyConsentInput" type="checkbox" required><span>I have read and agree to the <a href="/policies/terms-of-service" target="_blank" rel="noopener">Terms of Service</a> and <a href="/policies/cancellation-policy" target="_blank" rel="noopener">Cancellation Policy</a>, including the no-cancellation and no-refund policy.</span></label>
-      <label class="addon-check"><input id="travelInterestInput" type="checkbox"><span>I am interested in Maredumilli travel packages. You can contact me one day before check-in.</span></label>
-      <label id="firecampField" class="addon-check hidden"><input id="firecampInput" type="checkbox"><span>Add firecamp for Rs.600</span></label>
-      <button class="primary-btn" type="submit">Pay & Confirm</button>
-    </form>
-  </dialog>
-  <dialog id="searchQueryModal" style="border: none; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.15); padding: 24px; background: #fff;">
-    <form id="searchQueryForm" method="dialog">
-      <div style="text-align: center; margin-bottom: 20px;">
-        <h3 style="margin: 0; font-family: Georgia, serif; font-size: 22px; color: var(--text);">Plan Your Stay</h3>
-        <p style="margin: 4px 0 0; font-size: 13px; color: var(--muted);">Select your dates and guests to search</p>
-      </div>
       <div class="form-grid search-query-grid">
         <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: bold; color: var(--text);">
           Check-in Date
