@@ -152,12 +152,7 @@ module.exports = async function handler(req, res) {
       bookingId = await confirmHold(hold_id, razorpay_payment_id);
     } catch (error) {
       console.error("Confirm hold failed after verified payment:", error.message);
-      try {
-        bookingId = await createBookingFromPaidHold(hold, razorpay_payment_id);
-      } catch (fallbackError) {
-        console.error("Paid booking fallback failed:", fallbackError.message);
-        return res.status(200).json({ booking_id: `PAY-${String(razorpay_payment_id).slice(-8)}`, manual_review: true });
-      }
+      bookingId = await createBookingFromPaidHold(hold, razorpay_payment_id);
     }
     res.status(200).json({ booking_id: bookingId });
   } catch (error) {

@@ -327,6 +327,17 @@ function openUpiPayment(event) {
 }
 
 async function startRazorpayPayment(order, details, roomObj, pricing) {
+  const releaseHold = async () => {
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    await fetch("/api/release-payment-hold", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${sessionData.session?.access_token || ""}`
+      },
+      body: JSON.stringify({ hold_id: order.hold_id })
+    }).catch(() => {});
+  };
   return new Promise((resolve, reject) => {
     const checkout = new Razorpay({
       key: order.key_id,
@@ -364,10 +375,15 @@ async function startRazorpayPayment(order, details, roomObj, pricing) {
         }
       },
       modal: {
-        ondismiss: () => {
-          reject(new Error("Payment was not completed. Rooms will be released after 5 minutes."));
+        ondismiss: async () => {
+          await releaseHold();
+          reject(new Error("Payment was not completed. Rooms were released."));
         }
       }
+    });
+    checkout.on?.("payment.failed", async () => {
+      await releaseHold();
+      reject(new Error("Payment failed. Rooms were released."));
     });
     checkout.open();
   });
@@ -562,7 +578,6 @@ async function handleCheckoutFormSubmit(event) {
   
   try {
     let bookingId;
-    let manualReview = false;
     if (paymentSettings.mode === "razorpay") {
       const influencerId = localStorage.getItem("influencer_id");
       const { data: sessionData } = await supabaseClient.auth.getSession();
@@ -591,7 +606,6 @@ async function handleCheckoutFormSubmit(event) {
       if (!holdResponse.ok) throw new Error(hold.error || "Could not hold rooms for payment.");
       const paymentResult = await startRazorpayPayment(hold, savedDetailsObj, room, pricing);
       bookingId = paymentResult.booking_id;
-      manualReview = Boolean(paymentResult.manual_review);
     } else {
       submitBtn.textContent = "Confirming booking...";
       bookingId = await createMockBooking(room, savedDetailsObj, pricing, manualMode ? "pending_payment" : "confirmed");
@@ -611,13 +625,13 @@ async function handleCheckoutFormSubmit(event) {
       roomName: room.name,
       roomImage: room.images[0],
       price: pricing.perDay,
-      status: manualReview ? "Payment received - confirmation pending" : (manualMode ? "Payment submitted" : "Confirmed")
+      status: manualMode ? "Payment submitted" : "Confirmed"
     };
     
     localStorage.setItem("stayBookings", JSON.stringify([newBooking, ...bookings]));
     if (savedDetailsObj.travelInterest) await saveTravelInterestLead(room, savedDetailsObj).catch(() => false);
     
-    showSuccess(bookingReference(bookingId), manualMode || manualReview);
+    showSuccess(bookingReference(bookingId), manualMode);
   } catch (error) {
     alert(friendlyBookingError(error.message));
     submitBtn.disabled = false;

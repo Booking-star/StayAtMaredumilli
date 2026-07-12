@@ -11,6 +11,7 @@ const shared = read("shared.js");
 const book = read("book.js");
 const app = read("app.js");
 const verifyPayment = read("api/verify-payment.js");
+const releasePaymentHold = read("api/release-payment-hold.js");
 const seo = read("scripts/generate-seo-pages.js");
 const vercel = read("vercel.json");
 
@@ -30,8 +31,9 @@ if (!book.includes('e.target.id === "adultsInput" && e.type === "change"')) fail
 if (!book.includes('localStorage.setItem("stayProfile"')) fail("Booking contact details should persist to profile.");
 if (!verifyPayment.includes("async function razorpayPayment") || !verifyPayment.includes("validSignature")) fail("Razorpay verify must have server-side fallback.");
 if (!verifyPayment.includes("bookingByPayment") || !verifyPayment.includes('hold.status === "confirmed"')) fail("Razorpay verify must be idempotent after webhook confirmation.");
-if (!verifyPayment.includes("createBookingFromPaidHold") || !verifyPayment.includes("manual_review")) fail("Captured Razorpay payments must not leave customers with a failure screen.");
-if (!book.includes("manual_review") || !book.includes("Payment received - confirmation pending")) fail("Checkout must handle paid manual-review responses.");
+if (!verifyPayment.includes("createBookingFromPaidHold") || verifyPayment.includes("manual_review")) fail("Captured Razorpay payments must confirm booking, not manual-review.");
+if (!book.includes("/api/release-payment-hold") || !book.includes("Payment failed. Rooms were released.")) fail("Failed Razorpay payments must release held rooms.");
+if (!releasePaymentHold.includes("status=eq.held") || !releasePaymentHold.includes('status: "expired"')) fail("Release hold API must only expire held rooms.");
 if (!seo.includes('decoding="async"')) fail("SEO hotel images should decode asynchronously.");
 if (!vercel.includes('"X-Frame-Options"') || !vercel.includes('"DENY"')) fail("Clickjacking header missing.");
 
