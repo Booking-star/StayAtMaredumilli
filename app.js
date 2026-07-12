@@ -753,52 +753,41 @@ async function saveCustomerProfile() {
   });
 }
 
-async function createMockBooking(room, details, pricing, status = "confirmed") {
+async function createMockBooking(room, details, pricing, status = "confirmed", screenshotUrl = "") {
   if (!supabaseClient) return Date.now();
-  const { data, error } = await supabaseClient.rpc("create_booking_safe", {
-    p_room_id: room.id,
-    p_customer_name: details.name || profile.name || "Customer",
-    p_customer_phone: details.phone || profile.phone || "9999999999",
-    p_customer_email: details.email || profile.email || "customer@stay.com",
-    p_check_in: details.from,
-    p_check_out: details.to,
-    p_num_rooms: details.rooms,
-    p_num_adults: details.adults,
-    p_num_kids: details.children,
-    p_payment_option: details.payment,
-    p_status: status,
-    p_influencer_id: localStorage.getItem("influencer_id") || null,
-    p_firecamp: details.firecamp
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  const response = await fetch("/api/manual-booking", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${sessionData.session?.access_token || ""}`
+    },
+    body: JSON.stringify({
+      p_room_id: room.id,
+      p_customer_name: details.name || profile.name || "Customer",
+      p_customer_phone: details.phone || profile.phone || "9999999999",
+      p_customer_email: details.email || profile.email || "customer@stay.com",
+      p_check_in: details.from,
+      p_check_out: details.to,
+      p_num_rooms: details.rooms,
+      p_num_adults: details.adults,
+      p_num_kids: details.children,
+      p_payment_option: details.payment,
+      p_status: status,
+      p_influencer_id: localStorage.getItem("influencer_id") || null,
+      p_firecamp: details.firecamp,
+      p_screenshot_url: screenshotUrl
+    })
   });
-  // ponytail: live DB may not have the pending_payment enum/function update yet; confirmed still blocks rooms.
-  if (error && status === "pending_payment" && /invalid booking status/i.test(error.message)) {
-    return createMockBooking(room, details, pricing, "confirmed");
-  }
-  if (error) throw error;
-  return data || Date.now();
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Booking could not be confirmed.");
+  return result.id || Date.now();
 }
 
 async function uploadPaymentScreenshot(file, bookingId) {
   if (!file) return "";
   validateImageFile(file);
-  if (!supabaseClient) return fileToDataUrl(file);
-  const path = `payment-screenshots/${bookingId}-${Date.now()}-${file.name.replace(/[^a-z0-9.]/gi, "-")}`;
-  const { error } = await supabaseClient.storage
-    .from(supabaseConfig.roomBucket || "room-images")
-    .upload(path, file, { upsert: true });
-  if (error) throw error;
-  const { data } = supabaseClient.storage
-    .from(supabaseConfig.roomBucket || "room-images")
-    .getPublicUrl(path);
-  return data.publicUrl;
-}
-
-async function attachPaymentScreenshot(bookingId, url) {
-  if (!supabaseClient || !url) return;
-  await supabaseClient.rpc("attach_booking_payment_screenshot", {
-    p_booking_id: bookingId,
-    p_screenshot_url: url
-  });
+  return fileToDataUrl(file);
 }
 
 function setManualPaymentLinks(amount, room) {
@@ -1367,18 +1356,10 @@ bookingForm.addEventListener("submit", async event => {
         if (!holdResponse.ok) throw new Error(hold.error || "Could not hold rooms for payment.");
         bookingId = await startRazorpayPayment(hold, bookingDetails, room, pricing);
       } else {
-        bookingId = await createMockBooking(room, bookingDetails, pricing, manualMode ? "pending_payment" : "confirmed");
+        const screenshotUrl = manualMode ? await uploadPaymentScreenshot(screenshotFile, null) : "";
+        bookingId = await createMockBooking(room, bookingDetails, pricing, manualMode ? "pending_payment" : "confirmed", screenshotUrl);
         if (manualMode) {
-          try {
-            const screenshotUrl = await uploadPaymentScreenshot(screenshotFile, bookingId);
-            await attachPaymentScreenshot(bookingId, screenshotUrl);
-            bookingDetails.paymentScreenshotUrl = screenshotUrl;
-          } catch (uploadError) {
-            try {
-              await supabaseClient?.from("bookings").update({ status: "cancelled" }).eq("id", bookingId);
-            } catch (_) {}
-            throw uploadError;
-          }
+          bookingDetails.paymentScreenshotUrl = screenshotUrl;
         }
       }
       bookings = [{
