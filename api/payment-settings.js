@@ -1,8 +1,9 @@
 export default async function handler(req, res) {
   if (!["GET", "POST"].includes(req.method)) return res.status(405).json({ error: "Method not allowed" });
+  const defaultUpiId = "Kandregulaashok1@ybl";
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return res.status(200).json({ mode: "manual", upiId: "" });
+  if (!url || !key) return res.status(200).json({ mode: "manual", upiId: defaultUpiId });
 
   if (req.method === "POST") {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
@@ -54,6 +55,6 @@ export default async function handler(req, res) {
   const value = rows?.[0]?.value || {};
   res.status(200).json({
     mode: ["manual", "mock", "razorpay"].includes(value.mode) ? value.mode : "manual",
-    upiId: value.upiId || ""
+    upiId: value.upiId || defaultUpiId
   });
 }
