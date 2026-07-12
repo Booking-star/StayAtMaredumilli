@@ -34,7 +34,7 @@ const adminRoomList = document.querySelector("#adminRoomList");
 const adminStatus = document.querySelector("#adminStatus");
 const supabaseConfig = window.STAY_SUPABASE || {};
 const siteUrl = `${location.origin}/`;
-const customerAuthKeys = ["stayAuthUserKey", "stayProfile", "stayBookingDetails", "stayLoginStartedAt", "stay-customer-auth"];
+const customerAuthKeys = ["stayAuthUserKey", "stayProfile", "stayBookingDetails", "stayBookings", "stayPendingRoomId", "stayLoginStartedAt", "stay-customer-auth"];
 const customerSignedOutKey = "stayCustomerSignedOut";
 const supabaseClient = supabaseConfig.url && supabaseConfig.anonKey && window.supabase
   ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey, {
@@ -119,6 +119,10 @@ function getStore(key, fallback) {
 
 function setStore(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function closeOpenDialogs() {
+  document.querySelectorAll("dialog[open]").forEach(dialog => dialog.close());
 }
 
 function escapeHtml(value) {
@@ -1517,10 +1521,13 @@ bookingsList.addEventListener("click", event => {
 document.querySelector("#logoutBtn")?.addEventListener("click", async () => {
   if (!confirm("Log out from Stay@Maredumilli?")) return;
   localStorage.setItem(customerSignedOutKey, "1");
+  closeOpenDialogs();
   await supabaseClient?.auth.signOut().catch(() => {});
   customerAuthKeys.forEach(key => localStorage.removeItem(key));
   profile = {};
   bookings = [];
+  bookingDetails = null;
+  selectedRoomId = null;
   app.classList.add("hidden");
   landing.classList.remove("hidden");
   loginBtn.disabled = false;
