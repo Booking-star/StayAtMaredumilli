@@ -434,9 +434,9 @@ async function saveCustomerProfile() {
 // UI Rendering
 function checkoutDetailsFromForm() {
   return {
-    adults: Number(adultsInput.value),
-    children: Number(childrenInput.value),
-    rooms: Number(roomsInput.value),
+    adults: Number(adultsInput.value || 1),
+    children: Number(childrenInput.value || 0),
+    rooms: Number(roomsInput.value || 1),
     from: fromInput.value,
     to: toInput.value,
     payment: paymentInput.value,
@@ -451,8 +451,6 @@ function updatePricingUI() {
   const formDetails = checkoutDetailsFromForm();
   const fitted = fitDetailsToAvailability(room, formDetails);
   
-  adultsInput.value = fitted.adults;
-  roomsInput.value = fitted.rooms;
   roomsInput.max = fitted.maxRooms || "";
   submitBtn.disabled = !fitted.maxRooms;
   
@@ -555,6 +553,9 @@ async function handleCheckoutFormSubmit(event) {
     ...fitted
   };
   localStorage.setItem("stayBookingDetails", JSON.stringify(savedDetailsObj));
+  profile = { ...profile, name: guestName, phone: guestPhone, email: guestEmail };
+  localStorage.setItem("stayProfile", JSON.stringify(profile));
+  saveCustomerProfile().catch(() => {});
   
   submitBtn.disabled = true;
   submitBtn.textContent = paymentSettings.mode === "razorpay" ? "Opening payment..." : "Submitting...";
@@ -756,7 +757,7 @@ async function handleUserSession(session) {
   ["input", "change"].forEach(evtName => {
     [adultsInput, childrenInput, roomsInput, fromInput, toInput, paymentInput, firecampInput].forEach(el => {
       el.addEventListener(evtName, (e) => {
-        if (e.target.id === "adultsInput") {
+        if (e.target.id === "adultsInput" && e.type === "change") {
           const rem = getAvailableRoomsCount(room, {
             from: fromInput.value,
             to: toInput.value
