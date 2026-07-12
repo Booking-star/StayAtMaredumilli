@@ -820,15 +820,14 @@ function setManualPaymentLinks(amount, room) {
 function openUpiPayment(event) {
   const link = event.target.closest("[data-payment-url]");
   if (!link) return;
-  event.preventDefault();
   const url = link.dataset.paymentUrl;
   if (!url) {
+    event.preventDefault();
     alert("UPI ID is not set yet. Please contact support.");
     return;
   }
   sessionStorage.setItem("stayUpiOpenedAt", String(Date.now()));
   if (selectedRoomId) localStorage.setItem("stayPendingRoomId", selectedRoomId);
-  window.location.href = url;
   setTimeout(() => {
     if (document.visibilityState === "visible") alert("If your payment app did not open, copy the UPI ID shown here and pay manually, then upload the screenshot.");
   }, 1800);
