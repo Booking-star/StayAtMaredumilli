@@ -789,6 +789,24 @@ async function uploadPaymentScreenshot(file, bookingId) {
   return fileToDataUrl(file);
 }
 
+async function attachManualScreenshotLater(bookingId, file) {
+  if (!bookingId || !file || !supabaseClient) return;
+  try {
+    const screenshotUrl = await uploadPaymentScreenshot(file, bookingId);
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    await fetch("/api/manual-booking", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${sessionData.session?.access_token || ""}`
+      },
+      body: JSON.stringify({ p_attach_booking_id: bookingId, p_screenshot_url: screenshotUrl })
+    });
+  } catch (error) {
+    console.warn("Payment screenshot sync failed:", error.message);
+  }
+}
+
 function setManualPaymentLinks(amount, room) {
   const upiId = (paymentSettings.upiId || "").trim();
   const reference = `SM${Date.now().toString().slice(-8)}`;
@@ -1414,13 +1432,9 @@ bookingForm.addEventListener("submit", async event => {
         if (!holdResponse.ok) throw new Error(hold.error || "Could not hold rooms for payment.");
         bookingId = await startRazorpayPayment(hold, bookingDetails, room, pricing);
       } else {
-        if (manualMode) submitBtn.textContent = "Reading screenshot...";
-        const screenshotUrl = manualMode ? await uploadPaymentScreenshot(screenshotFile, null) : "";
         submitBtn.textContent = "Confirming booking...";
-        bookingId = await createMockBooking(room, bookingDetails, pricing, manualMode ? "pending_payment" : "confirmed", screenshotUrl);
-        if (manualMode) {
-          bookingDetails.paymentScreenshotUrl = screenshotUrl;
-        }
+        bookingId = await createMockBooking(room, bookingDetails, pricing, manualMode ? "pending_payment" : "confirmed");
+        if (manualMode) attachManualScreenshotLater(bookingId, screenshotFile);
       }
       bookings = [{
         ...bookingDetails,
@@ -1431,17 +1445,12 @@ bookingForm.addEventListener("submit", async event => {
         price: pricing.perDay,
         status: manualMode ? "Payment submitted" : "Confirmed"
       }, ...bookings];
-      submitBtn.textContent = "Finalizing...";
-      await loadAllBookings().catch(() => {});
+      loadAllBookings().catch(() => {});
       setStore("stayBookings", bookings);
-      const travelLeadSaved = bookingDetails.travelInterest
-        ? await saveTravelInterestLead(room, bookingDetails).catch(() => false)
-        : false;
+      if (bookingDetails.travelInterest) saveTravelInterestLead(room, bookingDetails).catch(() => false);
       successMessage = manualMode
-        ? `Payment screenshot uploaded. Reference ID: ${bookingReference(bookingId)}. Your room is held now. Our team will verify payment and confirm or cancel the booking within 5-10 minutes.`
-        : travelLeadSaved
-          ? `Booking confirmed. Reference ID: ${bookingReference(bookingId)}. Welcome to Stay@Maredumilli! Our team will contact you one day before check-in about travel packages.`
-          : `Booking confirmed. Reference ID: ${bookingReference(bookingId)}. Welcome to Stay@Maredumilli!`;
+        ? `Payment submitted. Reference ID: ${bookingReference(bookingId)}. Your room is held now. Our team will verify payment and confirm or cancel the booking within 5-10 minutes.`
+        : `Booking confirmed. Reference ID: ${bookingReference(bookingId)}. Welcome to Stay@Maredumilli!`;
       submitBtn.disabled = false;
       submitBtn.textContent = "Pay & Confirm";
     } catch (error) {

@@ -31,6 +31,23 @@ module.exports = async function handler(req, res) {
     if (!user?.email) return res.status(401).json({ error: "Please login again before booking." });
 
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+    if (body.p_attach_booking_id && body.p_screenshot_url) {
+      const attachResponse = await fetch(`${url}/rest/v1/bookings?id=eq.${body.p_attach_booking_id}&customer_email=eq.${encodeURIComponent(user.email)}`, {
+        method: "PATCH",
+        signal: AbortSignal.timeout(10000),
+        headers: {
+          apikey: key,
+          authorization: `Bearer ${key}`,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          payment_screenshot_url: body.p_screenshot_url,
+          manual_payment_status: "submitted"
+        })
+      });
+      if (!attachResponse.ok) return res.status(500).json({ error: "Payment screenshot could not be saved." });
+      return res.status(200).json({ ok: true });
+    }
     body.p_customer_email = user.email;
     let id;
     try {
