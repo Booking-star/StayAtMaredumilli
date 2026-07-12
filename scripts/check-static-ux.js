@@ -17,6 +17,7 @@ if ((index.match(/cancellation-policy/g) || []).length !== 1) fail("Cancellation
 if (!index.includes("support-list")) fail("Support should use formatted rows, not one paragraph.");
 if (!index.includes("app-room-ui.js")) fail("Room UI helper must load before app.js.");
 if (!/\.bottom-nav\s*{[\s\S]*position:\s*fixed\s*!important/.test(css)) fail("Bottom nav must stay fixed.");
+if (!/\.bottom-nav\s*{[\s\S]*transform:\s*none\s*!important/.test(css)) fail("Bottom nav must not use transform on mobile.");
 if (!css.includes("--bottom-nav-space: 156px")) fail("Mobile bottom spacing must protect content from nav overlap.");
 if (!/supabase\|row-level security\|permission denied\|violates/.test(shared)) fail("Backend errors must be masked for customers.");
 if (!book.includes('loading="lazy" decoding="async"')) fail("Booking room image should not block checkout rendering.");
