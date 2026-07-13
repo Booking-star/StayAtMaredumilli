@@ -89,8 +89,8 @@ function openPendingBookingIfReady() {
   if (!roomId || !room) return false;
   localStorage.removeItem("stayPendingRoomId");
   const details = fitDetailsToAvailability(room, bookingDetails || {});
-  const rooms = Math.min(details.minRooms, details.maxRooms || details.minRooms);
-  location.href = `/book.html?room=${roomId}&from=${details.from}&to=${details.to}&adults=${details.adults}&children=${details.children}&rooms=${rooms}`;
+  const roomCount = Math.min(details.minRooms, details.maxRooms || details.minRooms);
+  location.href = `/book.html?room=${roomId}&from=${details.from}&to=${details.to}&adults=${details.adults}&children=${details.children}&rooms=${roomCount}`;
   return true;
 }
 
@@ -1060,8 +1060,8 @@ document.addEventListener("click", event => {
   }
   if (button.dataset.action === "book") {
     const details = fitDetailsToAvailability(room, bookingDetails || {});
-    const rooms = Math.min(details.minRooms, details.maxRooms || details.minRooms);
-    window.location.href = `/book.html?room=${room.id}&from=${details.from}&to=${details.to}&adults=${details.adults}&children=${details.children}&rooms=${rooms}`;
+    const roomCount = Math.min(details.minRooms, details.maxRooms || details.minRooms);
+    window.location.href = `/book.html?room=${room.id}&from=${details.from}&to=${details.to}&adults=${details.adults}&children=${details.children}&rooms=${roomCount}`;
     return;
   }
   if (button.dataset.action === "waitlist") captureWaitlist(room);
