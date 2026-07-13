@@ -173,15 +173,16 @@ async function loadAllBookings() {
   allBookings = data || [];
 }
 
-function bookingFromRow(row) {
+function bookingFromRow(row, roomsById = {}) {
   const room = Array.isArray(row.rooms) ? row.rooms[0] : row.rooms;
+  const publicRoom = roomsById[row.room_id];
   const local = getStore("stayBookings", []).find(item => String(item.id) === String(row.id)) || {};
   return {
     id: row.id,
     roomId: row.room_id,
     reference: bookingReference(row.id),
-    roomName: room?.room_name || local.roomName || "Stay booking",
-    roomImage: room?.image_urls?.[0] || local.roomImage || "",
+    roomName: publicRoom?.room_name || room?.room_name || local.roomName || "Stay booking",
+    roomImage: publicRoom?.image_urls?.[0] || room?.image_urls?.[0] || local.roomImage || "",
     from: row.check_in,
     to: row.check_out,
     adults: row.num_adults || 1,
@@ -207,7 +208,7 @@ async function loadCustomerBookings() {
   }
   const { data, error } = await supabaseClient
     .from("bookings")
-    .select("id,room_id,created_at,check_in,check_out,num_rooms,num_adults,num_kids,status,payment_option,rooms(room_name,image_urls)")
+    .select("id,room_id,created_at,check_in,check_out,num_rooms,num_adults,num_kids,status,payment_option")
     .eq("customer_email", profile.email)
     .order("created_at", { ascending: false });
   if (error) {
@@ -215,7 +216,12 @@ async function loadCustomerBookings() {
     bookings = getStore("stayBookings", []);
     return;
   }
-  bookings = (data || []).map(bookingFromRow);
+  const roomIds = [...new Set((data || []).map(row => row.room_id).filter(Boolean))];
+  const { data: roomRows } = roomIds.length
+    ? await supabaseClient.from("rooms_public").select("id,room_name,image_urls").in("id", roomIds)
+    : { data: [] };
+  const roomsById = Object.fromEntries((roomRows || []).map(room => [room.id, room]));
+  bookings = (data || []).map(row => bookingFromRow(row, roomsById));
   setStore("stayBookings", bookings);
 }
 
