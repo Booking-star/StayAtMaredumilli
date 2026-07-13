@@ -52,6 +52,11 @@ let pricingSettings = { occupancy80Surcharge: 200, occupancy90Surcharge: 300 };
 let paymentSettings = { mode: "manual", upiId: "Kandregulaashok1@ybl" };
 let selectedRoomId = null;
 let paymentFilePickerOpen = false;
+let checkoutListenersWired = false;
+
+function validPhone(value) {
+  return String(value || "").replace(/\D/g, "").length === 10;
+}
 
 // Helper Functions
 function hasFirecamp(roomObj) {
@@ -355,6 +360,7 @@ async function startRazorpayPayment(order, details, roomObj, pricing) {
       handler: async response => {
         paymentCompleted = true;
         try {
+          submitBtn.textContent = "Payment received. Confirming room...";
           const verify = await fetch("/api/verify-payment", {
             method: "POST",
             headers: { "content-type": "application/json" },
@@ -369,7 +375,13 @@ async function startRazorpayPayment(order, details, roomObj, pricing) {
           if (!verify.ok) throw new Error(data.error || "Payment verification failed.");
           resolve(data);
         } catch (error) {
-          reject(error);
+          try {
+            submitBtn.textContent = "Payment received. Finalizing booking...";
+            const recovered = await waitForPaymentConfirmation(order.hold_id, response.razorpay_payment_id);
+            resolve(recovered);
+          } catch {
+            reject(error);
+          }
         }
       },
       modal: {
@@ -388,6 +400,15 @@ async function startRazorpayPayment(order, details, roomObj, pricing) {
   });
 }
 
+async function waitForPaymentConfirmation(holdId, paymentId) {
+  for (let i = 0; i < 8; i++) {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    const { response, data } = await fetchJsonWithTimeout(`/api/payment-status?hold_id=${encodeURIComponent(holdId)}&payment_id=${encodeURIComponent(paymentId)}`, {}, 5000);
+    if (response.ok && data.booking_id) return data;
+  }
+  throw new Error("Payment verification failed.");
+}
+
 async function createMockBooking(roomObj, details, pricing, status = "confirmed", screenshotUrl = "") {
   if (!supabaseClient) return Date.now();
   const { data: sessionData } = await supabaseClient.auth.getSession();
@@ -400,8 +421,8 @@ async function createMockBooking(roomObj, details, pricing, status = "confirmed"
     body: JSON.stringify({
       p_room_id: roomObj.id,
       p_customer_name: details.name || profile.name || "Customer",
-      p_customer_phone: details.phone || profile.phone || "9999999999",
-      p_customer_email: details.email || profile.email || "customer@stay.com",
+      p_customer_phone: details.phone || profile.phone,
+      p_customer_email: details.email || profile.email,
       p_check_in: details.from,
       p_check_out: details.to,
       p_num_rooms: details.rooms,
@@ -601,9 +622,9 @@ async function handleCheckoutFormSubmit(event) {
         },
         body: JSON.stringify({
           p_room_id: room.id,
-          p_customer_name: guestName || profile.name || "Customer",
-          p_customer_phone: guestPhone || profile.phone || "9999999999",
-          p_customer_email: guestEmail || profile.email || "customer@stay.com",
+          p_customer_name: guestName,
+          p_customer_phone: guestPhone,
+          p_customer_email: guestEmail,
           p_check_in: fitted.from,
           p_check_out: fitted.to,
           p_num_rooms: fitted.rooms,
@@ -783,32 +804,48 @@ async function handleUserSession(session) {
   updatePricingUI();
   checkoutContainer.classList.remove("hidden");
   
-  // Wire up change listeners
-  ["input", "change"].forEach(evtName => {
-    [adultsInput, childrenInput, roomsInput, fromInput, toInput, paymentInput, firecampInput].forEach(el => {
-      el.addEventListener(evtName, async (e) => {
-        if (e.target.id === "adultsInput" && e.type === "change") {
-          const rem = getAvailableRoomsCount(room, {
-            from: fromInput.value,
-            to: toInput.value
-          });
-          roomsInput.value = Math.min(minRoomsNeededForAdults(room, Number(e.target.value || 1)), rem || 1);
-        }
-        if (e.target.id === "fromInput") {
-          const nextDate = getNextDateString(e.target.value);
-          toInput.min = nextDate;
-          toInput.value = nextDate;
-        }
-        if ((e.target.id === "fromInput" || e.target.id === "toInput") && e.type === "change") await loadAllBookings();
-        updatePricingUI();
+  if (!checkoutListenersWired) {
+    checkoutListenersWired = true;
+    ["input", "change"].forEach(evtName => {
+      [adultsInput, childrenInput, roomsInput, fromInput, toInput, paymentInput, firecampInput].forEach(el => {
+        el.addEventListener(evtName, async (e) => {
+          if (e.target.id === "adultsInput" && e.type === "change") {
+            const rem = getAvailableRoomsCount(room, {
+              from: fromInput.value,
+              to: toInput.value
+            });
+            roomsInput.value = Math.min(minRoomsNeededForAdults(room, Number(e.target.value || 1)), rem || 1);
+          }
+          if (e.target.id === "fromInput") {
+            const nextDate = getNextDateString(e.target.value);
+            toInput.min = nextDate;
+            toInput.value = nextDate;
+          }
+          if ((e.target.id === "fromInput" || e.target.id === "toInput") && e.type === "change") await loadAllBookings();
+          updatePricingUI();
+        });
       });
     });
-  });
-  
-  manualPaymentBox?.addEventListener("click", openUpiPayment);
-  paymentScreenshotInput?.addEventListener("pointerdown", () => { paymentFilePickerOpen = true; });
-  paymentScreenshotInput?.addEventListener("click", () => { paymentFilePickerOpen = true; });
-  paymentScreenshotInput?.addEventListener("change", () => { setTimeout(() => { paymentFilePickerOpen = false; }, 500); });
-  
-  bookingForm.addEventListener("submit", handleCheckoutFormSubmit);
+    
+    manualPaymentBox?.addEventListener("click", openUpiPayment);
+    paymentScreenshotInput?.addEventListener("pointerdown", () => { paymentFilePickerOpen = true; });
+    paymentScreenshotInput?.addEventListener("click", () => { paymentFilePickerOpen = true; });
+    paymentScreenshotInput?.addEventListener("change", () => { setTimeout(() => { paymentFilePickerOpen = false; }, 500); });
+    
+    bookingForm.addEventListener("submit", handleCheckoutFormSubmit);
+  }
 }
+  if (!guestName) {
+    alert("Please enter your full name.");
+    bookingName.focus();
+    return;
+  }
+  if (!validPhone(guestPhone)) {
+    alert("Please enter a valid 10 digit mobile number.");
+    bookingPhone.focus();
+    return;
+  }
+  if (!guestEmail) {
+    alert("Please login again so we can attach the booking to your email.");
+    return;
+  }

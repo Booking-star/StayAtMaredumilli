@@ -1,0 +1,33 @@
+async function supabaseFetch(path) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Server is not configured.");
+  const response = await fetch(`${url}/rest/v1/${path}`, {
+    headers: {
+      apikey: key,
+      authorization: `Bearer ${key}`
+    }
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error("Status could not be checked.");
+  return data;
+}
+
+module.exports = async function handler(req, res) {
+  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+  try {
+    const holdId = String(req.query?.hold_id || "");
+    const paymentId = String(req.query?.payment_id || "");
+    if (!holdId || !paymentId) return res.status(400).json({ error: "Missing payment details." });
+
+    const bookings = await supabaseFetch(`bookings?payment_id=eq.${encodeURIComponent(paymentId)}&select=id&limit=1`);
+    if (bookings?.[0]?.id) return res.status(200).json({ booking_id: bookings[0].id });
+
+    const holds = await supabaseFetch(`booking_holds?id=eq.${encodeURIComponent(holdId)}&razorpay_payment_id=eq.${encodeURIComponent(paymentId)}&status=eq.confirmed&select=id&limit=1`);
+    if (holds?.[0]?.id) return res.status(200).json({ booking_id: holds[0].id });
+
+    res.status(202).json({ pending: true });
+  } catch {
+    res.status(400).json({ error: "Payment status could not be checked." });
+  }
+};

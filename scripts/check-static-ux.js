@@ -13,6 +13,7 @@ const app = read("app.js");
 const verifyPayment = read("api/verify-payment.js");
 const razorpayWebhook = read("api/razorpay-webhook.js");
 const releasePaymentHold = read("api/release-payment-hold.js");
+const paymentStatus = read("api/payment-status.js");
 const seo = read("scripts/generate-seo-pages.js");
 const vercel = read("vercel.json");
 
@@ -30,9 +31,12 @@ if (!book.includes('loading="lazy" decoding="async"')) fail("Booking room image 
 if (book.includes("adultsInput.value = fitted.adults")) fail("Adult input must not be rewritten while typing.");
 if (!book.includes('e.target.id === "adultsInput" && e.type === "change"')) fail("Adult room auto-fit should run on commit, not every keystroke.");
 if (!book.includes('localStorage.setItem("stayProfile"')) fail("Booking contact details should persist to profile.");
+if (/9999999999|customer@stay\.com/.test(book)) fail("Paid checkout must not use fake customer contact fallbacks.");
+if (!book.includes("checkoutListenersWired")) fail("Checkout listeners must only be wired once.");
 if (!verifyPayment.includes("async function razorpayPayment") || !verifyPayment.includes("validSignature")) fail("Razorpay verify must have server-side fallback.");
 if (!verifyPayment.includes("bookingByPayment") || !verifyPayment.includes('hold.status === "confirmed"')) fail("Razorpay verify must be idempotent after webhook confirmation.");
 if (!verifyPayment.includes("createBookingFromPaidHold") || verifyPayment.includes("manual_review")) fail("Captured Razorpay payments must confirm booking, not manual-review.");
+if (!book.includes("waitForPaymentConfirmation") || !paymentStatus.includes("booking_id")) fail("Checkout must recover after webhook confirms a paid booking.");
 if (!razorpayWebhook.includes("createBookingFromPaidHold") || /no longer active\|expired/.test(razorpayWebhook)) fail("Razorpay webhook must confirm captured payments even if the browser path failed.");
 if (!book.includes("/api/release-payment-hold") || !book.includes("Payment failed. Rooms were released.")) fail("Failed Razorpay payments must release held rooms.");
 if (!releasePaymentHold.includes("status=eq.held") || !releasePaymentHold.includes('status: "expired"')) fail("Release hold API must only expire held rooms.");

@@ -1,4 +1,6 @@
 .vercel
 .env
 backups/
+node_modules/
+scripts/test-runner.js
 

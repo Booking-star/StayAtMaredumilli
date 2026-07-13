@@ -174,12 +174,13 @@ async function loadAllBookings() {
 
 function bookingFromRow(row) {
   const room = Array.isArray(row.rooms) ? row.rooms[0] : row.rooms;
+  const local = getStore("stayBookings", []).find(item => String(item.id) === String(row.id)) || {};
   return {
     id: row.id,
     roomId: row.room_id,
     reference: bookingReference(row.id),
-    roomName: room?.room_name || "Booked room",
-    roomImage: room?.image_urls?.[0] || "",
+    roomName: room?.room_name || local.roomName || "Stay booking",
+    roomImage: room?.image_urls?.[0] || local.roomImage || "",
     from: row.check_in,
     to: row.check_out,
     adults: row.num_adults || 1,
@@ -566,12 +567,12 @@ function renderBookings() {
     <article class="booking-item">
       ${(() => {
         const room = rooms.find(item => item.id === booking.roomId);
-        const roomName = room?.name || booking.roomName || "Booked room";
+        const roomName = room?.name || booking.roomName || "Stay booking";
         const roomImage = room?.images?.[0] || booking.roomImage || "";
         return `<img src="${escapeHtml(safeUrl(roomImage))}" alt="${escapeHtml(roomName)}">`;
       })()}
       <div>
-        <h3>${escapeHtml(rooms.find(item => item.id === booking.roomId)?.name || booking.roomName)}</h3>
+        <h3>${escapeHtml(rooms.find(item => item.id === booking.roomId)?.name || booking.roomName || "Stay booking")}</h3>
         <p>${escapeHtml(booking.from)} to ${escapeHtml(booking.to)} &middot; ${escapeHtml(booking.adults)} adults &middot; ${escapeHtml(booking.rooms)} room(s)</p>
         <small>Ref: ${escapeHtml(booking.reference || bookingReference(booking.id))} &middot; ${booking.payment === "100" ? "Paid 100%" : "Paid 20% advance"}</small>
       </div>
@@ -584,7 +585,7 @@ function openBookingDetails(index) {
   const booking = bookings[Number(index)];
   if (!booking || !bookingDetailsModal) return;
   const room = rooms.find(item => item.id === booking.roomId);
-  const roomName = room?.name || booking.roomName || "Booked room";
+  const roomName = room?.name || booking.roomName || "Stay booking";
   bookingDetailsContent.innerHTML = `
     <p><strong>${escapeHtml(roomName)}</strong></p>
     <p>Ref: ${escapeHtml(booking.reference || bookingReference(booking.id))}</p>
@@ -668,8 +669,8 @@ async function createMockBooking(room, details, pricing, status = "confirmed", s
     body: JSON.stringify({
       p_room_id: room.id,
       p_customer_name: details.name || profile.name || "Customer",
-      p_customer_phone: details.phone || profile.phone || "9999999999",
-      p_customer_email: details.email || profile.email || "customer@stay.com",
+      p_customer_phone: details.phone || profile.phone,
+      p_customer_email: details.email || profile.email,
       p_check_in: details.from,
       p_check_out: details.to,
       p_num_rooms: details.rooms,

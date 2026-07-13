@@ -234,7 +234,7 @@ grant select on public.rooms_with_owner_policy to authenticated;
 create table if not exists public.booking_holds (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
-  expires_at timestamptz not null default (now() + interval '5 minutes'),
+  expires_at timestamptz not null default (now() + interval '15 minutes'),
   room_id uuid not null references public.rooms(id),
   customer_name text not null,
   customer_phone text not null,
@@ -637,7 +637,7 @@ declare
   v_90 integer := 300;
   v_payment integer := case when p_payment_option = '100' then 100 else 20 end;
   v_payable integer;
-  v_expires_at timestamptz := now() + interval '5 minutes';
+  v_expires_at timestamptz := now() + interval '15 minutes';
 begin
   if p_check_out <= p_check_in then raise exception 'Check-out must be after check-in.'; end if;
   if p_num_rooms < 1 then raise exception 'Select at least one room.'; end if;
