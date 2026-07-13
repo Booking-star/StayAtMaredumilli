@@ -1,3 +1,19 @@
+function clearOldAppCaches() {
+  if (typeof window === "undefined") return;
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations?.()
+      .then(registrations => registrations.forEach(registration => registration.unregister()))
+      .catch(() => {});
+  }
+  if ("caches" in window) {
+    caches.keys()
+      .then(keys => Promise.all(keys.map(key => caches.delete(key))))
+      .catch(() => {});
+  }
+}
+
+clearOldAppCaches();
+
 function getLocalDateString(date = new Date()) {
   const offset = date.getTimezoneOffset();
   const localDate = new Date(date.getTime() - (offset * 60 * 1000));

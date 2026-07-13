@@ -19,8 +19,10 @@ function cleanAdminMessage(message = "") {
 }
 
 function showError(message) {
+  const cleanMessage = cleanAdminMessage(message || "Something went wrong. Please try again.");
   setSaving(false);
-  notifyAdmin(message || "Something went wrong. Please try again.", true);
+  notifyAdmin(cleanMessage, true);
+  alert(cleanMessage);
 }
 
 function setSaving(saving) {

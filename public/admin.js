@@ -85,6 +85,13 @@ let allCustomers = [];
 let editingRoomId = null;
 let currentRoomImages = [];
 
+function withTimeout(promise, message = "Action is taking too long. Please try again.", ms = 25000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms))
+  ]);
+}
+
 function openRoomForm() {
   editingRoomId = null;
   currentRoomImages = [];
@@ -234,8 +241,10 @@ adminRoomForm.addEventListener("submit", async event => {
   const query = editingRoomId
     ? supabaseClient.from("rooms").update(payload).eq("id", editingRoomId)
     : supabaseClient.from("rooms").insert(payload);
-  const { error } = await query;
-  if (error) {
+  try {
+    const { error } = await withTimeout(query, "Room save is taking too long. Please check your connection and try again.");
+    if (error) throw error;
+  } catch (error) {
     setSaving(false);
     return showError(error.message);
   }
@@ -346,9 +355,9 @@ async function uploadRoomImage(file) {
   if (!supabaseClient) return fileToDataUrl(file);
   const safeName = file.name.replace(/[^a-z0-9.]/gi, "-");
   const path = `rooms/${Date.now()}-${safeName}`;
-  const { error } = await supabaseClient.storage
+  const { error } = await withTimeout(supabaseClient.storage
     .from(supabaseConfig.roomBucket || "room-images")
-    .upload(path, file, { upsert: true, cacheControl: "31536000" });
+    .upload(path, file, { upsert: true, cacheControl: "31536000" }), "Image upload is taking too long. Please try a smaller image or check your connection.");
   if (error) throw error;
   const { data } = supabaseClient.storage
     .from(supabaseConfig.roomBucket || "room-images")
