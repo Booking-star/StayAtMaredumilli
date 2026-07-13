@@ -94,7 +94,7 @@ function bookingReference(id) {
 }
 
 function friendlyBookingError(message = "") {
-  if (/supabase|row-level security|permission denied|violates|service role|schema cache|rpc|rest\/v1/i.test(message)) return "Booking could not be completed. Please try again or contact support.";
+  if (/supabase|vercel|github|environment|row-level security|permission denied|violates|service role|schema cache|rpc|rest\/v1/i.test(message)) return "Booking could not be completed. Please try again or contact support.";
   if (/conflicting key|no_overlapping_bookings/i.test(message)) return "Booking is blocked by an old database overlap rule. Please contact admin to refresh the booking schema.";
   if (/Only .* room|available for the selected dates/i.test(message)) return message;
   if (/capacity/i.test(message)) return "Guest count exceeds this hotel's room capacity. Please reduce guests or select more rooms.";
