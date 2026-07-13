@@ -22,14 +22,9 @@ create policy "rooms public read"
 on public.rooms for select
 using (active = true);
 
--- Secure authenticated-only write policy.
+-- Write policies are defined after public.is_admin() exists.
 drop policy if exists "rooms prototype write" on public.rooms;
 drop policy if exists "rooms admin write" on public.rooms;
-create policy "rooms admin write"
-on public.rooms for all
-to authenticated
-using (true)
-with check (true);
 
 insert into storage.buckets (id, name, public)
 values ('room-images', 'room-images', true)
@@ -40,14 +35,9 @@ create policy "room images public read"
 on storage.objects for select
 using (bucket_id = 'room-images');
 
--- Secure authenticated-only upload/delete policy.
+-- Write policies are defined after public.is_admin() exists.
 drop policy if exists "room images prototype write" on storage.objects;
 drop policy if exists "room images admin write" on storage.objects;
-create policy "room images admin write"
-on storage.objects for all
-to authenticated
-using (bucket_id = 'room-images')
-with check (bucket_id = 'room-images');
 
 -- Create hotel_owners table
 create table if not exists public.hotel_owners (
@@ -63,10 +53,7 @@ alter table public.hotel_owners enable row level security;
 
 -- Policies for hotel_owners
 drop policy if exists "hotel_owners select" on public.hotel_owners;
-create policy "hotel_owners select" on public.hotel_owners for select to authenticated using (true);
-
 drop policy if exists "hotel_owners admin write" on public.hotel_owners;
-create policy "hotel_owners admin write" on public.hotel_owners for all to authenticated using (true) with check (true);
 
 -- Add owner_id to rooms table
 alter table public.rooms add column if not exists owner_id uuid references public.hotel_owners(id);

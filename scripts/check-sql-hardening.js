@@ -34,6 +34,10 @@ for (const file of ["supabase-schema.sql", "payment-settings-rpc-migration.sql",
   if (read(file).includes('"mode": "manual"')) throw new Error(`${file} must not default payment mode to manual.`);
 }
 
+if (/create policy[\s\S]{0,220}using\s*\(\s*true\s*\)[\s\S]{0,80}with check\s*\(\s*true\s*\)/.test(read("supabase-schema.sql"))) {
+  throw new Error("supabase-schema.sql must not create broad authenticated write policies.");
+}
+
 for (const file of ["supabase-schema.sql", "payment-confirm-expired-hold-migration.sql", "payment-confirm-capacity-migration.sql"]) {
   const sql = read(file);
   if (!sql.includes("id <> v_hold.id") || !sql.includes("room is no longer available for the selected dates")) {
