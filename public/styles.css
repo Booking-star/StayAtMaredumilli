@@ -1099,7 +1099,8 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
     margin-right: auto;
   }
   .carousel {
-    max-height: 520px;
+    aspect-ratio: 16 / 9;
+    max-height: 430px;
   }
 }
 

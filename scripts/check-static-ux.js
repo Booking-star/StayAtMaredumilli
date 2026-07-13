@@ -65,7 +65,7 @@ if (/visualViewport\?\.(addEventListener|removeEventListener)[\s\S]{0,80}positio
 if (/window\.addEventListener\("scroll",\s*positionBottomNav/.test(app)) fail("Bottom nav must not be repositioned on page scroll.");
 if (!css.includes("--bottom-nav-space: 156px")) fail("Mobile bottom spacing must protect content from nav overlap.");
 if (!/\.slides img\s*{[\s\S]*object-fit:\s*cover/.test(css) || !/\.hotel-detail-slides img\s*{[\s\S]*object-fit:\s*contain/.test(css)) fail("Home hotel cards must fill edge-to-edge while detail images remain inspectable.");
-if (!/\.carousel\s*{[\s\S]*aspect-ratio:\s*4\s*\/\s*3/.test(css) || !/@media \(min-width: 1025px\)\s*{[\s\S]*\.carousel\s*{[\s\S]*max-height:\s*520px/.test(css)) fail("Feed hotel cards must keep the old mobile 4:3 look with desktop height limits.");
+if (!/\.carousel\s*{[\s\S]*aspect-ratio:\s*4\s*\/\s*3/.test(css) || !/@media \(min-width: 1025px\)\s*{[\s\S]*\.carousel\s*{[\s\S]*aspect-ratio:\s*16\s*\/\s*9[\s\S]*max-height:\s*430px/.test(css)) fail("Feed hotel cards must keep the old mobile 4:3 look and a shorter desktop image frame.");
 if (!/@media \(min-width: 1025px\)\s*{[\s\S]*\.property-feed\s*{[\s\S]*max-width:\s*760px/.test(css)) fail("Desktop feed must stay card-width instead of becoming a full-page image banner.");
 if (!/supabase\|vercel\|github\|environment\|row-level security\|permission denied\|violates/.test(shared)) fail("Backend errors must be masked for customers.");
 if (!shared.includes("function showActionError") || !shared.includes("unhandledrejection") || !shared.includes("notifyAdmin")) fail("Unhandled button failures must show a friendly visible error.");
