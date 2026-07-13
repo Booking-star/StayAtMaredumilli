@@ -16,7 +16,7 @@ export default async function handler(req, res) {
       headers: { apikey: key, authorization: `Bearer ${key}` }
     });
     const profile = profileResponse?.ok ? (await profileResponse.json())?.[0] : null;
-    if (user?.email !== "admin@staymaredumilli.com" && profile?.role !== "admin") {
+    if (user?.email !== "admin@stayatmaredumilli.com" && user?.email !== "admin@staymaredumilli.com" && profile?.role !== "admin") {
       return res.status(403).json({ error: "Admin only" });
     }
 

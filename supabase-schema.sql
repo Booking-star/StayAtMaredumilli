@@ -160,7 +160,7 @@ stable
 security definer
 set search_path = public
 as $$
-  select coalesce(auth.jwt() ->> 'email', '') = 'admin@staymaredumilli.com'
+  select coalesce(auth.jwt() ->> 'email', '') in ('admin@stayatmaredumilli.com', 'admin@staymaredumilli.com')
     or exists (
       select 1 from public.profiles
       where id = auth.uid() and role = 'admin'

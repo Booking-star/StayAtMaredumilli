@@ -168,7 +168,7 @@ LANGUAGE sql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT coalesce(auth.jwt() ->> 'email', '') = 'admin@staymaredumilli.com'
+  SELECT coalesce(auth.jwt() ->> 'email', '') IN ('admin@stayatmaredumilli.com', 'admin@staymaredumilli.com')
     OR EXISTS (
       SELECT 1 FROM public.profiles
       WHERE id = auth.uid() AND role = 'admin'
