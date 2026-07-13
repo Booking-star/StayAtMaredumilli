@@ -286,55 +286,37 @@ function openReel(index) {
   const reelUrl = safeUrl(reel.url);
   
   reelEmbed.innerHTML = `
-    <div class="reel-loader" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 380px; width: 100%; text-align: center;">
-      <div class="spinner" style="width: 40px; height: 40px; border: 3px solid rgba(45, 90, 39, 0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-      <span style="font-size: 14px; color: var(--muted); font-weight: 500;">Loading video preview...</span>
+    <div class="reel-preview-container" style="position: relative; width: 100%; max-width: 420px; aspect-ratio: 9/16; border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 12px 36px rgba(0,0,0,0.25);">
+      <img src="${escapeHtml(safeUrl(reel.image_url))}" alt="${escapeHtml(reel.title)}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.85; display: block;">
+      <button class="reel-play-overlay-btn" type="button" style="position: absolute; inset: 0; margin: auto; width: 68px; height: 68px; border-radius: 50%; background: rgba(45, 90, 39, 0.95); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.3); border: 2px solid #fff; cursor: pointer; transition: transform 0.2s; z-index: 10;">
+        <i data-lucide="play" style="width: 32px; height: 32px; fill: #fff; stroke: #fff; margin-left: 4px;"></i>
+      </button>
+      <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 24px 16px 20px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); color: #fff; display: flex; flex-direction: column; gap: 8px; z-index: 5;">
+        <span style="font-size: 14px; font-weight: 500; opacity: 0.8; text-align: center;">Watch video on Instagram</span>
+        <a class="primary-btn" href="${escapeHtml(reelUrl)}" target="_blank" rel="noopener" style="width: 100%; background: #e1306c; border-color: #e1306c; text-align: center; text-decoration: none; font-size: 14px; padding: 10px 12px; min-height: auto; font-weight: bold; display: inline-flex; align-items: center; justify-content: center;">Open Instagram app</a>
+      </div>
     </div>
-    <blockquote class="instagram-media" data-instgrm-permalink="${escapeHtml(reelUrl)}" data-instgrm-version="14" style="display: none; background: transparent; border: 0; margin: 0; padding: 0; width: 100%;"></blockquote>
-    <a class="primary-btn reel-fallback" href="${escapeHtml(reelUrl)}" target="_blank" rel="noopener" style="display: none; margin-top: 14px; width: 100%; text-align: center; background: #e1306c; border-color: #e1306c; text-decoration: none;">Open in Instagram app</a>
   `;
   
   reelModal.showModal();
+  
+  // Re-run lucide icons inside the modal
+  setTimeout(() => window.lucide?.createIcons(), 0);
 
-  const loader = reelEmbed.querySelector(".reel-loader");
-  const blockquote = reelEmbed.querySelector(".instagram-media");
-  const fallback = reelEmbed.querySelector(".reel-fallback");
-
-  const showIframe = () => {
-    if (loader) loader.style.display = "none";
-    if (blockquote) blockquote.style.display = "block";
-    if (fallback) fallback.style.display = "inline-flex";
+  const playBtn = reelEmbed.querySelector(".reel-play-overlay-btn");
+  const handlePlayClick = () => {
+    window.open(reelUrl, "_blank", "noopener");
+    reelModal.close();
   };
 
-  // Listen for iframe load event
-  reelEmbed.addEventListener("load", showIframe, { capture: true, once: true });
-
-  // Timeout fallback (4 seconds)
-  setTimeout(() => {
-    if (loader && loader.style.display !== "none") {
-      showIframe();
-    }
-  }, 4000);
-
-  // Poll for window.instgrm and process the embeds
-  const checkAndProcess = () => {
-    if (window.instgrm?.Embeds?.process) {
-      window.instgrm.Embeds.process();
-    } else {
-      let attempts = 0;
-      const interval = setInterval(() => {
-        attempts++;
-        if (window.instgrm?.Embeds?.process) {
-          window.instgrm.Embeds.process();
-          clearInterval(interval);
-        } else if (attempts >= 40) {
-          clearInterval(interval);
-        }
-      }, 100);
-    }
-  };
-
-  checkAndProcess();
+  playBtn?.addEventListener("click", handlePlayClick);
+  
+  // Also open if user clicks the cover image directly
+  const coverImg = reelEmbed.querySelector("img");
+  if (coverImg) {
+    coverImg.addEventListener("click", handlePlayClick);
+    coverImg.style.cursor = "pointer";
+  }
 }
 
 function filteredRooms() {
