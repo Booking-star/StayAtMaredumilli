@@ -657,8 +657,8 @@ async function loadCustomerProfile(user) {
   if (!data) return;
   profile = {
     ...profile,
-    name: profile.name || data.name || "",
-    phone: profile.phone || data.phone || "",
+    name: data.name || profile.name || "",
+    phone: data.phone || profile.phone || "",
     email: user.email || data.email || profile.email || ""
   };
   setStore("stayProfile", profile);

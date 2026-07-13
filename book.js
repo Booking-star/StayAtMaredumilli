@@ -769,6 +769,14 @@ async function handleUserSession(session) {
   authPrompt.classList.add("hidden");
   checkoutContainer.classList.add("hidden");
   const meta = session.user?.user_metadata || {};
+  const authUserKey = session.user?.id || session.user?.email || "";
+  const previousAuthUserKey = localStorage.getItem("stayAuthUserKey");
+  if (authUserKey && previousAuthUserKey !== authUserKey) {
+    profile = {};
+    localStorage.removeItem("stayProfile");
+    localStorage.removeItem("stayBookingDetails");
+    localStorage.setItem("stayAuthUserKey", authUserKey);
+  }
   profile = {
     name: profile.name || meta.full_name || meta.name || "",
     email: session.user?.email || profile.email || "",

@@ -69,6 +69,9 @@ if (!book.includes("const tripError = validateTripValues(formDetails)")) fail("C
 if (!book.includes('localStorage.setItem("stayProfile"')) fail("Booking contact details should persist to profile.");
 if (!book.includes('let profile = getStore("stayProfile", {})')) fail("Checkout must start from the saved customer profile.");
 if (!book.includes("bookingName.value = profile.name || localSavedDetails.name")) fail("Checkout must prefer saved profile contact details over stale trip details.");
+if (!book.includes('previousAuthUserKey !== authUserKey')) fail("Checkout must clear stale saved profile when a different Google user signs in.");
+if (book.includes("profile.name = profile.name || savedProfile.name")) fail("Checkout must prefer the saved current-user profile over stale local profile data.");
+if (app.includes("name: profile.name || data.name") || app.includes("phone: profile.phone || data.phone")) fail("Home profile must prefer saved current-user profile data.");
 if (/9999999999|customer@stay\.com/.test(book)) fail("Paid checkout must not use fake customer contact fallbacks.");
 if (/(p_customer_name|customer_name):\s*[^,\n]*\|\|\s*["']Customer["']/.test(app + book)) fail("Bookings must not invent a fake customer name.");
 if (book.includes("bookingEmail.value = localSavedDetails.email")) fail("Checkout email must come from the logged-in session, not stale saved details.");
