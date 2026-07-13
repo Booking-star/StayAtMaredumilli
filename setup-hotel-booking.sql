@@ -895,3 +895,81 @@ WHERE active = true;
 
 GRANT SELECT ON public.rooms_public TO anon, authenticated;
 
+-- rooms_with_owner_policy
+CREATE OR REPLACE VIEW public.rooms_with_owner_policy
+WITH (security_invoker = true)
+AS
+SELECT
+  r.id,
+  r.created_at,
+  r.room_name,
+  r.room_type,
+  r.available_rooms,
+  r.max_adults,
+  r.weekday_price,
+  r.weekend_price,
+  r.amenities,
+  r.special_attention,
+  r.image_urls,
+  r.active,
+  r.owner_id,
+  r.weekday_owner_price,
+  r.weekend_owner_price,
+  COALESCE(r.weekend_policy::text, o.weekend_policy::text, 'mon_fri') AS weekend_policy
+FROM public.rooms r
+LEFT JOIN public.hotel_owners o ON o.id = r.owner_id;
+
+REVOKE ALL ON public.rooms_with_owner_policy FROM anon;
+GRANT SELECT ON public.rooms_with_owner_policy TO authenticated;
+
+-- booking_occupancy
+CREATE OR REPLACE VIEW public.booking_occupancy AS
+SELECT room_id, check_in, check_out, num_rooms, status
+FROM public.bookings
+WHERE status <> 'cancelled'
+UNION ALL
+SELECT room_id, check_in, check_out, num_rooms, status
+FROM public.booking_holds
+WHERE status = 'held'
+  AND expires_at > now();
+
+GRANT SELECT ON public.booking_occupancy TO anon, authenticated;
+
+-- admin_bookings
+CREATE OR REPLACE VIEW public.admin_bookings
+WITH (security_invoker = false) AS
+SELECT
+  b.*,
+  r.room_name,
+  r.room_type,
+  COALESCE(o.hotel_name, r.room_name) AS hotel_name,
+  o.owner_name,
+  o.phone as owner_phone
+FROM public.bookings b
+LEFT JOIN public.rooms r ON r.id = b.room_id
+LEFT JOIN public.hotel_owners o ON o.id = r.owner_id
+WHERE public.is_admin();
+
+GRANT SELECT ON public.admin_bookings TO authenticated;
+
+-- hotel_owners_with_auth
+CREATE OR REPLACE VIEW public.hotel_owners_with_auth AS
+SELECT
+  o.id,
+  o.created_at,
+  o.owner_name,
+  o.phone,
+  o.active,
+  o.hotel_name,
+  o.alt_phone,
+  o.weekend_policy,
+  u.email
+FROM public.hotel_owners o
+LEFT JOIN auth.users u ON u.id = o.id
+WHERE public.is_admin();
+
+ALTER VIEW public.hotel_owners_with_auth SET (security_invoker = false);
+REVOKE ALL ON public.hotel_owners_with_auth FROM anon;
+GRANT SELECT ON public.hotel_owners_with_auth TO authenticated;
+
+
