@@ -284,12 +284,57 @@ function openReel(index) {
   if (!reel) return;
   reelTitle.textContent = reel.title;
   const reelUrl = safeUrl(reel.url);
+  
   reelEmbed.innerHTML = `
-    <blockquote class="instagram-media" data-instgrm-permalink="${escapeHtml(reelUrl)}" data-instgrm-version="14"></blockquote>
-    <a class="ghost-btn reel-fallback" href="${escapeHtml(reelUrl)}" target="_blank" rel="noopener">Open in Instagram</a>
+    <div class="reel-loader" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 380px; width: 100%; text-align: center;">
+      <div class="spinner" style="width: 40px; height: 40px; border: 3px solid rgba(45, 90, 39, 0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      <span style="font-size: 14px; color: var(--muted); font-weight: 500;">Loading video preview...</span>
+    </div>
+    <blockquote class="instagram-media" data-instgrm-permalink="${escapeHtml(reelUrl)}" data-instgrm-version="14" style="display: none; background: transparent; border: 0; margin: 0; padding: 0; width: 100%;"></blockquote>
+    <a class="primary-btn reel-fallback" href="${escapeHtml(reelUrl)}" target="_blank" rel="noopener" style="display: none; margin-top: 14px; width: 100%; text-align: center; background: #e1306c; border-color: #e1306c; text-decoration: none;">Open in Instagram app</a>
   `;
+  
   reelModal.showModal();
-  setTimeout(() => window.instgrm?.Embeds?.process(), 0);
+
+  const loader = reelEmbed.querySelector(".reel-loader");
+  const blockquote = reelEmbed.querySelector(".instagram-media");
+  const fallback = reelEmbed.querySelector(".reel-fallback");
+
+  const showIframe = () => {
+    if (loader) loader.style.display = "none";
+    if (blockquote) blockquote.style.display = "block";
+    if (fallback) fallback.style.display = "inline-flex";
+  };
+
+  // Listen for iframe load event
+  reelEmbed.addEventListener("load", showIframe, { capture: true, once: true });
+
+  // Timeout fallback (4 seconds)
+  setTimeout(() => {
+    if (loader && loader.style.display !== "none") {
+      showIframe();
+    }
+  }, 4000);
+
+  // Poll for window.instgrm and process the embeds
+  const checkAndProcess = () => {
+    if (window.instgrm?.Embeds?.process) {
+      window.instgrm.Embeds.process();
+    } else {
+      let attempts = 0;
+      const interval = setInterval(() => {
+        attempts++;
+        if (window.instgrm?.Embeds?.process) {
+          window.instgrm.Embeds.process();
+          clearInterval(interval);
+        } else if (attempts >= 40) {
+          clearInterval(interval);
+        }
+      }, 100);
+    }
+  };
+
+  checkAndProcess();
 }
 
 function filteredRooms() {

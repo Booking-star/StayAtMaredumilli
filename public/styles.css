@@ -799,6 +799,10 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
   from { transform: translateY(-120px); opacity: 1; }
   to { transform: translateY(260px); opacity: .15; }
 }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 .reel-modal { padding: 18px; }
 .reel-embed {
   display: grid;
