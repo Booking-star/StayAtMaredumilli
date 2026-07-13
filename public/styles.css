@@ -1093,6 +1093,11 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 }
 
 @media (min-width: 1025px) {
+  .properties {
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
   .carousel {
     max-height: 520px;
   }
