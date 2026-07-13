@@ -403,7 +403,10 @@ async function startRazorpayPayment(order, details, roomObj, pricing) {
 async function waitForPaymentConfirmation(holdId, paymentId) {
   for (let i = 0; i < 8; i++) {
     await new Promise(resolve => setTimeout(resolve, 1500));
-    const { response, data } = await fetchJsonWithTimeout(`/api/payment-status?hold_id=${encodeURIComponent(holdId)}&payment_id=${encodeURIComponent(paymentId)}`, {}, 5000);
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const { response, data } = await fetchJsonWithTimeout(`/api/payment-status?hold_id=${encodeURIComponent(holdId)}&payment_id=${encodeURIComponent(paymentId)}`, {
+      headers: { authorization: `Bearer ${sessionData.session?.access_token || ""}` }
+    }, 5000);
     if (response.ok && data.booking_id) return data;
   }
   throw new Error("Payment verification failed.");

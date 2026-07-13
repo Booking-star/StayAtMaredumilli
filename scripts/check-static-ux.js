@@ -37,6 +37,8 @@ if (!verifyPayment.includes("async function razorpayPayment") || !verifyPayment.
 if (!verifyPayment.includes("bookingByPayment") || !verifyPayment.includes('hold.status === "confirmed"')) fail("Razorpay verify must be idempotent after webhook confirmation.");
 if (!verifyPayment.includes("createBookingFromPaidHold") || verifyPayment.includes("manual_review")) fail("Captured Razorpay payments must confirm booking, not manual-review.");
 if (!book.includes("waitForPaymentConfirmation") || !paymentStatus.includes("booking_id")) fail("Checkout must recover after webhook confirms a paid booking.");
+if (!book.includes("/api/payment-status") || !book.includes("authorization: `Bearer")) fail("Payment status polling must include the logged-in session token.");
+if (!paymentStatus.includes("authenticatedUser") || !paymentStatus.includes("customer_email=eq.")) fail("Payment status API must be customer-scoped.");
 if (!razorpayWebhook.includes("createBookingFromPaidHold") || /no longer active\|expired/.test(razorpayWebhook)) fail("Razorpay webhook must confirm captured payments even if the browser path failed.");
 if (!book.includes("/api/release-payment-hold") || !book.includes("Payment failed. Rooms were released.")) fail("Failed Razorpay payments must release held rooms.");
 if (!releasePaymentHold.includes("status=eq.held") || !releasePaymentHold.includes('status: "expired"')) fail("Release hold API must only expire held rooms.");
