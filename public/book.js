@@ -712,6 +712,8 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function handleUserSession(session) {
+  authPrompt.classList.add("hidden");
+  checkoutContainer.classList.add("hidden");
   const meta = session.user?.user_metadata || {};
   profile = {
     name: meta.full_name || meta.name || profile.name || "",
@@ -729,9 +731,6 @@ async function handleUserSession(session) {
     profile.phone = profile.phone || savedProfile.phone || "";
     profile.email = session.user.email || savedProfile.email || profile.email || "";
   }
-  
-  authPrompt.classList.add("hidden");
-  checkoutContainer.classList.remove("hidden");
   
   // Load config & details
   await Promise.all([
@@ -782,6 +781,7 @@ async function handleUserSession(session) {
   travelInterestInput.checked = Boolean(localSavedDetails.travelInterest);
   
   updatePricingUI();
+  checkoutContainer.classList.remove("hidden");
   
   // Wire up change listeners
   ["input", "change"].forEach(evtName => {
