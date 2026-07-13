@@ -39,7 +39,7 @@ async function bookingByPayment(paymentId) {
 async function getHold(holdId) {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${url}/rest/v1/booking_holds?id=eq.${holdId}&select=*`, {
+  const response = await fetch(`${url}/rest/v1/booking_holds?id=eq.${encodeURIComponent(holdId)}&select=*`, {
     headers: {
       apikey: key,
       authorization: `Bearer ${key}`

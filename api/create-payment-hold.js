@@ -82,7 +82,7 @@ module.exports = async function handler(req, res) {
     if (!validPhone(body.p_customer_phone)) return res.status(400).json({ error: "Please enter a valid 10 digit mobile number." });
     const hold = await supabaseRpc("create_booking_hold_safe", { ...body, p_customer_phone: normalizePhone(body.p_customer_phone), p_customer_email: user.email });
     const order = await razorpayOrder(hold.payable_amount, hold.hold_id);
-    const update = await fetch(`${process.env.SUPABASE_URL}/rest/v1/booking_holds?id=eq.${hold.hold_id}`, {
+    const update = await fetch(`${process.env.SUPABASE_URL}/rest/v1/booking_holds?id=eq.${encodeURIComponent(hold.hold_id)}`, {
       method: "PATCH",
       headers: {
         apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,

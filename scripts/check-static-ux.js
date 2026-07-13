@@ -90,6 +90,7 @@ if (verifyPayment.includes("createBookingFromPaidHold") || verifyPayment.include
 if (!book.includes("waitForPaymentConfirmation") || !paymentStatus.includes("booking_id")) fail("Checkout must recover after webhook confirms a paid booking.");
 if (!book.includes("/api/payment-status") || !book.includes("authorization: `Bearer")) fail("Payment status polling must include the logged-in session token.");
 if (!paymentStatus.includes("authenticatedUser") || !paymentStatus.includes("customer_email=eq.")) fail("Payment status API must be customer-scoped.");
+if (/booking_holds\?id=eq\.\$\{(holdId|hold\.hold_id)\}/.test(verifyPayment + releasePaymentHold + read("api/create-payment-hold.js"))) fail("Payment hold IDs must be URL-encoded in API filters.");
 if (razorpayWebhook.includes("createBookingFromPaidHold") || razorpayWebhook.includes('supabaseFetch("bookings"')) fail("Razorpay webhook must not bypass the safe booking RPC.");
 if (!book.includes("/api/release-payment-hold") || !book.includes("Payment failed. Rooms were released.")) fail("Failed Razorpay payments must release held rooms.");
 if (!releasePaymentHold.includes("status=eq.held") || !releasePaymentHold.includes('status: "expired"')) fail("Release hold API must only expire held rooms.");

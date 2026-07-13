@@ -17,7 +17,7 @@ module.exports = async function handler(req, res) {
     const holdId = (typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {}).hold_id;
     if (!holdId) return res.status(400).json({ error: "Missing hold." });
 
-    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/booking_holds?id=eq.${holdId}&customer_email=eq.${encodeURIComponent(user.email)}&status=eq.held`, {
+    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/booking_holds?id=eq.${encodeURIComponent(holdId)}&customer_email=eq.${encodeURIComponent(user.email)}&status=eq.held`, {
       method: "PATCH",
       headers: {
         apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
