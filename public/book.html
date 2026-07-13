@@ -46,8 +46,6 @@
       <div id="bookingRoomSummary" class="checkout-summary"></div>
       
       <form id="bookingForm">
-        <div id="billSummary" class="bill-summary"></div>
-
         <div class="panel" style="margin-bottom: 20px; padding: 20px; border-radius: 8px;">
           <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 18px;">Contact Information</h3>
           <div class="form-grid booking-contact-grid" style="display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
@@ -65,14 +63,20 @@
             <label>Rooms <input id="roomsInput" type="number" min="1" value="1" required></label>
             <label>From <input id="fromInput" type="date" required></label>
             <label>To <input id="toInput" type="date" required></label>
-            <label>Payment Option
-              <select id="paymentInput">
-                <option value="20">Pay 20% advance</option>
-                <option value="100">Pay 100% now</option>
-              </select>
-            </label>
           </div>
         </div>
+
+        <div class="panel" style="margin-bottom: 20px; padding: 20px; border-radius: 8px;">
+          <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 18px;">Payment Option</h3>
+          <label>Choose payment
+            <select id="paymentInput">
+              <option value="20">Pay 20% advance</option>
+              <option value="100">Pay 100% now</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="billSummary" class="bill-summary"></div>
 
         <div id="manualPaymentBox" class="manual-payment-box hidden">
           <strong>Manual UPI payment</strong>
