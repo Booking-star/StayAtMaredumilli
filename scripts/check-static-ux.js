@@ -45,7 +45,9 @@ if (!index.includes("app-room-ui.js")) fail("Room UI helper must load before app
 if (!/<\/div>\s*<nav class="bottom-nav hidden">/.test(index)) fail("Bottom nav must live outside #app.");
 if (!/\.bottom-nav\s*{[\s\S]*position:\s*fixed\s*!important/.test(css)) fail("Bottom nav must stay fixed.");
 if (!/\.bottom-nav\s*{[\s\S]*transform:\s*none\s*!important/.test(css)) fail("Bottom nav must not use transform on mobile.");
-if (!app.includes("function positionBottomNav") || !app.includes("visualViewport")) fail("Bottom nav must be pinned to the mobile visual viewport.");
+if (!app.includes("function positionBottomNav")) fail("Bottom nav reset helper is missing.");
+if (/visualViewport\?\.(addEventListener|removeEventListener)[\s\S]{0,80}positionBottomNav/.test(app)) fail("Bottom nav must not be repositioned on visual viewport scroll.");
+if (/window\.addEventListener\("scroll",\s*positionBottomNav/.test(app)) fail("Bottom nav must not be repositioned on page scroll.");
 if (!css.includes("--bottom-nav-space: 156px")) fail("Mobile bottom spacing must protect content from nav overlap.");
 if (!/supabase\|vercel\|github\|environment\|row-level security\|permission denied\|violates/.test(shared)) fail("Backend errors must be masked for customers.");
 if (!read("admin-ui.js").includes("cleanAdminMessage") || !read("admin-ui.js").includes("vercel|github|environment")) fail("Admin status must mask raw backend permission errors.");
