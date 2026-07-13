@@ -1,5 +1,5 @@
 window.STAY_SUPABASE = {
-  "url": "https://nqowitrszhmvdusswnve.supabase.co",
-  "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xb3dpdHJzemhtdmR1c3N3bnZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2MjE5NzYsImV4cCI6MjA5ODE5Nzk3Nn0.cxhc_xvevNJN3-hYFQw0ofxLVMJdTGzQef_CaYcfyeo",
+  "url": "https://rrwpefmctmiqjsdezfmc.supabase.co",
+  "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyd3BlZm1jdG1pcWpzZGV6Zm1jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NTA2NTksImV4cCI6MjA5OTUyNjY1OX0.sMu-4xINE_9HqnpU17vKYStXoqENf-D-h21ohNbq5Ks",
   "roomBucket": "room-images"
 };
