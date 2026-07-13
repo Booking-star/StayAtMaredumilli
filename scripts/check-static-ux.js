@@ -10,6 +10,8 @@ const css = read("styles.css");
 const shared = read("shared.js");
 const book = read("book.js");
 const app = read("app.js");
+const admin = read("admin.js");
+const owner = read("owner.js");
 const verifyPayment = read("api/verify-payment.js");
 const razorpayWebhook = read("api/razorpay-webhook.js");
 const releasePaymentHold = read("api/release-payment-hold.js");
@@ -30,7 +32,8 @@ if (!app.includes("function positionBottomNav") || !app.includes("visualViewport
 if (!css.includes("--bottom-nav-space: 156px")) fail("Mobile bottom spacing must protect content from nav overlap.");
 if (!/supabase\|row-level security\|permission denied\|violates/.test(shared)) fail("Backend errors must be masked for customers.");
 if (!read("admin-ui.js").includes("cleanAdminMessage") || !read("admin-ui.js").includes("permission denied")) fail("Admin status must mask raw backend permission errors.");
-if (read("owner.js").includes("'Cancel Booking'") || !read("owner.js").includes("Customer bookings cannot be released")) fail("Owner panel must not allow releasing paid customer bookings.");
+if (/alert\([^)]*error\.message|innerHTML\s*=[^;]*error\.message/.test(admin + owner)) fail("Admin/owner UI must not show raw backend errors.");
+if (owner.includes("'Cancel Booking'") || !owner.includes("Customer bookings cannot be released")) fail("Owner panel must not allow releasing paid customer bookings.");
 if (!book.includes('loading="lazy" decoding="async"')) fail("Booking room image should not block checkout rendering.");
 if (book.includes("adultsInput.value = fitted.adults")) fail("Adult input must not be rewritten while typing.");
 if (!book.includes('e.target.id === "adultsInput" && e.type === "change"')) fail("Adult room auto-fit should run on commit, not every keystroke.");

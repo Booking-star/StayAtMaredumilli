@@ -731,7 +731,7 @@ function setupSubmissions() {
       if (confirm("Are you sure you want to log out?")) {
         const { error } = await supabaseClient.auth.signOut();
         if (error) {
-          alert("Logout failed: " + error.message);
+          alert("Logout failed. Please try again.");
         }
       }
     });

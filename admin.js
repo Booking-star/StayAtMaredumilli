@@ -117,7 +117,7 @@ async function loadRooms() {
     .eq("active", true)
     .order("created_at", { ascending: false });
   if (error) {
-    setStatus(error.message);
+    setStatus(error.message, true);
     return;
   }
   ownerRooms = data || [];
@@ -439,7 +439,7 @@ if (adminLogoutBtn) {
     if (confirm("Are you sure you want to log out?")) {
       const { error } = await supabaseClient.auth.signOut();
       if (error) {
-        alert("Logout failed: " + error.message);
+        notifyAdmin("Logout failed. Please try again.", true);
       }
     }
   });
@@ -543,7 +543,7 @@ async function loadOwners() {
       .eq("active", true)
       .order("created_at", { ascending: false }));
     if (error) {
-      adminOwnerList.innerHTML = `Could not load owners: ${escapeHtml(error.message)}`;
+      adminOwnerList.innerHTML = `<p class="muted-line">Could not load registered owners right now.</p>`;
       notifyAdmin("Could not load registered owners.", true);
       return;
     }
@@ -610,7 +610,7 @@ if (adminOwnerForm) {
         });
 
         if (rpcError) {
-          throw new Error("Failed to update credentials: " + rpcError.message);
+          throw new Error("Failed to update owner credentials.");
         }
 
         // 2. Update profile in hotel_owners table
@@ -625,7 +625,7 @@ if (adminOwnerForm) {
           .eq("id", editingOwnerId);
 
         if (updateError) {
-          throw new Error("Failed to update profile: " + updateError.message);
+          throw new Error("Failed to update owner profile.");
         }
 
         alert(`Successfully updated owner credentials and profile for ${hotelName}!`);
@@ -643,7 +643,7 @@ if (adminOwnerForm) {
         });
 
         if (rpcError) {
-          throw new Error("Registration failed: " + rpcError.message);
+          throw new Error("Owner registration failed.");
         }
 
         alert(`Successfully registered ${ownerName} for ${hotelName}!`);
@@ -657,7 +657,7 @@ if (adminOwnerForm) {
       }
       await loadOwners();
     } catch (err) {
-      alert(err.message);
+      notifyAdmin(err.message, true);
     } finally {
       submitBtn.disabled = false;
       if (!editingOwnerId && submitBtn) {
@@ -681,7 +681,7 @@ if (adminOwnerList) {
         .update({ active: false })
         .eq("id", deleteBtn.dataset.deleteOwner);
       if (error) {
-        alert("Failed to delete owner: " + error.message);
+        notifyAdmin("Failed to delete owner.", true);
       } else {
         await loadOwners();
       }
@@ -739,7 +739,8 @@ async function loadCustomers() {
     .select("*")
     .order("last_seen_at", { ascending: false });
   if (error) {
-    adminCustomerList.innerHTML = `Customer table not ready: ${escapeHtml(error.message)}`;
+    adminCustomerList.innerHTML = `<p class="muted-line">Customer details are not available right now.</p>`;
+    notifyAdmin("Customer details are not available right now.", true);
     return;
   }
   allCustomers = data || [];
@@ -883,7 +884,8 @@ async function loadUpcomingBookings() {
     .order("check_in", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) {
-    adminUpcomingList.innerHTML = `Upcoming bookings need schema update: ${escapeHtml(error.message)}`;
+    adminUpcomingList.innerHTML = `<p class="muted-line">Upcoming bookings are not available right now.</p>`;
+    notifyAdmin("Upcoming bookings are not available right now.", true);
     return;
   }
   upcomingBookings = data || [];
@@ -1004,7 +1006,7 @@ async function loadInfluencers() {
     .select("*")
     .order("created_at", { ascending: false });
   if (error) {
-    setStatus(error.message);
+    setStatus(error.message, true);
     return;
   }
   
@@ -1106,7 +1108,7 @@ async function loadHighlights() {
     .select("*")
     .order("created_at", { ascending: true });
   if (error) {
-    setStatus(error.message);
+    setStatus(error.message, true);
     return;
   }
   allHighlights = data || [];
