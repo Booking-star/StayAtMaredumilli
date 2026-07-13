@@ -29,6 +29,7 @@ if (!/\.bottom-nav\s*{[\s\S]*transform:\s*none\s*!important/.test(css)) fail("Bo
 if (!app.includes("function positionBottomNav") || !app.includes("visualViewport")) fail("Bottom nav must be pinned to the mobile visual viewport.");
 if (!css.includes("--bottom-nav-space: 156px")) fail("Mobile bottom spacing must protect content from nav overlap.");
 if (!/supabase\|row-level security\|permission denied\|violates/.test(shared)) fail("Backend errors must be masked for customers.");
+if (!read("admin-ui.js").includes("cleanAdminMessage") || !read("admin-ui.js").includes("permission denied")) fail("Admin status must mask raw backend permission errors.");
 if (!book.includes('loading="lazy" decoding="async"')) fail("Booking room image should not block checkout rendering.");
 if (book.includes("adultsInput.value = fitted.adults")) fail("Adult input must not be rewritten while typing.");
 if (!book.includes('e.target.id === "adultsInput" && e.type === "change"')) fail("Adult room auto-fit should run on commit, not every keystroke.");

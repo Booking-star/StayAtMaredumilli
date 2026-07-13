@@ -1,13 +1,21 @@
 function setStatus(message = "", isError = false) {
   const adminStatus = document.querySelector("#adminStatus");
   if (!adminStatus) return;
-  adminStatus.textContent = message;
+  adminStatus.textContent = cleanAdminMessage(message);
   adminStatus.style.display = message ? "block" : "none";
   adminStatus.classList.toggle("error", Boolean(isError));
 }
 
 function notifyAdmin(message, isError = false) {
   setStatus(message, isError);
+}
+
+function cleanAdminMessage(message = "") {
+  const text = String(message || "");
+  if (/supabase|row-level security|permission denied|violates|service role|schema cache|rpc|rest\/v1/i.test(text)) {
+    return "Action could not be completed. Please check permissions or try again.";
+  }
+  return text;
 }
 
 function showError(message) {
