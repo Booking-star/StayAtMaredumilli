@@ -1,6 +1,5 @@
--- Allows an already-captured Razorpay payment to finish booking even if the
--- browser returned after the hold window. The payment itself is still verified
--- in the server API before this function is called.
+-- Recheck room capacity at payment confirmation time. This prevents a late
+-- confirmation of an expired hold from overbooking a room.
 
 create or replace function public.confirm_booking_hold_safe(
   p_hold_id uuid,

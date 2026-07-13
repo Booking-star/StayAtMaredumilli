@@ -737,7 +737,11 @@ set search_path = public
 as $$
 declare
   v_hold public.booking_holds%rowtype;
+  v_room public.rooms%rowtype;
   v_booking_id uuid;
+  v_day date;
+  v_booked integer;
+  v_held integer;
 begin
   select id into v_booking_id
   from public.bookings
@@ -755,6 +759,35 @@ begin
 
   if not found then raise exception 'Payment hold not found.'; end if;
   if v_hold.status not in ('held', 'expired') then raise exception 'Payment hold is no longer active.'; end if;
+
+  select * into v_room
+  from public.rooms
+  where id = v_hold.room_id and active = true
+  for update;
+
+  if not found then raise exception 'Room is not available.'; end if;
+
+  for v_day in select generate_series(v_hold.check_in, v_hold.check_out - 1, interval '1 day')::date loop
+    select coalesce(sum(num_rooms), 0)::integer into v_booked
+    from public.bookings
+    where room_id = v_hold.room_id
+      and status <> 'cancelled'
+      and check_in <= v_day
+      and check_out > v_day;
+
+    select coalesce(sum(num_rooms), 0)::integer into v_held
+    from public.booking_holds
+    where id <> v_hold.id
+      and room_id = v_hold.room_id
+      and status = 'held'
+      and expires_at > now()
+      and check_in <= v_day
+      and check_out > v_day;
+
+    if v_booked + v_held + v_hold.num_rooms > v_room.available_rooms then
+      raise exception 'Room is no longer available for the selected dates.';
+    end if;
+  end loop;
 
   insert into public.bookings (
     room_id, customer_name, customer_phone, customer_email, check_in, check_out,
