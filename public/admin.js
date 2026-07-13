@@ -520,10 +520,12 @@ function setupRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
       loadSales();
       loadOccupancy();
+      updateBlockHint();
       if (!contentUpcoming?.classList.contains("hidden")) loadUpcomingBookings();
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "booking_holds" }, () => {
       loadOccupancy();
+      updateBlockHint();
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => {
       loadRooms();

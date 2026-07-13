@@ -53,6 +53,8 @@ let paymentSettings = { mode: "razorpay", upiId: "" };
 let selectedRoomId = null;
 let paymentFilePickerOpen = false;
 let checkoutListenersWired = false;
+let checkoutRealtimeWired = false;
+let checkoutRefreshTimer = null;
 
 function validPhone(value) {
   return normalizePhone(value).length === 10;
@@ -281,6 +283,27 @@ async function loadRoomDetails(id) {
     return null;
   }
   return roomFromSupabase(data);
+}
+
+function scheduleCheckoutAvailabilityRefresh() {
+  clearTimeout(checkoutRefreshTimer);
+  checkoutRefreshTimer = setTimeout(async () => {
+    await loadAllBookings();
+    const latestRoom = await loadRoomDetails(selectedRoomId);
+    if (latestRoom) room = latestRoom;
+    updatePricingUI();
+  }, 250);
+}
+
+function setupCheckoutRealtime() {
+  if (!supabaseClient || checkoutRealtimeWired) return;
+  checkoutRealtimeWired = true;
+  supabaseClient
+    .channel(`checkout-realtime-sync-${selectedRoomId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, scheduleCheckoutAvailabilityRefresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "booking_holds" }, scheduleCheckoutAvailabilityRefresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, scheduleCheckoutAvailabilityRefresh)
+    .subscribe();
 }
 
 // Payment Methods
@@ -847,6 +870,7 @@ async function handleUserSession(session) {
   
   updatePricingUI();
   checkoutContainer.classList.remove("hidden");
+  setupCheckoutRealtime();
   
   if (!checkoutListenersWired) {
     checkoutListenersWired = true;

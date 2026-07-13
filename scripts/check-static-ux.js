@@ -85,6 +85,8 @@ if (!app.includes('data-action="${remainingRooms > 0 ? "book" : "waitlist"}"')) 
 if (/service role key|Check Supabase/i.test(paymentSettings)) fail("Payment settings API must not expose infrastructure wording.");
 if (paymentSettings.includes('? body.mode : "manual"')) fail("Payment settings must default to Razorpay.");
 if (!app.includes("function normalizePhone") || !app.includes("Please enter a valid 10 digit mobile number.")) fail("Profile phone save must normalize and validate Indian mobile numbers.");
+if (!app.includes('table: "booking_holds"') || !book.includes('table: "booking_holds"') || !admin.includes('table: "booking_holds"') || !owner.includes('table: "booking_holds"')) fail("All live pages must refresh availability when payment holds change.");
+if (!fs.existsSync("realtime-sync-migration.sql") || !read("realtime-sync-migration.sql").includes("supabase_realtime")) fail("Realtime table publication migration is missing.");
 if (!app.includes('.from("rooms_public").select("id,room_name,image_urls")') || app.includes("rooms(room_name,image_urls)")) fail("Customer bookings must load room display data from rooms_public, not private rooms.");
 if (!app.includes('booking.roomImage || "/brand-logo.png"')) fail("Customer booking cards need a real image fallback.");
 if (!manualBooking.includes('mode === "razorpay"') || !manualBooking.includes('p_screenshot_url')) fail("Manual booking API must reject Razorpay mode and require screenshot in manual mode.");

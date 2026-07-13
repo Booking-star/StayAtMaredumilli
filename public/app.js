@@ -1378,8 +1378,11 @@ function setupRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
       Promise.all([loadAllBookings(), loadCustomerBookings(), loadOwnerRooms()]).then(render);
     })
+    .on("postgres_changes", { event: "*", schema: "public", table: "booking_holds" }, () => {
+      Promise.all([loadAllBookings(), loadOwnerRooms()]).then(render);
+    })
     .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => {
-      loadOwnerRooms().then(render);
+      Promise.all([loadAllBookings(), loadOwnerRooms()]).then(render);
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, () => {
       Promise.all([loadPricingSettings(), loadPaymentSettings()]).then(render);
