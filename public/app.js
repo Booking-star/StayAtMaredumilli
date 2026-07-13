@@ -88,7 +88,8 @@ function openPendingBookingIfReady() {
   const roomId = pendingBookingId();
   if (!roomId || !rooms.some(room => room.id === roomId)) return false;
   localStorage.removeItem("stayPendingRoomId");
-  location.href = `/book.html?room=${roomId}&from=${document.querySelector("#checkin")?.value || ""}&to=${document.querySelector("#checkout")?.value || ""}&adults=${document.querySelector("#guestsAdults")?.value || 1}&children=${document.querySelector("#guestsKids")?.value || 0}`;
+  const details = normalizeTripDetails(bookingDetails || {}, 1);
+  location.href = `/book.html?room=${roomId}&from=${details.from}&to=${details.to}&adults=${details.adults}&children=${details.children}&rooms=${details.rooms}`;
   return true;
 }
 
