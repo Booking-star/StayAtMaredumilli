@@ -461,7 +461,7 @@ function checkoutDetailsFromForm() {
 
 function updatePricingUI() {
   if (!room) return;
-  if (checkoutTitle) checkoutTitle.textContent = `Confirm ${room.name}`;
+  if (checkoutTitle) checkoutTitle.textContent = `${room.name} - ${room.type}`;
   
   const formDetails = checkoutDetailsFromForm();
   const fitted = fitDetailsToAvailability(room, formDetails);

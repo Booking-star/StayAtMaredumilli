@@ -176,6 +176,7 @@ function bookingFromRow(row) {
   const room = Array.isArray(row.rooms) ? row.rooms[0] : row.rooms;
   return {
     id: row.id,
+    roomId: row.room_id,
     reference: bookingReference(row.id),
     roomName: room?.room_name || "Booked room",
     roomImage: room?.image_urls?.[0] || "",
@@ -204,7 +205,7 @@ async function loadCustomerBookings() {
   }
   const { data, error } = await supabaseClient
     .from("bookings")
-    .select("id,created_at,check_in,check_out,num_rooms,num_adults,num_kids,status,payment_option,rooms(room_name,image_urls)")
+    .select("id,room_id,created_at,check_in,check_out,num_rooms,num_adults,num_kids,status,payment_option,rooms(room_name,image_urls)")
     .eq("customer_email", profile.email)
     .order("created_at", { ascending: false });
   if (error) {
@@ -563,9 +564,14 @@ function scheduleAvailabilityRefresh(room = null) {
 function renderBookings() {
   bookingsList.innerHTML = bookings.length ? bookings.map((booking, index) => `
     <article class="booking-item">
-      <img src="${escapeHtml(safeUrl(booking.roomImage || ""))}" alt="${escapeHtml(booking.roomName || "Booked room")}">
+      ${(() => {
+        const room = rooms.find(item => item.id === booking.roomId);
+        const roomName = room?.name || booking.roomName || "Booked room";
+        const roomImage = room?.images?.[0] || booking.roomImage || "";
+        return `<img src="${escapeHtml(safeUrl(roomImage))}" alt="${escapeHtml(roomName)}">`;
+      })()}
       <div>
-        <h3>${escapeHtml(booking.roomName)}</h3>
+        <h3>${escapeHtml(rooms.find(item => item.id === booking.roomId)?.name || booking.roomName)}</h3>
         <p>${escapeHtml(booking.from)} to ${escapeHtml(booking.to)} &middot; ${escapeHtml(booking.adults)} adults &middot; ${escapeHtml(booking.rooms)} room(s)</p>
         <small>Ref: ${escapeHtml(booking.reference || bookingReference(booking.id))} &middot; ${booking.payment === "100" ? "Paid 100%" : "Paid 20% advance"}</small>
       </div>
@@ -577,8 +583,10 @@ function renderBookings() {
 function openBookingDetails(index) {
   const booking = bookings[Number(index)];
   if (!booking || !bookingDetailsModal) return;
+  const room = rooms.find(item => item.id === booking.roomId);
+  const roomName = room?.name || booking.roomName || "Booked room";
   bookingDetailsContent.innerHTML = `
-    <p><strong>${escapeHtml(booking.roomName)}</strong></p>
+    <p><strong>${escapeHtml(roomName)}</strong></p>
     <p>Ref: ${escapeHtml(booking.reference || bookingReference(booking.id))}</p>
     <p>${escapeHtml(booking.from)} to ${escapeHtml(booking.to)}</p>
     <p>${escapeHtml(booking.adults)} adults &middot; ${escapeHtml(booking.children || 0)} kids &middot; ${escapeHtml(booking.rooms)} room(s)</p>
