@@ -6,8 +6,6 @@ const feed = document.querySelector("#propertyFeed");
 const highlights = document.querySelector("#highlights");
 const bookingSummary = document.querySelector("#bookingSummary");
 const bookingsList = document.querySelector("#bookingsList");
-const likedList = document.querySelector("#likedList");
-const savedDetails = document.querySelector("#savedDetails");
 const modal = document.querySelector("#bookingModal");
 const reelModal = document.querySelector("#reelModal");
 const bookingDetailsModal = document.querySelector("#bookingDetailsModal");
@@ -172,6 +170,50 @@ async function loadAllBookings() {
     return;
   }
   allBookings = data || [];
+}
+
+function bookingFromRow(row) {
+  const room = Array.isArray(row.rooms) ? row.rooms[0] : row.rooms;
+  return {
+    id: row.id,
+    reference: bookingReference(row.id),
+    roomName: room?.room_name || "Booked room",
+    roomImage: room?.image_urls?.[0] || "",
+    from: row.check_in,
+    to: row.check_out,
+    adults: row.num_adults || 1,
+    children: row.num_kids || 0,
+    rooms: row.num_rooms || 1,
+    payment: row.payment_option || "20",
+    status: bookingStatusLabel(row.status),
+    createdAt: row.created_at
+  };
+}
+
+function bookingStatusLabel(status) {
+  if (status === "confirmed") return "Confirmed";
+  if (status === "pending_payment") return "Payment pending";
+  if (status === "cancelled") return "Cancelled";
+  return status ? String(status).replace(/_/g, " ") : "Confirmed";
+}
+
+async function loadCustomerBookings() {
+  if (!supabaseClient || !profile.email) {
+    bookings = getStore("stayBookings", []);
+    return;
+  }
+  const { data, error } = await supabaseClient
+    .from("bookings")
+    .select("id,created_at,check_in,check_out,num_rooms,num_adults,num_kids,status,payment_option,rooms(room_name,image_urls)")
+    .eq("customer_email", profile.email)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Could not load your bookings:", error.message);
+    bookings = getStore("stayBookings", []);
+    return;
+  }
+  bookings = (data || []).map(bookingFromRow);
+  setStore("stayBookings", bookings);
 }
 
 function setLandingVideo() {
@@ -556,11 +598,6 @@ function renderProfile() {
   document.querySelector("#profileName").value = profile.name || "";
   document.querySelector("#profilePhone").value = profile.phone || "";
   document.querySelector("#profileEmail").value = profile.email || "";
-  savedDetails.textContent = bookingDetails
-    ? `${bookingDetails.adults} adults, ${bookingDetails.children} children, ${bookingDetails.rooms} rooms, ${bookingDetails.from} to ${bookingDetails.to}`
-    : "No booking details saved yet.";
-  const likedRooms = rooms.filter(room => likes.includes(room.id));
-  likedList.innerHTML = likedRooms.length ? likedRooms.map(room => `<p>${escapeHtml(room.name)} &middot; ${escapeHtml(room.type)}</p>`).join("") : "No liked stays yet.";
 }
 
 function profileFromUser(user) {
@@ -865,6 +902,7 @@ async function resumeSession(showSearch = false) {
   if (!data.session) return false;
   profileFromUser(data.session.user);
   await loadCustomerProfile(data.session.user);
+  await loadCustomerBookings();
   enterApp(showSearch);
   render();
   return true;
@@ -889,6 +927,7 @@ async function consumeAuthHash() {
   if (error || !data.session) return false;
   profileFromUser(data.session.user);
   await loadCustomerProfile(data.session.user);
+  await loadCustomerBookings();
   await signOutOtherCustomerSessions(data.session);
   enterApp(!bookingDetails);
   render();
@@ -1228,6 +1267,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   Promise.all([
     loadAllBookings(),
     loadHighlights(),
+    loadCustomerBookings(),
     loadPricingSettings(),
     loadPaymentSettings(),
     loadOwnerRooms()
@@ -1256,6 +1296,8 @@ window.addEventListener("DOMContentLoaded", async () => {
       return;
     }
     profileFromUser(session.user);
+    await loadCustomerProfile(session.user);
+    await loadCustomerBookings();
     if (event === "SIGNED_IN") await signOutOtherCustomerSessions(session);
     enterApp();
     render();
@@ -1316,7 +1358,7 @@ function setupRealtime() {
   supabaseClient
     .channel("customer-realtime-sync")
     .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
-      loadAllBookings().then(() => loadOwnerRooms().then(render));
+      Promise.all([loadAllBookings(), loadCustomerBookings(), loadOwnerRooms()]).then(render);
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => {
       loadOwnerRooms().then(render);

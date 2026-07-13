@@ -17,6 +17,7 @@ const supabaseClient = supabaseConfig.url && supabaseConfig.anonKey && window.su
 const authPrompt = document.getElementById("authPrompt");
 const loginBtn = document.getElementById("loginBtn");
 const checkoutContainer = document.getElementById("checkoutContainer");
+const checkoutTitle = document.getElementById("checkoutTitle");
 const bookingForm = document.getElementById("bookingForm");
 const bookingRoomSummary = document.getElementById("bookingRoomSummary");
 const billSummary = document.getElementById("billSummary");
@@ -460,6 +461,7 @@ function checkoutDetailsFromForm() {
 
 function updatePricingUI() {
   if (!room) return;
+  if (checkoutTitle) checkoutTitle.textContent = `Confirm ${room.name}`;
   
   const formDetails = checkoutDetailsFromForm();
   const fitted = fitDetailsToAvailability(room, formDetails);
