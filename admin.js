@@ -64,6 +64,10 @@ const adminOwnerWeekendPolicy = document.querySelector("#adminOwnerWeekendPolicy
 const adminWeekdayOwnerPrice = document.querySelector("#adminWeekdayOwnerPrice");
 const adminWeekendOwnerPrice = document.querySelector("#adminWeekendOwnerPrice");
 const adminSalesList = document.querySelector("#adminSalesList");
+const salesHotelFilter = document.querySelector("#salesHotelFilter");
+const salesDateFrom = document.querySelector("#salesDateFrom");
+const salesDateTo = document.querySelector("#salesDateTo");
+const salesClearFiltersBtn = document.querySelector("#salesClearFiltersBtn");
 
 function nextDate(dateStr) {
   const date = new Date(dateStr);
@@ -335,6 +339,52 @@ adminBlockForm?.addEventListener("submit", async event => {
   await blockRoomFromAdmin(adminBlockRoom.value, adminBlockFrom.value, adminBlockTo.value, Number(adminBlockRooms.value));
 });
 
+const adminUnblockBtn = document.querySelector("#adminUnblockBtn");
+adminUnblockBtn?.addEventListener("click", async () => {
+  const roomId = adminBlockRoom.value;
+  const checkIn = adminBlockFrom.value;
+  const checkOut = adminBlockTo.value;
+  
+  if (!roomId || !supabaseClient) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(checkIn) || !/^\d{4}-\d{2}-\d{2}$/.test(checkOut) || checkOut <= checkIn) {
+    return alert("Enter valid dates for unblocking.");
+  }
+
+  const room = ownerRooms.find(item => String(item.id) === String(roomId));
+  const hotelName = room ? room.room_name : "this hotel";
+
+  if (!confirm(`Unblock all offline blocks for ${hotelName} from ${checkIn} to ${checkOut}?`)) return;
+
+  // Query overlapping offline blocks
+  const { data: overlappingBlocks, error: fetchError } = await supabaseClient
+    .from("bookings")
+    .select("id")
+    .eq("room_id", roomId)
+    .eq("status", "offline_blocked")
+    .lt("check_in", checkOut)
+    .gt("check_out", checkIn);
+
+  if (fetchError) return notifyAdmin(fetchError.message, true);
+  if (!overlappingBlocks || overlappingBlocks.length === 0) {
+    return notifyAdmin("No offline blocks found in the selected date range.", true);
+  }
+
+  const idsToDelete = overlappingBlocks.map(b => b.id);
+
+  // Delete them
+  const { error: deleteError } = await supabaseClient
+    .from("bookings")
+    .delete()
+    .in("id", idsToDelete);
+
+  if (deleteError) return notifyAdmin(deleteError.message, true);
+
+  await loadSales();
+  await loadOccupancy();
+  updateBlockHint();
+  notifyAdmin(`Released ${idsToDelete.length} offline block(s) for ${hotelName}.`);
+});
+
 [adminBlockRoom, adminBlockFrom, adminBlockTo, adminBlockRooms].forEach(input => {
   input?.addEventListener("input", () => {
     if (input === adminBlockFrom && adminBlockFrom.value) adminBlockTo.value = nextDate(adminBlockFrom.value);
@@ -502,13 +552,25 @@ function setupAdminTabs() {
   upcomingDaysFilter?.addEventListener("change", loadUpcomingBookings);
   adminPricingForm?.addEventListener("submit", savePricingSettings);
   adminPaymentForm?.addEventListener("submit", savePaymentSettings);
+
+  // Sales filters event listeners
+  salesHotelFilter?.addEventListener("change", renderSales);
+  salesDateFrom?.addEventListener("change", renderSales);
+  salesDateTo?.addEventListener("change", renderSales);
+  salesClearFiltersBtn?.addEventListener("click", () => {
+    if (salesHotelFilter) salesHotelFilter.value = "";
+    if (salesDateFrom) salesDateFrom.value = "";
+    if (salesDateTo) salesDateTo.value = "";
+    renderSales();
+  });
+
   showAdminSection("inventory");
 }
 
 function showAdminSection(section) {
   const sections = {
     inventory: { content: contentInventory },
-    owners: { content: contentOwners },
+    owners: { content: contentOwners, load: loadOwners },
     sales: { content: contentSales, load: loadSales },
     customers: { content: contentCustomers, load: loadCustomers },
     pricing: { content: contentPricing, load: loadPricingSettings },
@@ -787,9 +849,26 @@ async function loadSales() {
     return;
   }
   allBookings = data || [];
+  
+  // Dynamically populate hotel dropdown filter based on actual booked hotels
+  populateSalesHotelFilter();
+
   renderSales();
   renderAdminBlocks();
   updateBlockHint();
+}
+
+function populateSalesHotelFilter() {
+  if (!salesHotelFilter) return;
+  const selected = salesHotelFilter.value;
+  
+  // Extract distinct hotel names from bookings (fallback to room name if hotel_name is missing)
+  const hotels = [...new Set(allBookings.map(b => b.hotel_name || b.room_name).filter(Boolean))].sort();
+  
+  salesHotelFilter.innerHTML = `<option value="">All Hotels</option>` +
+    hotels.map(h => `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`).join("");
+    
+  salesHotelFilter.value = selected;
 }
 
 async function loadOccupancy() {
@@ -856,10 +935,41 @@ function renderCustomers() {
 
 function renderSales() {
   if (!adminSalesList) return;
+
+  const selectedHotel = salesHotelFilter?.value || "";
+  const dateFromStr = salesDateFrom?.value || "";
+  const dateToStr = salesDateTo?.value || "";
+
+  // Filter bookings based on active filters
+  const filteredBookings = allBookings.filter(b => {
+    // Hotel filter
+    if (selectedHotel && (b.hotel_name || b.room_name) !== selectedHotel) {
+      return false;
+    }
+
+    // Booking created_at date range filter
+    if (b.created_at) {
+      const bDate = new Date(b.created_at);
+      if (dateFromStr) {
+        const fromDate = new Date(dateFromStr + "T00:00:00");
+        if (bDate < fromDate) return false;
+      }
+      if (dateToStr) {
+        const toDate = new Date(dateToStr + "T23:59:59");
+        if (bDate > toDate) return false;
+      }
+    } else {
+      // If booking has no created_at, hide it if a date filter is active
+      if (dateFromStr || dateToStr) return false;
+    }
+
+    return true;
+  });
+
   let revenue = 0;
   let payout = 0;
   let profit = 0;
-  allBookings.forEach(b => {
+  filteredBookings.forEach(b => {
     revenue += b.total_price || 0;
     payout += b.owner_amount || 0;
     profit += b.profit_amount || 0;
@@ -868,15 +978,17 @@ function renderSales() {
   document.querySelector("#adminTotalPayout").textContent = "Rs." + payout.toLocaleString("en-IN");
   document.querySelector("#adminTotalProfit").textContent = "Rs." + profit.toLocaleString("en-IN");
 
-  adminSalesList.innerHTML = allBookings.length ? allBookings.map(b => `
+  adminSalesList.innerHTML = filteredBookings.length ? filteredBookings.map(b => `
     <article class="sales-item">
       <div style="flex-grow: 1;">
         <strong style="font-size: 15px; color: var(--text);">${escapeHtml(b.room_name || "Room blockage/booking")}</strong>
         <p style="font-size: 13px; color: var(--muted); margin: 4px 0 0;">
+          <strong>Hotel:</strong> ${escapeHtml(b.hotel_name || "N/A")} &middot;
           <strong>Guest:</strong> ${escapeHtml(b.customer_name)} (${escapeHtml(b.customer_phone)}) &middot; 
           <strong>Email:</strong> ${escapeHtml(b.customer_email || "N/A")} &middot;
           <strong>Dates:</strong> ${escapeHtml(b.check_in)} to ${escapeHtml(b.check_out)} &middot; 
-          <strong>Rooms:</strong> ${escapeHtml(b.num_rooms)}
+          <strong>Rooms:</strong> ${escapeHtml(b.num_rooms)} &middot;
+          <strong>Booked on:</strong> ${b.created_at ? escapeHtml(new Date(b.created_at).toLocaleString("en-IN")) : "N/A"}
         </p>
         ${b.payment_screenshot_url ? `<p><a href="${escapeHtml(b.payment_screenshot_url)}" target="_blank" rel="noopener">View payment screenshot</a> &middot; ${escapeHtml(b.manual_payment_status || "submitted")}</p>` : ""}
       </div>
@@ -893,7 +1005,7 @@ function renderSales() {
         ${b.status === "offline_blocked" ? `<button class="ghost-btn" data-release-block="${escapeHtml(b.id)}" type="button">Release block</button>` : ""}
       </div>
     </article>
-  `).join("") : "No bookings recorded yet.";
+  `).join("") : "No bookings matching the active filters.";
 }
 
 async function releaseBlockedRoom(id) {
