@@ -68,8 +68,9 @@ const defaultPricingSettings = {
   occupancy90Surcharge: 300
 };
 let pricingSettings = normalizePricingSettings(getStore("stayPricingSettings", defaultPricingSettings));
-let paymentSettings = getStore("stayPaymentSettings", { mode: "manual", upiId: "Kandregulaashok1@ybl" });
-if (!paymentSettings.upiId) paymentSettings.upiId = "Kandregulaashok1@ybl";
+let paymentSettings = getStore("stayPaymentSettings", { mode: "razorpay", upiId: "" });
+if (!["manual", "mock", "razorpay"].includes(paymentSettings.mode)) paymentSettings = { mode: "razorpay", upiId: "" };
+if (paymentSettings.mode === "manual" && !paymentSettings.upiId) paymentSettings.upiId = "Kandregulaashok1@ybl";
 
 function pendingBookingId() {
   return localStorage.getItem("stayPendingRoomId") || new URLSearchParams(location.search).get("book");
@@ -127,7 +128,7 @@ async function loadPaymentSettings() {
   if (!data) return;
   paymentSettings = ["manual", "mock", "razorpay"].includes(data?.mode)
     ? { mode: data.mode, upiId: data.upiId || "Kandregulaashok1@ybl" }
-    : { mode: "manual", upiId: "Kandregulaashok1@ybl" };
+    : { mode: "razorpay", upiId: "" };
   setStore("stayPaymentSettings", paymentSettings);
 }
 

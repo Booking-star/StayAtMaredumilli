@@ -3,7 +3,7 @@ export default async function handler(req, res) {
   const defaultUpiId = "Kandregulaashok1@ybl";
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return res.status(200).json({ mode: "manual", upiId: defaultUpiId });
+  if (!url || !key) return res.status(200).json({ mode: "razorpay", upiId: "" });
 
   if (req.method === "POST") {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
@@ -34,13 +34,13 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({ key: "payment", value, updated_at: new Date().toISOString() })
     });
-    if (!saveResponse.ok) return res.status(500).json({ error: await saveResponse.text() });
+    if (!saveResponse.ok) return res.status(500).json({ error: "Payment settings could not be saved. Please try again." });
     const verifyResponse = await fetch(`${url}/rest/v1/site_settings?key=eq.payment&select=value`, {
       headers: { apikey: key, authorization: `Bearer ${key}` }
     });
     const saved = verifyResponse.ok ? (await verifyResponse.json())?.[0]?.value : null;
     if (saved?.upiId !== value.upiId || saved?.mode !== value.mode) {
-      return res.status(500).json({ error: "Payment settings did not persist. Check Supabase service role key." });
+      return res.status(500).json({ error: "Payment settings could not be verified. Please try again." });
     }
     return res.status(200).json(saved);
   }
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
   const rows = response.ok ? await response.json() : [];
   const value = rows?.[0]?.value || {};
   res.status(200).json({
-    mode: ["manual", "mock", "razorpay"].includes(value.mode) ? value.mode : "manual",
+    mode: ["manual", "mock", "razorpay"].includes(value.mode) ? value.mode : "razorpay",
     upiId: value.upiId || defaultUpiId
   });
 }

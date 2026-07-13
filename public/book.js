@@ -49,7 +49,7 @@ let room = null;
 let allBookings = [];
 let profile = {};
 let pricingSettings = { occupancy80Surcharge: 200, occupancy90Surcharge: 300 };
-let paymentSettings = { mode: "manual", upiId: "Kandregulaashok1@ybl" };
+let paymentSettings = { mode: "razorpay", upiId: "" };
 let selectedRoomId = null;
 let paymentFilePickerOpen = false;
 let checkoutListenersWired = false;
@@ -252,7 +252,7 @@ async function loadPaymentSettings() {
   if (!data) return;
   paymentSettings = ["manual", "mock", "razorpay"].includes(data?.mode)
     ? { mode: data.mode, upiId: data.upiId || "Kandregulaashok1@ybl" }
-    : { mode: "manual", upiId: "Kandregulaashok1@ybl" };
+    : { mode: "razorpay", upiId: "" };
 }
 
 async function loadAllBookings() {

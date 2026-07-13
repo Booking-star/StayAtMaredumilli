@@ -14,6 +14,7 @@ const verifyPayment = read("api/verify-payment.js");
 const razorpayWebhook = read("api/razorpay-webhook.js");
 const releasePaymentHold = read("api/release-payment-hold.js");
 const paymentStatus = read("api/payment-status.js");
+const paymentSettings = read("api/payment-settings.js");
 const seo = read("scripts/generate-seo-pages.js");
 const vercel = read("vercel.json");
 
@@ -35,6 +36,8 @@ if (/9999999999|customer@stay\.com/.test(book)) fail("Paid checkout must not use
 if (!book.includes("checkoutListenersWired")) fail("Checkout listeners must only be wired once.");
 if (!book.includes("normalizePhone") || !book.includes('digits.startsWith("91")')) fail("Checkout must accept +91 Indian mobile numbers.");
 if (!read("api/create-payment-hold.js").includes("normalizePhone")) fail("Payment API must normalize customer phone numbers server-side.");
+if (!app.includes('{ mode: "razorpay", upiId: "" }') || !book.includes('{ mode: "razorpay", upiId: "" }')) fail("Customer payment mode must default to Razorpay, not manual UPI.");
+if (/service role key|Check Supabase/i.test(paymentSettings)) fail("Payment settings API must not expose infrastructure wording.");
 if (!verifyPayment.includes("async function razorpayPayment") || !verifyPayment.includes("validSignature")) fail("Razorpay verify must have server-side fallback.");
 if (!verifyPayment.includes("bookingByPayment") || !verifyPayment.includes('hold.status === "confirmed"')) fail("Razorpay verify must be idempotent after webhook confirmation.");
 if (!verifyPayment.includes("createBookingFromPaidHold") || verifyPayment.includes("manual_review")) fail("Captured Razorpay payments must confirm booking, not manual-review.");
