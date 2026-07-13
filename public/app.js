@@ -283,33 +283,28 @@ function openReel(index) {
   const reel = highlightReels[index];
   if (!reel) return;
   reelTitle.textContent = reel.title;
-  
-  let reelUrl = safeUrl(reel.url);
-  if (!reelUrl.endsWith("/")) {
-    reelUrl += "/";
-  }
-  const embedUrl = `${reelUrl}embed/`;
+  const reelUrl = safeUrl(reel.url);
   
   reelEmbed.innerHTML = `
     <div class="reel-loader" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 480px; width: 100%; text-align: center;">
       <div class="spinner" style="width: 40px; height: 40px; border: 3px solid rgba(45, 90, 39, 0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
       <span style="font-size: 14px; color: var(--muted); font-weight: 500;">Loading video player...</span>
     </div>
-    <iframe src="${escapeHtml(embedUrl)}" class="instagram-media" style="display: none; width: 100%; max-width: 420px; height: 520px; border: 0; border-radius: 12px; background: transparent; overflow: hidden;" scrolling="no" allowtransparency="true" allowfullscreen="true"></iframe>
+    <blockquote class="instagram-media" data-instgrm-permalink="${escapeHtml(reelUrl)}" data-instgrm-version="14" style="display: none; background: transparent; border: 0; margin: 0; padding: 0; width: 100%;"></blockquote>
   `;
   
   reelModal.showModal();
 
   const loader = reelEmbed.querySelector(".reel-loader");
-  const iframe = reelEmbed.querySelector(".instagram-media");
+  const blockquote = reelEmbed.querySelector(".instagram-media");
 
   const showIframe = () => {
     if (loader) loader.style.display = "none";
-    if (iframe) iframe.style.display = "block";
+    if (blockquote) blockquote.style.display = "block";
   };
 
-  // Listen for iframe load event
-  iframe.addEventListener("load", showIframe);
+  // Listen for iframe load event inside the blockquote container (capture phase)
+  reelEmbed.addEventListener("load", showIframe, { capture: true, once: true });
 
   // Timeout fallback (5 seconds)
   setTimeout(() => {
@@ -317,6 +312,26 @@ function openReel(index) {
       showIframe();
     }
   }, 5000);
+
+  // Poll for window.instgrm and process the embeds
+  const checkAndProcess = () => {
+    if (window.instgrm?.Embeds?.process) {
+      window.instgrm.Embeds.process();
+    } else {
+      let attempts = 0;
+      const interval = setInterval(() => {
+        attempts++;
+        if (window.instgrm?.Embeds?.process) {
+          window.instgrm.Embeds.process();
+          clearInterval(interval);
+        } else if (attempts >= 40) {
+          clearInterval(interval);
+        }
+      }, 100);
+    }
+  };
+
+  checkAndProcess();
 }
 
 function filteredRooms() {
@@ -1236,6 +1251,9 @@ document.querySelector("#saveProfileBtn").addEventListener("click", async event 
 
 
 document.querySelector("#closeReelBtn").addEventListener("click", () => reelModal.close());
+reelModal.addEventListener("close", () => {
+  reelEmbed.innerHTML = "";
+});
 document.querySelector("#closeBookingDetailsBtn")?.addEventListener("click", () => bookingDetailsModal.close());
 document.querySelector("#closeSuccessBtn")?.addEventListener("click", () => successModal.close());
 manualPaymentBox?.addEventListener("click", openUpiPayment);

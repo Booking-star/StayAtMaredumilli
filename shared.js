@@ -172,11 +172,15 @@ function showActionError(message = "") {
 
 if (typeof window !== "undefined") {
   window.addEventListener("error", event => {
-    reportClientError(event.message, event.filename, event.lineno);
-    if (event.target === window) showActionError(event.message);
+    const message = event.message || "";
+    // Ignore cross-origin script errors or iframe-related security errors
+    if (!message || message.includes("Script error") || message.includes("Blocked a frame") || message.includes("SecurityError")) return;
+    reportClientError(message, event.filename, event.lineno);
+    if (event.target === window) showActionError(message);
   });
   window.addEventListener("unhandledrejection", event => {
-    const message = event.reason?.message || event.reason || "Action failed. Please try again.";
+    const message = event.reason?.message || event.reason || "";
+    if (!message || message.includes("Script error") || message.includes("Blocked a frame") || message.includes("SecurityError")) return;
     reportClientError(message);
     showActionError(message);
   });
