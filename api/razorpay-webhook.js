@@ -26,6 +26,11 @@ async function confirmHold(holdId, paymentId) {
   });
 }
 
+async function bookingByPayment(paymentId) {
+  const rows = await supabaseFetch(`bookings?payment_id=eq.${encodeURIComponent(paymentId)}&select=id&limit=1`);
+  return rows?.[0]?.id || null;
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const chunks = [];
@@ -53,8 +58,10 @@ module.exports = async function handler(req, res) {
     }
     const holds = await supabaseFetch(`booking_holds?razorpay_order_id=eq.${payment.order_id}&select=*&limit=1`);
     const hold = holds?.[0];
-    if (!hold || hold.status === "confirmed") return res.status(200).json({ ok: true });
-    const bookingId = await confirmHold(hold.id, payment.id);
+    if (!hold) return res.status(200).json({ ok: true });
+    const bookingId = hold.status === "confirmed"
+      ? await bookingByPayment(payment.id)
+      : await confirmHold(hold.id, payment.id);
     await sendBookingEmailsOnce({ bookingId, hold, paymentId: payment.id }).catch(error => {
       console.error("Booking email failed:", error.message);
     });

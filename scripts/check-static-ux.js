@@ -103,7 +103,8 @@ if (!app.includes('table: "booking_holds"') || !book.includes('table: "booking_h
 if (!fs.existsSync("realtime-sync-migration.sql") || !read("realtime-sync-migration.sql").includes("supabase_realtime")) fail("Realtime table publication migration is missing.");
 if (!whatsappWebhook.includes("WHATSAPP_VERIFY_TOKEN") || !whatsappWebhook.includes('"hub.challenge"')) fail("WhatsApp webhook verification endpoint is missing.");
 if (!emailApi.includes("SMTP_PASS") || !emailApi.includes("sendBookingEmailsOnce")) fail("Booking email sender is missing.");
-if (!verifyPayment.includes("sendBookingEmailsOnce") || !razorpayWebhook.includes("sendBookingEmailsOnce")) fail("Confirmed bookings must email the customer and admin.");
+if (verifyPayment.includes("sendBookingEmailsOnce")) fail("Customer payment verification must not wait on email.");
+if (!razorpayWebhook.includes("sendBookingEmailsOnce") || !razorpayWebhook.includes("bookingByPayment")) fail("Razorpay webhook must email confirmed bookings idempotently.");
 if (!fs.existsSync("booking-email-notifications-migration.sql") || !read("booking-email-notifications-migration.sql").includes("confirmation_email_sent_at")) fail("Booking email notification migration is missing.");
 if (!app.includes('.from("rooms_public").select("id,room_name,image_urls")') || app.includes("rooms(room_name,image_urls)")) fail("Customer bookings must load room display data from rooms_public, not private rooms.");
 if (!app.includes('booking.roomImage || "/brand-logo.png"')) fail("Customer booking cards need a real image fallback.");

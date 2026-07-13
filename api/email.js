@@ -1,6 +1,7 @@
 const tls = require("tls");
 
 const SUPPORT_EMAIL = "kandregula.ashok@gmail.com";
+const BOOKING_EMAIL = "stayatmaredumilli@gmail.com";
 const SUPPORT_PHONE = "+91 93924 39935";
 
 function smtpConfigured() {
@@ -78,12 +79,17 @@ async function sendMail({ to, subject, text }) {
       await smtpCommand(socket, `MAIL FROM:<${user}>`, [250]);
       await smtpCommand(socket, `RCPT TO:<${recipient}>`, [250, 251]);
       await smtpCommand(socket, "DATA", [354]);
+      const messageId = `<${Date.now()}.${Math.random().toString(16).slice(2)}@stayatmaredumilli.com>`;
       socket.write([
         `From: Stay@Maredumilli <${user}>`,
         `To: ${recipient}`,
+        `Reply-To: ${SUPPORT_EMAIL}`,
         `Subject: ${subject}`,
+        `Date: ${new Date().toUTCString()}`,
+        `Message-ID: ${messageId}`,
         "MIME-Version: 1.0",
         "Content-Type: text/plain; charset=UTF-8",
+        "Content-Transfer-Encoding: 8bit",
         "",
         body,
         "."
@@ -202,7 +208,7 @@ async function sendBookingEmailsOnce({ bookingId, hold, paymentId }) {
   const claimed = await claimBookingEmail(bookingId);
   if (!claimed) return;
   const roomLabel = await roomSummary(hold.room_id);
-  const adminEmail = process.env.ADMIN_EMAIL || SUPPORT_EMAIL;
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || BOOKING_EMAIL;
   const subject = `Booking confirmed - ${bookingRef(bookingId)}`;
   await sendMail({
     to: hold.customer_email,
