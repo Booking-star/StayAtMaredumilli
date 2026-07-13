@@ -291,7 +291,7 @@ adminRoomList.addEventListener("click", async event => {
   const button = event.target.closest("[data-delete]");
   if (!button || !supabaseClient) return;
   if (!confirm("Delete this room?")) return;
-  const { error } = await supabaseClient.from("rooms").update({ active: false }).eq("id", button.dataset.delete);
+  const { error } = await withTimeout(supabaseClient.from("rooms").update({ active: false }).eq("id", button.dataset.delete));
   if (error) return notifyAdmin(error.message, true);
   await loadRooms();
   notifyAdmin("Room deleted from customer site.");
@@ -308,7 +308,7 @@ async function blockRoomFromAdmin(roomId, checkIn, checkOut, rooms) {
   const available = availableForBlock(room, checkIn, checkOut);
   if (!Number.isInteger(rooms) || rooms < 1 || rooms > available) return alert(`Enter 1 to ${available} rooms only.`);
   if (!confirm(`Block ${rooms} room(s) in ${room.room_name} from ${checkIn} to ${checkOut}?`)) return;
-  const { error } = await supabaseClient.rpc("create_booking_safe", {
+  const { error } = await withTimeout(supabaseClient.rpc("create_booking_safe", {
     p_room_id: roomId,
     p_customer_name: "Admin offline block",
     p_customer_phone: "admin",
@@ -322,7 +322,7 @@ async function blockRoomFromAdmin(roomId, checkIn, checkOut, rooms) {
     p_status: "offline_blocked",
     p_influencer_id: null,
     p_firecamp: false
-  });
+  }), "Room block is taking too long. Please try again.");
   if (error) return notifyAdmin(error.message, true);
   await loadSales();
   await loadOccupancy();
@@ -645,18 +645,18 @@ if (adminOwnerForm) {
     try {
       if (editingOwnerId) {
         // EDIT MODE: 1. Update Auth credentials (email, password) via RPC
-        const { error: rpcError } = await supabaseClient.rpc("update_owner_auth", {
+        const { error: rpcError } = await withTimeout(supabaseClient.rpc("update_owner_auth", {
           user_id: editingOwnerId,
           new_email: email,
           new_password: password // Ignored if blank inside the SQL function
-        });
+        }), "Owner update is taking too long. Please try again.");
 
         if (rpcError) {
           throw new Error("Failed to update owner credentials.");
         }
 
         // 2. Update profile in hotel_owners table
-        const { error: updateError } = await supabaseClient
+        const { error: updateError } = await withTimeout(supabaseClient
           .from("hotel_owners")
           .update({
             hotel_name: hotelName,
@@ -664,7 +664,7 @@ if (adminOwnerForm) {
             phone: ownerPhone,
             alt_phone: altPhone
           })
-          .eq("id", editingOwnerId);
+          .eq("id", editingOwnerId), "Owner update is taking too long. Please try again.");
 
         if (updateError) {
           throw new Error("Failed to update owner profile.");
@@ -674,7 +674,7 @@ if (adminOwnerForm) {
         editingOwnerId = null;
       } else {
         // REGISTER MODE: Call RPC to register owner programmatically with confirmed email
-        const { data: newUserId, error: rpcError } = await supabaseClient.rpc("admin_create_owner", {
+        const { data: newUserId, error: rpcError } = await withTimeout(supabaseClient.rpc("admin_create_owner", {
           new_email: email,
           new_password: password,
           o_name: ownerName,
@@ -682,7 +682,7 @@ if (adminOwnerForm) {
           a_phone: altPhone,
           h_name: hotelName,
           w_policy: adminOwnerWeekendPolicy.value
-        });
+        }), "Owner registration is taking too long. Please try again.");
 
         if (rpcError) {
           throw new Error("Owner registration failed.");
@@ -717,10 +717,10 @@ if (adminOwnerList) {
 
     if (deleteBtn) {
       if (!confirm("Remove this owner? (Note: Room associations will remain but owner login will be disabled)")) return;
-      const { error } = await supabaseClient
+      const { error } = await withTimeout(supabaseClient
         .from("hotel_owners")
         .update({ active: false })
-        .eq("id", deleteBtn.dataset.deleteOwner);
+        .eq("id", deleteBtn.dataset.deleteOwner), "Owner delete is taking too long. Please try again.");
       if (error) {
         notifyAdmin("Failed to delete owner.", true);
       } else {
@@ -881,7 +881,7 @@ function renderSales() {
 
 async function releaseBlockedRoom(id) {
   if (!id || !supabaseClient || !confirm("Release this blocked room?")) return;
-  const { error } = await supabaseClient.from("bookings").update({ status: "cancelled" }).eq("id", id);
+  const { error } = await withTimeout(supabaseClient.from("bookings").update({ status: "cancelled" }).eq("id", id));
   if (error) return notifyAdmin(error.message, true);
   await loadSales();
   await loadOccupancy();
@@ -893,10 +893,10 @@ async function releaseBlockedRoom(id) {
 adminSalesList?.addEventListener("click", async event => {
   const confirmManual = event.target.closest("[data-confirm-manual-payment]");
   if (confirmManual && supabaseClient && confirm("Confirm this UPI payment and booking?")) {
-    const { error } = await supabaseClient.rpc("set_manual_booking_payment_status", {
+    const { error } = await withTimeout(supabaseClient.rpc("set_manual_booking_payment_status", {
       p_booking_id: confirmManual.dataset.confirmManualPayment,
       p_confirm: true
-    });
+    }), "Payment confirmation is taking too long. Please try again.");
   if (error) return notifyAdmin(error.message, true);
   await loadSales();
   await loadOccupancy();
@@ -908,10 +908,10 @@ adminSalesList?.addEventListener("click", async event => {
 
   const cancelManual = event.target.closest("[data-cancel-manual-payment]");
   if (cancelManual && supabaseClient && confirm("Cancel this booking and release the room(s)?")) {
-    const { error } = await supabaseClient.rpc("set_manual_booking_payment_status", {
+    const { error } = await withTimeout(supabaseClient.rpc("set_manual_booking_payment_status", {
       p_booking_id: cancelManual.dataset.cancelManualPayment,
       p_confirm: false
-    });
+    }), "Booking cancellation is taking too long. Please try again.");
     if (error) return notifyAdmin(error.message, true);
     await loadSales();
     await loadOccupancy();
@@ -997,7 +997,7 @@ async function updateUpcomingBooking(bookingId, status) {
     if (!confirm("Release this room and forfeit advance to hotel owner?")) return;
     payload.status = "cancelled";
   }
-  const { error } = await supabaseClient.from("bookings").update(payload).eq("id", bookingId);
+  const { error } = await withTimeout(supabaseClient.from("bookings").update(payload).eq("id", bookingId));
   if (error) return notifyAdmin(error.message, true);
   await loadUpcomingBookings();
   await loadSales();
@@ -1127,7 +1127,7 @@ function renderInfluencers(influencersList) {
   adminInfluencerList.querySelectorAll(".delete-influencer-btn").forEach(btn => {
     btn.addEventListener("click", async () => {
       if (!confirm("Are you sure you want to remove this influencer?")) return;
-      const { error } = await supabaseClient.from("influencers").delete().eq("id", btn.dataset.id);
+      const { error } = await withTimeout(supabaseClient.from("influencers").delete().eq("id", btn.dataset.id));
       if (error) {
         notifyAdmin(error.message, true);
       } else {
@@ -1147,7 +1147,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const name = document.querySelector("#adminInfluencerName").value.trim();
       const code = document.querySelector("#adminInfluencerCode").value.trim().toLowerCase();
       
-      const { error } = await supabaseClient.from("influencers").insert({ name, code });
+      const { error } = await withTimeout(supabaseClient.from("influencers").insert({ name, code }), "Influencer save is taking too long. Please try again.");
       if (error) {
         notifyAdmin(error.message, true);
       } else {
@@ -1225,7 +1225,7 @@ function renderHighlightsAdmin() {
   adminHighlightsList.querySelectorAll(".delete-highlight-btn").forEach(btn => {
     btn.addEventListener("click", async () => {
       if (!confirm("Are you sure you want to delete this highlight?")) return;
-      const { error } = await supabaseClient.from("highlights").delete().eq("id", btn.dataset.id);
+      const { error } = await withTimeout(supabaseClient.from("highlights").delete().eq("id", btn.dataset.id));
       if (error) {
         notifyAdmin(error.message, true);
       } else {
@@ -1241,9 +1241,9 @@ async function uploadHighlightImage(file) {
   if (!supabaseClient) return "";
   const safeName = file.name.replace(/[^a-z0-9.]/gi, "-");
   const path = `highlights/${Date.now()}-${safeName}`;
-  const { error } = await supabaseClient.storage
+  const { error } = await withTimeout(supabaseClient.storage
     .from(supabaseConfig.roomBucket || "room-images")
-    .upload(path, file, { upsert: true, cacheControl: "31536000" });
+    .upload(path, file, { upsert: true, cacheControl: "31536000" }), "Highlight image upload is taking too long. Please try a smaller image.");
   if (error) throw error;
   const { data } = supabaseClient.storage
     .from(supabaseConfig.roomBucket || "room-images")
@@ -1289,15 +1289,15 @@ window.addEventListener("DOMContentLoaded", () => {
         }
         
         if (id) {
-          const { error } = await supabaseClient
+          const { error } = await withTimeout(supabaseClient
             .from("highlights")
             .update({ title, url, image_url: imageUrl })
-            .eq("id", id);
+            .eq("id", id), "Highlight save is taking too long. Please try again.");
           if (error) throw error;
         } else {
-          const { error } = await supabaseClient
+          const { error } = await withTimeout(supabaseClient
             .from("highlights")
-            .insert({ title, url, image_url: imageUrl });
+            .insert({ title, url, image_url: imageUrl }), "Highlight save is taking too long. Please try again.");
           if (error) throw error;
         }
         

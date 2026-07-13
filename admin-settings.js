@@ -32,25 +32,33 @@ function fillPaymentForm(settings) {
 async function loadPricingSettings() {
   fillPricingForm(getStoredPricingSettings());
   if (!supabaseClient) return;
-  const { data, error } = await supabaseClient
-    .from("site_settings")
-    .select("value")
-    .eq("key", "dynamic_pricing")
-    .maybeSingle();
-  if (error) {
-    notifyAdmin("Dynamic pricing settings are not available right now.", true);
-    return;
-  }
-  const settings = normalizePricingSettings(data?.value);
-  localStorage.setItem("stayPricingSettings", JSON.stringify(settings));
-  fillPricingForm(settings);
+  try {
+    const { data, error } = await withTimeout(supabaseClient
+      .from("site_settings")
+      .select("value")
+      .eq("key", "dynamic_pricing")
+      .maybeSingle(), "Dynamic pricing settings are taking too long to load.");
+    if (error) {
+      notifyAdmin("Dynamic pricing settings are not available right now.", true);
+      return;
+    }
+    const settings = normalizePricingSettings(data?.value);
+    localStorage.setItem("stayPricingSettings", JSON.stringify(settings));
+    fillPricingForm(settings);
 
-  const { data: paymentData } = await supabaseClient
-    .from("site_settings")
-    .select("value")
-    .eq("key", "payment")
-    .maybeSingle();
-  fillPaymentForm(paymentData?.value || { mode: "mock" });
+    const { data: paymentData, error: paymentError } = await withTimeout(supabaseClient
+      .from("site_settings")
+      .select("value")
+      .eq("key", "payment")
+      .maybeSingle(), "Payment settings are taking too long to load.");
+    if (paymentError) {
+      notifyAdmin("Payment settings are not available right now.", true);
+      return;
+    }
+    fillPaymentForm(paymentData?.value || { mode: "mock" });
+  } catch (error) {
+    notifyAdmin(error.message || "Admin settings are taking too long to load.", true);
+  }
 }
 
 async function savePricingSettings(event) {
@@ -64,9 +72,9 @@ async function savePricingSettings(event) {
     setStatus("Saved pricing settings locally.");
     return;
   }
-  const { error } = await supabaseClient
+  const { error } = await withTimeout(supabaseClient
     .from("site_settings")
-    .upsert({ key: "dynamic_pricing", value: settings, updated_at: new Date().toISOString() });
+    .upsert({ key: "dynamic_pricing", value: settings, updated_at: new Date().toISOString() }), "Dynamic pricing save is taking too long. Please try again.");
   if (error) return notifyAdmin("Dynamic pricing settings could not be saved.", true);
   notifyAdmin("Dynamic pricing settings saved.");
 }
