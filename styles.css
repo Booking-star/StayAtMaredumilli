@@ -836,10 +836,9 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
   gap: 8px;
   flex-wrap: wrap;
 }
-.manual-payment-actions a {
+.manual-payment-actions .ghost-btn {
   flex: 1;
   justify-content: center;
-  text-decoration: none;
 }
 .icon-btn {
   display: grid;

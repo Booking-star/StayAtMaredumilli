@@ -305,10 +305,8 @@ function setManualPaymentLinks(amount, roomObj) {
     link.dataset.paymentUrl = disabled ? "" : genericUrl;
   });
   if (manualPhonePeLink) {
-    manualPhonePeLink.href = "javascript:void(0)";
     manualPhonePeLink.dataset.paymentUrl = disabled ? "" : phonePeUrl;
   }
-  if (manualUpiLink) manualUpiLink.href = "javascript:void(0)";
 }
 
 function openUpiPayment(event) {
@@ -594,6 +592,21 @@ async function handleCheckoutFormSubmit(event) {
   const manualMode = paymentSettings.mode !== "razorpay" && paymentSettings.mode !== "mock";
   const screenshotFile = paymentScreenshotInput?.files?.[0] || null;
   
+  if (!guestName) {
+    alert("Please enter your full name.");
+    bookingName.focus();
+    return;
+  }
+  if (!validPhone(guestPhone)) {
+    alert("Please enter a valid 10 digit mobile number.");
+    bookingPhone.focus();
+    return;
+  }
+  if (!guestEmail) {
+    alert("Please login again so we can attach the booking to your email.");
+    return;
+  }
+  
   if (manualMode && !paymentSettings.upiId?.trim()) {
     alert("UPI payment is not configured yet. Please contact support.");
     return;
@@ -853,17 +866,3 @@ async function handleUserSession(session) {
     bookingForm.addEventListener("submit", handleCheckoutFormSubmit);
   }
 }
-  if (!guestName) {
-    alert("Please enter your full name.");
-    bookingName.focus();
-    return;
-  }
-  if (!validPhone(guestPhone)) {
-    alert("Please enter a valid 10 digit mobile number.");
-    bookingPhone.focus();
-    return;
-  }
-  if (!guestEmail) {
-    alert("Please login again so we can attach the booking to your email.");
-    return;
-  }

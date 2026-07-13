@@ -251,6 +251,15 @@ function writeAuthNoindexPages() {
   }
 }
 
+function writePolicyRoutes() {
+  const html = fs.readFileSync(path.join(ROOT, "policy.html"), "utf8");
+  for (const route of ["terms-of-service", "cancellation-policy", "check-in-policy"]) {
+    const dir = path.join(PUBLIC, "policies", route);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "index.html"), html);
+  }
+}
+
 function writeSitemap(rooms) {
   const urls = [
     ["", "1.0"],
@@ -278,6 +287,7 @@ ${urls.map(([loc, priority]) => `  <url><loc>${SITE}/${loc}</loc><priority>${pri
   writeHotelsIndex(rooms);
   rooms.forEach(writeHotel);
   writeAuthNoindexPages();
+  writePolicyRoutes();
   writeSitemap(rooms);
   console.log(`Generated SEO pages for ${rooms.length} hotel(s).`);
 })();

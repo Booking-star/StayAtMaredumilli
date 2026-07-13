@@ -749,10 +749,8 @@ function setManualPaymentLinks(amount, room) {
     link.dataset.paymentUrl = disabled ? "" : genericUrl;
   });
   if (manualPhonePeLink) {
-    manualPhonePeLink.href = "javascript:void(0)";
     manualPhonePeLink.dataset.paymentUrl = disabled ? "" : phonePeUrl;
   }
-  if (manualUpiLink) manualUpiLink.href = "javascript:void(0)";
 }
 
 function openUpiPayment(event) {

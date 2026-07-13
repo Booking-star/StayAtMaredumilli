@@ -1,4 +1,5 @@
 const fs = require("fs");
+const { execFileSync } = require("child_process");
 
 const read = file => fs.readFileSync(file, "utf8");
 const fail = message => {
@@ -22,6 +23,20 @@ const logClientError = read("api/log-client-error.js");
 const seo = read("scripts/generate-seo-pages.js");
 const vercel = read("vercel.json");
 const visibleRuntime = app + book + admin + owner + read("admin-settings.js") + read("login.html");
+[
+  "app.js",
+  "book.js",
+  "admin.js",
+  "owner.js",
+  "shared.js",
+  "admin-settings.js",
+  "public/app.js",
+  "public/book.js",
+  "public/admin.js",
+  "public/owner.js",
+  "public/shared.js",
+  "public/admin-settings.js"
+].forEach(file => execFileSync(process.execPath, ["--check", file], { stdio: "pipe" }));
 
 if ((index.match(/terms-of-service/g) || []).length !== 1) fail("Terms link should appear once on home/profile.");
 if ((index.match(/cancellation-policy/g) || []).length !== 1) fail("Cancellation link should appear once on home/profile.");
@@ -36,6 +51,7 @@ if (!/supabase\|row-level security\|permission denied\|violates/.test(shared)) f
 if (!read("admin-ui.js").includes("cleanAdminMessage") || !read("admin-ui.js").includes("permission denied")) fail("Admin status must mask raw backend permission errors.");
 if (/alert\([^)]*error\.message|innerHTML\s*=[^;]*error\.message/.test(admin + owner)) fail("Admin/owner UI must not show raw backend errors.");
 if (/Backend (connected|not connected|is not connected)/.test(visibleRuntime)) fail("Runtime UI must not mention backend infrastructure.");
+if (/javascript:/i.test(index + app + book + read("book.html"))) fail("Customer UI must not use javascript: pseudo-links.");
 if (/notifyAdmin\(`[^`]*\$\{error\.message\}/.test(read("admin-settings.js"))) fail("Admin settings must not show raw backend errors.");
 if (!admin.includes('.from("booking_occupancy")') || !admin.includes("allOccupancy")) fail("Admin availability must use shared occupancy, including live payment holds.");
 if (!owner.includes('.from("booking_occupancy")') || !owner.includes("allOccupancy")) fail("Owner availability must use shared occupancy, including live payment holds.");
