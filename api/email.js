@@ -1,6 +1,6 @@
 const tls = require("tls");
 
-const SUPPORT_EMAIL = "kandregula.ashok@gmail.com";
+const SUPPORT_EMAIL = "stayatmaredumilli@gmail.com";
 const BOOKING_EMAIL = "stayatmaredumilli@gmail.com";
 const SUPPORT_PHONE = "+91 93924 39935";
 

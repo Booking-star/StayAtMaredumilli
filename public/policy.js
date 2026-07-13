@@ -21,7 +21,7 @@ For room bookings, travel packages, payment support, cancellations, or general e
 **StayAtMaredumilli**
 
 WhatsApp: +91 93924 39935
-Email: kandregula.ashok@gmail.com
+Email: stayatmaredumilli@gmail.com
 Support Hours: 8:00 AM to 10:00 PM, Monday to Sunday
 
 We aim to respond to customer enquiries within 24 hours.
@@ -37,7 +37,7 @@ function cleanMarkdown(markdown) {
     .replaceAll("[insert date]", "11 July 2026")
     .replaceAll("[తేదీ నమోదు చేయండి]", "11 July 2026")
     .replaceAll("[तारीख डालें]", "11 July 2026")
-    .replaceAll("[insert support contact/WhatsApp number]", "WhatsApp: +91 93924 39935, Email: kandregula.ashok@gmail.com")
+    .replaceAll("[insert support contact/WhatsApp number]", "WhatsApp: +91 93924 39935, Email: stayatmaredumilli@gmail.com")
     .replaceAll("[సపోర్ట్ కాంటాక్ట్/వాట్సాప్ నంబర్ నమోదు చేయండి]", "Profile > Support")
     .replaceAll("[सहायता संपर्क/व्हाट्सएप नंबर डालें]", "Profile > Support")
     .replaceAll("[insert number]", "to be confirmed")
