@@ -17,6 +17,15 @@ async function supabaseRpc(name, body) {
   return data;
 }
 
+async function paymentMode(url, key) {
+  const response = await fetch(`${url}/rest/v1/site_settings?key=eq.payment&select=value`, {
+    signal: AbortSignal.timeout(10000),
+    headers: { apikey: key, authorization: `Bearer ${key}` }
+  });
+  const value = response.ok ? (await response.json())?.[0]?.value : null;
+  return ["manual", "mock", "razorpay"].includes(value?.mode) ? value.mode : "razorpay";
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   try {
@@ -49,13 +58,13 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
     body.p_customer_email = user.email;
-    let id;
-    try {
-      id = await supabaseRpc("create_booking_safe", body);
-    } catch (error) {
-      if (!/invalid booking status/i.test(error.message) || body.p_status !== "pending_payment") throw error;
-      id = await supabaseRpc("create_booking_safe", { ...body, p_status: "confirmed" });
+    const mode = await paymentMode(url, key);
+    if (mode === "razorpay") return res.status(403).json({ error: "Please use secure online payment for booking." });
+    if (mode === "manual" && (body.p_status !== "pending_payment" || !body.p_screenshot_url)) {
+      return res.status(400).json({ error: "Payment screenshot is required before submitting a manual booking." });
     }
+    if (mode !== "mock") body.p_status = "pending_payment";
+    const id = await supabaseRpc("create_booking_safe", body);
     if (body.p_screenshot_url) {
       await fetch(`${url}/rest/v1/bookings?id=eq.${id}`, {
         method: "PATCH",
