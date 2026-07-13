@@ -250,6 +250,11 @@ adminRoomForm.addEventListener("submit", async event => {
   adminRoomList.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
+adminRoomForm.addEventListener("invalid", event => {
+  setStatus("Please fill all required room details before saving.", true);
+  event.target.focus();
+}, true);
+
 addHotelBtn?.addEventListener("click", () => openRoomForm(false));
 cancelRoomFormBtn?.addEventListener("click", closeRoomForm);
 
