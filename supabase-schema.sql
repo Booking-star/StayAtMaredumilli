@@ -479,6 +479,7 @@ declare
   v_booking_id uuid;
   v_day date;
   v_booked integer;
+  v_held integer;
   v_website_total integer := 0;
   v_owner_total integer := 0;
   v_web_price integer;
@@ -542,8 +543,17 @@ begin
       and check_in <= v_day
       and check_out > v_day;
 
-    if v_booked + p_num_rooms > v_room.available_rooms then
-      raise exception 'Only % room(s) are available for the selected dates.', greatest(v_room.available_rooms - v_booked, 0);
+    select coalesce(sum(num_rooms), 0)::integer
+    into v_held
+    from public.booking_holds
+    where room_id = p_room_id
+      and status = 'held'
+      and expires_at > now()
+      and check_in <= v_day
+      and check_out > v_day;
+
+    if v_booked + v_held + p_num_rooms > v_room.available_rooms then
+      raise exception 'Only % room(s) are available for the selected dates.', greatest(v_room.available_rooms - v_booked - v_held, 0);
     end if;
 
     if (v_room.weekend_policy::text = 'mon_thu' and extract(dow from v_day) in (0, 5, 6))
@@ -555,7 +565,7 @@ begin
       v_owner_price := coalesce(v_room.weekday_owner_price, 0);
     end if;
 
-    v_occ := case when v_room.available_rooms > 0 then v_booked::numeric / v_room.available_rooms else 0 end;
+    v_occ := case when v_room.available_rooms > 0 then (v_booked + v_held)::numeric / v_room.available_rooms else 0 end;
     v_website_total := v_website_total + v_web_price + case when v_occ >= 0.9 then v_90 when v_occ >= 0.8 then v_80 else 0 end;
     v_owner_total := v_owner_total + v_owner_price;
   end loop;
