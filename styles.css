@@ -809,9 +809,11 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
   justify-items: center;
   min-height: 420px;
 }
-.reel-embed .instagram-media {
+.reel-embed .instagram-media, .reel-embed .reel-iframe {
   min-width: 0 !important;
   width: min(100%, 420px) !important;
+  height: 520px;
+  border-radius: 12px;
 }
 .reel-fallback { margin-top: 12px; }
 .modal-head {
