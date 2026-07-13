@@ -367,9 +367,13 @@ async function startRazorpayPayment(order, details, roomObj, pricing) {
         paymentCompleted = true;
         try {
           submitBtn.textContent = "Payment received. Confirming room...";
+          const { data: sessionData } = await supabaseClient.auth.getSession();
           const verify = await fetch("/api/verify-payment", {
             method: "POST",
-            headers: { "content-type": "application/json" },
+            headers: {
+              "content-type": "application/json",
+              authorization: `Bearer ${sessionData.session?.access_token || ""}`
+            },
             body: JSON.stringify({
               hold_id: order.hold_id,
               razorpay_order_id: response.razorpay_order_id,

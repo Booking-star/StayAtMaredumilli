@@ -50,6 +50,17 @@ async function getHold(holdId) {
   return data[0];
 }
 
+async function authenticatedUser(req) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+  if (!url || !key || !token) return null;
+  const response = await fetch(`${url}/auth/v1/user`, {
+    headers: { apikey: key, authorization: `Bearer ${token}` }
+  });
+  return response.ok ? response.json() : null;
+}
+
 async function razorpayPayment(paymentId) {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -88,7 +99,10 @@ module.exports = async function handler(req, res) {
     if (!hold_id || !razorpay_order_id || !razorpay_payment_id) {
       throw new Error("Missing payment verification details.");
     }
+    const user = await authenticatedUser(req);
+    if (!user?.email) return res.status(401).json({ error: "Please login again." });
     const hold = await getHold(hold_id);
+    if (hold.customer_email !== user.email) return res.status(403).json({ error: "Payment verification failed." });
     if (hold.razorpay_order_id !== razorpay_order_id) throw new Error("Payment order does not match this booking hold.");
     if (hold.status === "confirmed" && hold.razorpay_payment_id === razorpay_payment_id) {
       return res.status(200).json({ booking_id: await bookingByPayment(razorpay_payment_id) || hold_id });
