@@ -45,11 +45,11 @@ if (!manualBooking.includes('mode === "razorpay"') || !manualBooking.includes('p
 if (manualBooking.includes('p_status: "confirmed"')) fail("Manual booking API must not silently create confirmed bookings.");
 if (!verifyPayment.includes("async function razorpayPayment") || !verifyPayment.includes("validSignature")) fail("Razorpay verify must have server-side fallback.");
 if (!verifyPayment.includes("bookingByPayment") || !verifyPayment.includes('hold.status === "confirmed"')) fail("Razorpay verify must be idempotent after webhook confirmation.");
-if (!verifyPayment.includes("createBookingFromPaidHold") || verifyPayment.includes("manual_review")) fail("Captured Razorpay payments must confirm booking, not manual-review.");
+if (verifyPayment.includes("createBookingFromPaidHold") || verifyPayment.includes("supabaseWrite(\"bookings\"")) fail("Razorpay verify must not bypass the safe booking RPC.");
 if (!book.includes("waitForPaymentConfirmation") || !paymentStatus.includes("booking_id")) fail("Checkout must recover after webhook confirms a paid booking.");
 if (!book.includes("/api/payment-status") || !book.includes("authorization: `Bearer")) fail("Payment status polling must include the logged-in session token.");
 if (!paymentStatus.includes("authenticatedUser") || !paymentStatus.includes("customer_email=eq.")) fail("Payment status API must be customer-scoped.");
-if (!razorpayWebhook.includes("createBookingFromPaidHold") || /no longer active\|expired/.test(razorpayWebhook)) fail("Razorpay webhook must confirm captured payments even if the browser path failed.");
+if (razorpayWebhook.includes("createBookingFromPaidHold") || razorpayWebhook.includes('supabaseFetch("bookings"')) fail("Razorpay webhook must not bypass the safe booking RPC.");
 if (!book.includes("/api/release-payment-hold") || !book.includes("Payment failed. Rooms were released.")) fail("Failed Razorpay payments must release held rooms.");
 if (!releasePaymentHold.includes("status=eq.held") || !releasePaymentHold.includes('status: "expired"')) fail("Release hold API must only expire held rooms.");
 if (!seo.includes('decoding="async"')) fail("SEO hotel images should decode asynchronously.");

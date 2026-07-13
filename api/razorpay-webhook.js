@@ -25,46 +25,6 @@ async function confirmHold(holdId, paymentId) {
   });
 }
 
-async function bookingByPayment(paymentId) {
-  const rows = await supabaseFetch(`bookings?payment_id=eq.${encodeURIComponent(paymentId)}&select=id&limit=1`);
-  return rows?.[0]?.id || null;
-}
-
-async function createBookingFromPaidHold(hold, paymentId) {
-  const existing = await bookingByPayment(paymentId);
-  if (existing) return existing;
-  const rows = await supabaseFetch("bookings", {
-    method: "POST",
-    headers: { prefer: "return=representation" },
-    body: JSON.stringify({
-      room_id: hold.room_id,
-      customer_name: hold.customer_name || "Customer",
-      customer_phone: hold.customer_phone || "N/A",
-      customer_email: hold.customer_email || null,
-      check_in: hold.check_in,
-      check_out: hold.check_out,
-      num_rooms: hold.num_rooms,
-      num_adults: hold.num_adults,
-      num_kids: hold.num_kids,
-      total_price: hold.total_price,
-      owner_amount: hold.owner_amount,
-      profit_amount: hold.profit_amount,
-      status: "confirmed",
-      payment_option: hold.payment_option,
-      payment_id: paymentId,
-      influencer_id: hold.influencer_id || null,
-      firecamp: Boolean(hold.firecamp)
-    })
-  });
-  const bookingId = rows?.[0]?.id;
-  if (!bookingId) throw new Error("Paid webhook fallback did not return a booking.");
-  await supabaseFetch(`booking_holds?id=eq.${hold.id}`, {
-    method: "PATCH",
-    body: JSON.stringify({ status: "confirmed", razorpay_payment_id: paymentId })
-  });
-  return bookingId;
-}
-
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const chunks = [];
@@ -93,12 +53,7 @@ module.exports = async function handler(req, res) {
     const holds = await supabaseFetch(`booking_holds?razorpay_order_id=eq.${payment.order_id}&select=*&limit=1`);
     const hold = holds?.[0];
     if (!hold || hold.status === "confirmed") return res.status(200).json({ ok: true });
-    try {
-      await confirmHold(hold.id, payment.id);
-    } catch (error) {
-      console.error("Webhook confirm hold failed after captured payment:", error.message);
-      await createBookingFromPaidHold(hold, payment.id);
-    }
+    await confirmHold(hold.id, payment.id);
     res.status(200).json({ ok: true });
   } catch (error) {
     console.error("Webhook failed:", error.message);
