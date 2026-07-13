@@ -11,6 +11,11 @@
     { "source": "/about", "destination": "/about.html" },
     { "source": "/hotels", "destination": "/hotels/index.html" },
     { "source": "/hotels/:slug", "destination": "/hotels/:slug/index.html" },
+    { "source": "/terms-of-service", "destination": "/policy.html" },
+    { "source": "/cancellation-policy", "destination": "/policy.html" },
+    { "source": "/check-in-policy", "destination": "/policy.html" },
+    { "source": "/privacy-policy", "destination": "/privacy.html" },
+    { "source": "/faq", "destination": "/faq.html" },
     { "source": "/policies/terms-of-service", "destination": "/policy.html" },
     { "source": "/policies/cancellation-policy", "destination": "/policy.html" },
     { "source": "/policies/check-in-policy", "destination": "/policy.html" }

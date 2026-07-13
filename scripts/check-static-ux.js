@@ -104,5 +104,8 @@ if (!seo.includes('decoding="async"')) fail("SEO hotel images should decode asyn
 if (/hotel-detail-slides[\s\S]{0,4000}loading="lazy"/.test(seo)) fail("Hotel detail carousel images must not be lazy-loaded offscreen.");
 if (app.includes('loading="${i === index ? "eager" : "lazy"}"')) fail("Room card carousel images must not lazy-load offscreen images.");
 if (!vercel.includes('"X-Frame-Options"') || !vercel.includes('"DENY"')) fail("Clickjacking header missing.");
+for (const route of ["/terms-of-service", "/cancellation-policy", "/check-in-policy", "/privacy-policy", "/faq"]) {
+  if (!vercel.includes(`"source": "${route}"`)) fail(`${route} must route to a real public page.`);
+}
 
 console.log("static ux/security check passed");
