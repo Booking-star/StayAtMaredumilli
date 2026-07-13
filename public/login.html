@@ -9,9 +9,9 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css?v=custom-domain">
   <link rel="manifest" href="manifest.json">
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="supabase-config.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@1.24.0/dist/umd/lucide.min.js"></script>
 </head>
 <body style="background: #fbfbf8; display: grid; place-items: center; min-height: 100vh; margin: 0;">
   <div class="login-card" style="box-shadow: 0 20px 40px rgba(0,0,0,0.06); border-radius: 12px; background: #fff; border: 1px solid var(--border);">
@@ -116,7 +116,7 @@
         }
 
         // ponytail: fallback check if profile role is not populated but email matches default admin
-        if (!resolvedRole && email === "admin@staymaredumilli.com") {
+        if (!resolvedRole && (email === "admin@stayatmaredumilli.com" || email === "admin@staymaredumilli.com")) {
           resolvedRole = "admin";
         }
 

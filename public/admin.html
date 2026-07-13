@@ -9,7 +9,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css?v=admin-save-3">
   <link rel="manifest" href="manifest.json">
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+  <script src="https://unpkg.com/lucide@1.24.0/dist/umd/lucide.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="supabase-config.js" defer></script>
   <script src="shared.js?v=utils-3" defer></script>
@@ -121,7 +121,10 @@
             <label>No. of rooms
               <input id="adminBlockRooms" type="text" inputmode="numeric" pattern="[0-9]*" value="1" required>
             </label>
-            <button class="primary-btn" type="submit">Block</button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button class="primary-btn" type="submit" style="margin: 0; white-space: nowrap;">Block</button>
+              <button id="adminUnblockBtn" class="ghost-btn" type="button" style="margin: 0; white-space: nowrap; color: var(--danger); border-color: rgba(214,41,118,0.2);">Unblock</button>
+            </div>
             <p id="adminBlockHint" class="muted-line"></p>
           </form>
           <div id="adminBlockList" class="admin-room-list"></div>
@@ -184,7 +187,26 @@
         </section>
 
         <section class="panel">
-          <h3>Past Sales Ledger</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
+            <h3 style="margin: 0;">Past Sales Ledger</h3>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <label style="font-size: 13px; margin: 0; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">
+                Hotel filter
+                <select id="salesHotelFilter" style="padding: 6px 12px; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: var(--text); min-width: 150px;">
+                  <option value="">All Hotels</option>
+                </select>
+              </label>
+              <label style="font-size: 13px; margin: 0; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">
+                Booking Date (From)
+                <input id="salesDateFrom" type="date" style="padding: 6px 12px; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: var(--text);">
+              </label>
+              <label style="font-size: 13px; margin: 0; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">
+                Booking Date (To)
+                <input id="salesDateTo" type="date" style="padding: 6px 12px; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: var(--text);">
+              </label>
+              <button id="salesClearFiltersBtn" class="ghost-btn" type="button" style="margin: 0; align-self: flex-end; height: 34px; padding: 0 12px; font-size: 13px; border-color: rgba(255,255,255,0.15);">Clear</button>
+            </div>
+          </div>
           <div id="adminSalesList" class="admin-room-list"></div>
         </section>
       </div>
