@@ -40,6 +40,7 @@ if (book.includes("adultsInput.value = fitted.adults")) fail("Adult input must n
 if (!book.includes('e.target.id === "adultsInput" && e.type === "change"')) fail("Adult room auto-fit should run on commit, not every keystroke.");
 if (!book.includes('localStorage.setItem("stayProfile"')) fail("Booking contact details should persist to profile.");
 if (/9999999999|customer@stay\.com/.test(book)) fail("Paid checkout must not use fake customer contact fallbacks.");
+if (book.includes("bookingEmail.value = localSavedDetails.email")) fail("Checkout email must come from the logged-in session, not stale saved details.");
 if (!book.includes("checkoutListenersWired")) fail("Checkout listeners must only be wired once.");
 if (!book.includes("normalizePhone") || !book.includes('digits.startsWith("91")')) fail("Checkout must accept +91 Indian mobile numbers.");
 if (!read("api/create-payment-hold.js").includes("normalizePhone")) fail("Payment API must normalize customer phone numbers server-side.");

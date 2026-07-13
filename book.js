@@ -800,7 +800,7 @@ async function handleUserSession(session) {
   
   bookingName.value = localSavedDetails.name || profile.name || "";
   bookingPhone.value = localSavedDetails.phone || profile.phone || "";
-  bookingEmail.value = localSavedDetails.email || profile.email || "";
+  bookingEmail.value = profile.email || "";
   
   fromInput.value = fromParam;
   fromInput.min = getLocalDateString(today);
