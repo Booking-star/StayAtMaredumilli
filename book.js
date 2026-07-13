@@ -334,16 +334,17 @@ function openUpiPayment(event) {
 async function startRazorpayPayment(order, details, roomObj, pricing) {
   let paymentCompleted = false;
   const releaseHold = async () => {
-    if (paymentCompleted) return;
+    if (paymentCompleted) return true;
     const { data: sessionData } = await supabaseClient.auth.getSession();
-    await fetch("/api/release-payment-hold", {
+    const response = await fetch("/api/release-payment-hold", {
       method: "POST",
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${sessionData.session?.access_token || ""}`
       },
       body: JSON.stringify({ hold_id: order.hold_id })
-    }).catch(() => {});
+    }).catch(() => null);
+    return Boolean(response?.ok);
   };
   return new Promise((resolve, reject) => {
     const checkout = new Razorpay({
@@ -392,14 +393,14 @@ async function startRazorpayPayment(order, details, roomObj, pricing) {
       modal: {
         ondismiss: async () => {
           if (paymentCompleted) return;
-          await releaseHold();
-          reject(new Error("Payment was not completed. Rooms were released."));
+          const released = await releaseHold();
+          reject(new Error(released ? "Payment was not completed. Rooms were released." : "Payment was not completed. Please contact support if the room is still held."));
         }
       }
     });
     checkout.on?.("payment.failed", async () => {
-      await releaseHold();
-      reject(new Error("Payment failed. Rooms were released."));
+      const released = await releaseHold();
+      reject(new Error(released ? "Payment failed. Rooms were released." : "Payment failed. Please contact support if the room is still held."));
     });
     checkout.open();
   });

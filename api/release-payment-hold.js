@@ -17,18 +17,21 @@ module.exports = async function handler(req, res) {
     const holdId = (typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {}).hold_id;
     if (!holdId) return res.status(400).json({ error: "Missing hold." });
 
-    await fetch(`${process.env.SUPABASE_URL}/rest/v1/booking_holds?id=eq.${holdId}&customer_email=eq.${encodeURIComponent(user.email)}&status=eq.held`, {
+    const response = await fetch(`${process.env.SUPABASE_URL}/rest/v1/booking_holds?id=eq.${holdId}&customer_email=eq.${encodeURIComponent(user.email)}&status=eq.held`, {
       method: "PATCH",
       headers: {
         apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
         authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-        "content-type": "application/json"
+        "content-type": "application/json",
+        prefer: "return=representation"
       },
       body: JSON.stringify({ status: "expired" })
     });
-    res.status(200).json({ ok: true });
+    if (!response.ok) throw new Error("Release failed.");
+    const rows = await response.json().catch(() => []);
+    res.status(200).json({ ok: true, released: rows.length > 0 });
   } catch (error) {
     console.error("Release payment hold failed:", error.message);
-    res.status(200).json({ ok: true });
+    res.status(500).json({ error: "Room hold could not be released. Please contact support." });
   }
 };

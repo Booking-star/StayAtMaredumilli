@@ -98,6 +98,12 @@ function formatDateWithDay(dateStr) {
   return d.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
+function ownerFriendlyError(message = "") {
+  return /supabase|row-level security|permission denied|violates|schema cache|rpc|rest\/v1/i.test(String(message))
+    ? "Operation failed. Please try again or contact support."
+    : String(message || "Operation failed. Please try again or contact support.");
+}
+
 // Toggle sections based on login state
 function showAuthScreen(showLogin) {
   if (showLogin) {
@@ -623,7 +629,7 @@ function setupSubmissions() {
         .gt("check_out", checkInStr);
 
       if (availError) {
-        alert("Availability check error: " + availError.message);
+        alert(ownerFriendlyError(availError.message));
         return;
       }
 
@@ -702,7 +708,7 @@ function setupSubmissions() {
           state.element.className = state.className;
           state.element.innerHTML = state.innerHTML;
         });
-        alert("Failed to block room: " + insertError.message);
+        alert(ownerFriendlyError(insertError.message));
       } else {
         await refreshBookings();
       }

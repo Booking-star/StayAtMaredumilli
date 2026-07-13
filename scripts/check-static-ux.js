@@ -58,6 +58,7 @@ if (!paymentStatus.includes("authenticatedUser") || !paymentStatus.includes("cus
 if (razorpayWebhook.includes("createBookingFromPaidHold") || razorpayWebhook.includes('supabaseFetch("bookings"')) fail("Razorpay webhook must not bypass the safe booking RPC.");
 if (!book.includes("/api/release-payment-hold") || !book.includes("Payment failed. Rooms were released.")) fail("Failed Razorpay payments must release held rooms.");
 if (!releasePaymentHold.includes("status=eq.held") || !releasePaymentHold.includes('status: "expired"')) fail("Release hold API must only expire held rooms.");
+if (!releasePaymentHold.includes("!response.ok") || !releasePaymentHold.includes("return=representation")) fail("Release hold API must verify the database update.");
 if (!seo.includes('decoding="async"')) fail("SEO hotel images should decode asynchronously.");
 if (!vercel.includes('"X-Frame-Options"') || !vercel.includes('"DENY"')) fail("Clickjacking header missing.");
 
