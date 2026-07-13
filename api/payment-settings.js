@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     }
 
     const value = {
-      mode: ["manual", "mock", "razorpay"].includes(body.mode) ? body.mode : "manual",
+      mode: ["manual", "mock", "razorpay"].includes(body.mode) ? body.mode : "razorpay",
       upiId: String(body.upiId || "").trim()
     };
     const saveResponse = await fetch(`${url}/rest/v1/site_settings?on_conflict=key`, {

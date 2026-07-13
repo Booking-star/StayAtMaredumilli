@@ -39,6 +39,8 @@ if (!book.includes("normalizePhone") || !book.includes('digits.startsWith("91")'
 if (!read("api/create-payment-hold.js").includes("normalizePhone")) fail("Payment API must normalize customer phone numbers server-side.");
 if (!app.includes('{ mode: "razorpay", upiId: "" }') || !book.includes('{ mode: "razorpay", upiId: "" }')) fail("Customer payment mode must default to Razorpay, not manual UPI.");
 if (/service role key|Check Supabase/i.test(paymentSettings)) fail("Payment settings API must not expose infrastructure wording.");
+if (paymentSettings.includes('? body.mode : "manual"')) fail("Payment settings must default to Razorpay.");
+if (!app.includes("function normalizePhone") || !app.includes("Please enter a valid 10 digit mobile number.")) fail("Profile phone save must normalize and validate Indian mobile numbers.");
 if (!manualBooking.includes('mode === "razorpay"') || !manualBooking.includes('p_screenshot_url')) fail("Manual booking API must reject Razorpay mode and require screenshot in manual mode.");
 if (manualBooking.includes('p_status: "confirmed"')) fail("Manual booking API must not silently create confirmed bookings.");
 if (!verifyPayment.includes("async function razorpayPayment") || !verifyPayment.includes("validSignature")) fail("Razorpay verify must have server-side fallback.");

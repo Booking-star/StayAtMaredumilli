@@ -733,17 +733,22 @@ declare
   v_hold public.booking_holds%rowtype;
   v_booking_id uuid;
 begin
+  select id into v_booking_id
+  from public.bookings
+  where payment_id = p_razorpay_payment_id
+  limit 1;
+
+  if v_booking_id is not null then
+    return v_booking_id;
+  end if;
+
   select * into v_hold
   from public.booking_holds
   where id = p_hold_id
   for update;
 
   if not found then raise exception 'Payment hold not found.'; end if;
-  if v_hold.status <> 'held' then raise exception 'Payment hold is no longer active.'; end if;
-  if v_hold.expires_at <= now() then
-    update public.booking_holds set status = 'expired' where id = p_hold_id;
-    raise exception 'Payment hold has expired.';
-  end if;
+  if v_hold.status not in ('held', 'expired') then raise exception 'Payment hold is no longer active.'; end if;
 
   insert into public.bookings (
     room_id, customer_name, customer_phone, customer_email, check_in, check_out,

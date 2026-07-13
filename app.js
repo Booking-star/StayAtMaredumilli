@@ -658,6 +658,15 @@ async function loadCustomerProfile(user) {
   setStore("stayProfile", profile);
 }
 
+function normalizePhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length === 12 && digits.startsWith("91") ? digits.slice(2) : digits;
+}
+
+function validPhone(value) {
+  return normalizePhone(value).length === 10;
+}
+
 async function createMockBooking(room, details, pricing, status = "confirmed", screenshotUrl = "") {
   if (!supabaseClient) return Date.now();
   const { data: sessionData } = await supabaseClient.auth.getSession();
@@ -1153,10 +1162,16 @@ async function deleteOwnerRoom(id) {
 
 document.querySelector("#saveProfileBtn").addEventListener("click", async event => {
   const button = event.currentTarget;
+  const phone = normalizePhone(document.querySelector("#profilePhone").value);
+  if (phone && !validPhone(phone)) {
+    alert("Please enter a valid 10 digit mobile number.");
+    document.querySelector("#profilePhone").focus();
+    return;
+  }
   profile = {
-    name: document.querySelector("#profileName").value,
-    phone: document.querySelector("#profilePhone").value,
-    email: profile.email || document.querySelector("#profileEmail").value
+    name: document.querySelector("#profileName").value.trim(),
+    phone,
+    email: profile.email
   };
   setStore("stayProfile", profile);
   button.disabled = true;
