@@ -161,7 +161,7 @@ function writeHotel(room) {
         <div class="hotel-detail-slides">
           ${images.map((src, index) => {
             const imgUrl = displayImage(src, 1200, 900, 75, "cover");
-            return `<img src="${escapeHtml(imgUrl)}" data-original="${escapeHtml(src)}" onerror="this.onerror=null;this.src=this.dataset.original" alt="${escapeHtml(room.room_name)} image ${index + 1}" decoding="async" ${index ? 'loading="lazy"' : 'fetchpriority="high"'}>`;
+            return `<img src="${escapeHtml(imgUrl)}" data-original="${escapeHtml(src)}" onerror="this.onerror=null;this.src=this.dataset.original" alt="${escapeHtml(room.room_name)} image ${index + 1}" decoding="async" ${index ? "" : 'fetchpriority="high"'}>`;
           }).join("")}
         </div>
         <button class="heart image-heart hotel-like" type="button" aria-label="Like ${escapeHtml(room.room_name)}">&#9825; <span>0</span></button>
