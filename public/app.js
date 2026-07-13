@@ -345,7 +345,7 @@ function roomCard(room, cardIndex = 0) {
         <div class="room-title">
           <div>
             <p class="room-type">${escapeHtml(room.type)}</p>
-            <button class="hotel-link" data-action="book" data-room="${escapeHtml(room.id)}" type="button">${escapeHtml(room.name)}</button>
+            <button class="hotel-link" data-action="${remainingRooms > 0 ? "book" : "waitlist"}" data-room="${escapeHtml(room.id)}" type="button">${escapeHtml(room.name)}</button>
           </div>
           ${amenityIcons(room)}
         </div>

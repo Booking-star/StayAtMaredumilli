@@ -76,6 +76,7 @@ if (!book.includes("checkoutListenersWired")) fail("Checkout listeners must only
 if (!book.includes("normalizePhone") || !book.includes('digits.startsWith("91")')) fail("Checkout must accept +91 Indian mobile numbers.");
 if (!read("api/create-payment-hold.js").includes("normalizePhone")) fail("Payment API must normalize customer phone numbers server-side.");
 if (!app.includes('{ mode: "razorpay", upiId: "" }') || !book.includes('{ mode: "razorpay", upiId: "" }')) fail("Customer payment mode must default to Razorpay, not manual UPI.");
+if (!app.includes('data-action="${remainingRooms > 0 ? "book" : "waitlist"}"')) fail("Sold-out room titles must not open checkout.");
 if (/service role key|Check Supabase/i.test(paymentSettings)) fail("Payment settings API must not expose infrastructure wording.");
 if (paymentSettings.includes('? body.mode : "manual"')) fail("Payment settings must default to Razorpay.");
 if (!app.includes("function normalizePhone") || !app.includes("Please enter a valid 10 digit mobile number.")) fail("Profile phone save must normalize and validate Indian mobile numbers.");
