@@ -273,7 +273,7 @@ function renderAdminStatus() {
 function renderHighlights() {
   highlights.innerHTML = highlightReels.map((reel, index) => `
     <button class="highlight reel-highlight" data-action="openReel" data-reel="${index}" type="button" aria-label="Play ${escapeHtml(reel.title)}">
-      <span class="reel-ring" style="background: linear-gradient(rgba(0,0,0,0.18), rgba(0,0,0,0.28)), url('${escapeHtml(displayImage(reel.image_url, 360, 360, 65, "cover"))}') center/cover, url('${escapeHtml(safeUrl(reel.image_url))}') center/cover;"><i data-lucide="play"></i></span>
+      <span class="reel-ring" style="background-image: linear-gradient(rgba(0,0,0,0.18), rgba(0,0,0,0.28)), url('${escapeHtml(safeUrl(reel.image_url))}');"><i data-lucide="play"></i></span>
       <span>${escapeHtml(reel.title)}</span>
     </button>
   `).join("");
