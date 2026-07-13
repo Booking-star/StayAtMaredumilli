@@ -99,6 +99,7 @@ if (!releasePaymentHold.includes("!response.ok") || !releasePaymentHold.includes
 if (!logClientError.includes("rateLimited") || !logClientError.includes("recent.length > 20")) fail("Client error logging must be rate limited.");
 if (!seo.includes('decoding="async"')) fail("SEO hotel images should decode asynchronously.");
 if (/hotel-detail-slides[\s\S]{0,4000}loading="lazy"/.test(seo)) fail("Hotel detail carousel images must not be lazy-loaded offscreen.");
+if (app.includes('loading="${i === index ? "eager" : "lazy"}"')) fail("Room card carousel images must not lazy-load offscreen images.");
 if (!vercel.includes('"X-Frame-Options"') || !vercel.includes('"DENY"')) fail("Clickjacking header missing.");
 
 console.log("static ux/security check passed");

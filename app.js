@@ -331,7 +331,7 @@ function roomCard(room, cardIndex = 0) {
         <div class="slides" style="transform: translateX(-${index * 100}%);">
           ${room.images.map((src, i) => {
             const image = displayImage(src);
-            return `<img src="${escapeHtml(image)}" loading="${i === index ? "eager" : "lazy"}" data-original="${escapeHtml(safeUrl(src))}" decoding="async" onerror="this.onerror=null;this.src=this.dataset.original" ${cardIndex === 0 && i === index ? `fetchpriority="high"` : ""} alt="${escapeHtml(room.type)}">`;
+            return `<img src="${escapeHtml(image)}" loading="eager" data-original="${escapeHtml(safeUrl(src))}" decoding="async" onerror="this.onerror=null;this.src=this.dataset.original" ${cardIndex === 0 && i === index ? `fetchpriority="high"` : ""} alt="${escapeHtml(room.type)}">`;
           }).join("")}
         </div>
         <button class="heart image-heart ${liked ? "liked" : ""}" data-action="like" data-room="${escapeHtml(room.id)}" aria-label="Like ${escapeHtml(room.name)}">
