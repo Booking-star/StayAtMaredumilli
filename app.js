@@ -283,40 +283,40 @@ function openReel(index) {
   const reel = highlightReels[index];
   if (!reel) return;
   reelTitle.textContent = reel.title;
-  const reelUrl = safeUrl(reel.url);
+  
+  let reelUrl = safeUrl(reel.url);
+  if (!reelUrl.endsWith("/")) {
+    reelUrl += "/";
+  }
+  const embedUrl = `${reelUrl}embed/`;
   
   reelEmbed.innerHTML = `
-    <div class="reel-preview-container" style="position: relative; width: 100%; max-width: 420px; aspect-ratio: 9/16; border-radius: 12px; overflow: hidden; background: #000; box-shadow: 0 12px 36px rgba(0,0,0,0.25);">
-      <img src="${escapeHtml(safeUrl(reel.image_url))}" alt="${escapeHtml(reel.title)}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.85; display: block;">
-      <button class="reel-play-overlay-btn" type="button" style="position: absolute; inset: 0; margin: auto; width: 68px; height: 68px; border-radius: 50%; background: rgba(45, 90, 39, 0.95); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.3); border: 2px solid #fff; cursor: pointer; transition: transform 0.2s; z-index: 10;">
-        <i data-lucide="play" style="width: 32px; height: 32px; fill: #fff; stroke: #fff; margin-left: 4px;"></i>
-      </button>
-      <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 24px 16px 20px; background: linear-gradient(transparent, rgba(0,0,0,0.9)); color: #fff; display: flex; flex-direction: column; gap: 8px; z-index: 5;">
-        <span style="font-size: 14px; font-weight: 500; opacity: 0.8; text-align: center;">Watch video on Instagram</span>
-        <a class="primary-btn" href="${escapeHtml(reelUrl)}" target="_blank" rel="noopener" style="width: 100%; background: #e1306c; border-color: #e1306c; text-align: center; text-decoration: none; font-size: 14px; padding: 10px 12px; min-height: auto; font-weight: bold; display: inline-flex; align-items: center; justify-content: center;">Open Instagram app</a>
-      </div>
+    <div class="reel-loader" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 480px; width: 100%; text-align: center;">
+      <div class="spinner" style="width: 40px; height: 40px; border: 3px solid rgba(45, 90, 39, 0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      <span style="font-size: 14px; color: var(--muted); font-weight: 500;">Loading video player...</span>
     </div>
+    <iframe src="${escapeHtml(embedUrl)}" class="instagram-media" style="display: none; width: 100%; max-width: 420px; height: 520px; border: 0; border-radius: 12px; background: transparent; overflow: hidden;" scrolling="no" allowtransparency="true" allowfullscreen="true"></iframe>
   `;
   
   reelModal.showModal();
-  
-  // Re-run lucide icons inside the modal
-  setTimeout(() => window.lucide?.createIcons(), 0);
 
-  const playBtn = reelEmbed.querySelector(".reel-play-overlay-btn");
-  const handlePlayClick = () => {
-    window.open(reelUrl, "_blank", "noopener");
-    reelModal.close();
+  const loader = reelEmbed.querySelector(".reel-loader");
+  const iframe = reelEmbed.querySelector(".instagram-media");
+
+  const showIframe = () => {
+    if (loader) loader.style.display = "none";
+    if (iframe) iframe.style.display = "block";
   };
 
-  playBtn?.addEventListener("click", handlePlayClick);
-  
-  // Also open if user clicks the cover image directly
-  const coverImg = reelEmbed.querySelector("img");
-  if (coverImg) {
-    coverImg.addEventListener("click", handlePlayClick);
-    coverImg.style.cursor = "pointer";
-  }
+  // Listen for iframe load event
+  iframe.addEventListener("load", showIframe);
+
+  // Timeout fallback (5 seconds)
+  setTimeout(() => {
+    if (loader && loader.style.display !== "none") {
+      showIframe();
+    }
+  }, 5000);
 }
 
 function filteredRooms() {
@@ -889,7 +889,7 @@ function handleTabReturn() {
 function rememberVisibleState() {
   if (selectedRoomId) localStorage.setItem("stayPendingRoomId", selectedRoomId);
   if (paymentFilePickerOpen || document.activeElement === paymentScreenshotInput) return;
-  closeOpenDialogs();
+  // Keep dialogs open on tab blur to allow seamless video play and form filling
 }
 
 function handleVisibilityChange() {
