@@ -371,16 +371,33 @@ function editRoom(id) {
 async function uploadRoomImage(file) {
   validateImageFile(file);
   if (!supabaseClient) return fileToDataUrl(file);
-  const safeName = file.name.replace(/[^a-z0-9.]/gi, "-");
-  const path = `rooms/${Date.now()}-${safeName}`;
-  const { error } = await withTimeout(supabaseClient.storage
-    .from(supabaseConfig.roomBucket || "room-images")
-    .upload(path, file, { upsert: true, cacheControl: "31536000" }), "Image upload is taking too long. Please try a smaller image or check your connection.");
-  if (error) throw error;
-  const { data } = supabaseClient.storage
-    .from(supabaseConfig.roomBucket || "room-images")
-    .getPublicUrl(path);
-  return data.publicUrl;
+  
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = err => reject(err);
+  });
+
+  const session = (await supabaseClient.auth.getSession()).data.session;
+  const token = session ? session.access_token : "";
+
+  const res = await fetch("/api/upload-to-github", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ filename: file.name, content: base64 })
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || `Upload failed with status ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.url;
 }
 
 function renderImageOrderList() {
@@ -1239,16 +1256,33 @@ function renderHighlightsAdmin() {
 async function uploadHighlightImage(file) {
   validateImageFile(file);
   if (!supabaseClient) return "";
-  const safeName = file.name.replace(/[^a-z0-9.]/gi, "-");
-  const path = `highlights/${Date.now()}-${safeName}`;
-  const { error } = await withTimeout(supabaseClient.storage
-    .from(supabaseConfig.roomBucket || "room-images")
-    .upload(path, file, { upsert: true, cacheControl: "31536000" }), "Highlight image upload is taking too long. Please try a smaller image.");
-  if (error) throw error;
-  const { data } = supabaseClient.storage
-    .from(supabaseConfig.roomBucket || "room-images")
-    .getPublicUrl(path);
-  return data.publicUrl;
+  
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = err => reject(err);
+  });
+
+  const session = (await supabaseClient.auth.getSession()).data.session;
+  const token = session ? session.access_token : "";
+
+  const res = await fetch("/api/upload-to-github", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ filename: file.name, content: base64 })
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || `Upload failed with status ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.url;
 }
 
 function resetHighlightForm() {
