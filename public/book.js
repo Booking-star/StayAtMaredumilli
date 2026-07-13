@@ -47,7 +47,7 @@ const paymentScreenshotInput = document.getElementById("paymentScreenshotInput")
 // State
 let room = null;
 let allBookings = [];
-let profile = {};
+let profile = getStore("stayProfile", {});
 let pricingSettings = { occupancy80Surcharge: 200, occupancy90Surcharge: 300 };
 let paymentSettings = { mode: "razorpay", upiId: "" };
 let selectedRoomId = null;
@@ -755,7 +755,7 @@ async function handleUserSession(session) {
   checkoutContainer.classList.add("hidden");
   const meta = session.user?.user_metadata || {};
   profile = {
-    name: meta.full_name || meta.name || profile.name || "",
+    name: profile.name || meta.full_name || meta.name || "",
     email: session.user?.email || profile.email || "",
     phone: profile.phone || ""
   };
@@ -766,8 +766,8 @@ async function handleUserSession(session) {
     .eq("id", session.user.id)
     .maybeSingle();
   if (savedProfile) {
-    profile.name = profile.name || savedProfile.name || "";
-    profile.phone = profile.phone || savedProfile.phone || "";
+    profile.name = savedProfile.name || profile.name || "";
+    profile.phone = savedProfile.phone || profile.phone || "";
     profile.email = session.user.email || savedProfile.email || profile.email || "";
   }
   
@@ -803,8 +803,8 @@ async function handleUserSession(session) {
   const paymentParam = params.get("payment") || localSavedDetails.payment || "20";
   const firecampParam = params.get("firecamp") === "true" || Boolean(localSavedDetails.firecamp);
   
-  bookingName.value = localSavedDetails.name || profile.name || "";
-  bookingPhone.value = localSavedDetails.phone || profile.phone || "";
+  bookingName.value = profile.name || localSavedDetails.name || "";
+  bookingPhone.value = profile.phone || localSavedDetails.phone || "";
   bookingEmail.value = profile.email || "";
   
   fromInput.value = fromParam;

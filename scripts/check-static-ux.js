@@ -45,6 +45,8 @@ if (!book.includes("document.activeElement !== roomsInput")) fail("Room input mu
 if (!book.includes('e.target.id === "adultsInput" && e.type === "change"')) fail("Adult room auto-fit should run on commit, not every keystroke.");
 if (!book.includes("const tripError = validateTripValues(formDetails)")) fail("Checkout must validate trip fields before payment.");
 if (!book.includes('localStorage.setItem("stayProfile"')) fail("Booking contact details should persist to profile.");
+if (!book.includes('let profile = getStore("stayProfile", {})')) fail("Checkout must start from the saved customer profile.");
+if (!book.includes("bookingName.value = profile.name || localSavedDetails.name")) fail("Checkout must prefer saved profile contact details over stale trip details.");
 if (/9999999999|customer@stay\.com/.test(book)) fail("Paid checkout must not use fake customer contact fallbacks.");
 if (book.includes("bookingEmail.value = localSavedDetails.email")) fail("Checkout email must come from the logged-in session, not stale saved details.");
 if (!book.includes("checkoutListenersWired")) fail("Checkout listeners must only be wired once.");
