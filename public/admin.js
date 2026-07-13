@@ -377,17 +377,17 @@ function renderImageOrderList() {
   
   container.classList.remove("hidden");
   list.innerHTML = currentRoomImages.map((img, index) => `
-    <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px; background: #252525; border-radius: 6px;">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <img src="${escapeHtml(safeUrl(img.url))}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
-        <span style="font-size: 13px; color: #ccc; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+    <div class="image-order-row">
+      <div class="image-order-preview">
+        <img src="${escapeHtml(img.file ? img.url : safeUrl(img.url))}" alt="">
+        <span>
           ${escapeHtml(img.file ? img.file.name : "Existing Image")}
         </span>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 12px; color: #888;">Order:</span>
-        <input type="text" inputmode="numeric" pattern="[0-9]*" class="image-order-input" data-index="${index}" value="${img.order || ""}" placeholder="${index + 1}" style="width: 60px; height: 30px; background: #2a2a2a; border: 1px solid var(--border); color: #fff; text-align: center; border-radius: 4px;">
-        <button type="button" class="ghost-btn remove-img-btn" data-index="${index}" style="color: var(--danger); border-color: rgba(214,41,118,0.2); padding: 4px 8px; font-size: 11px;">Remove</button>
+      <div class="image-order-controls">
+        <span>Order:</span>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" class="image-order-input" data-index="${index}" value="${img.order || ""}" placeholder="${index + 1}">
+        <button type="button" class="ghost-btn remove-img-btn" data-index="${index}">Remove</button>
       </div>
     </div>
   `).join("");
