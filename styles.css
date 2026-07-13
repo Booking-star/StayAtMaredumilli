@@ -325,7 +325,8 @@ h3 { margin-bottom: 10px; }
   position: relative;
   overflow: hidden;
   background: #f3f4ef;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
+  max-height: 520px;
 }
 .slides {
   display: flex;
@@ -1038,7 +1039,8 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
   overflow: hidden;
   border-radius: 8px;
   background: #f3f4ef;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
+  max-height: 620px;
 }
 .hotel-detail-slides {
   display: flex;
@@ -1266,6 +1268,7 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
   }
   .hotel-detail-carousel {
     aspect-ratio: 1 / 1;
+    max-height: none;
   }
   .hotel-detail-carousel .slide-btn {
     display: flex;
