@@ -324,7 +324,7 @@ h3 { margin-bottom: 10px; }
 .carousel {
   position: relative;
   overflow: hidden;
-  background: #eee;
+  background: #f3f4ef;
   aspect-ratio: 4 / 3;
 }
 .slides {
@@ -340,7 +340,7 @@ h3 { margin-bottom: 10px; }
   flex: 0 0 100%;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   scroll-snap-align: start;
 }
@@ -993,7 +993,8 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 .seo-card img {
   width: 100%;
   aspect-ratio: 4 / 3;
-  object-fit: cover;
+  object-fit: contain;
+  background: #f3f4ef;
   border-radius: 8px;
 }
 .seo-card h2 { margin: 2px 0 8px; }
@@ -1036,7 +1037,7 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
   position: relative;
   overflow: hidden;
   border-radius: 8px;
-  background: #111;
+  background: #f3f4ef;
   aspect-ratio: 4 / 3;
 }
 .hotel-detail-slides {
@@ -1048,7 +1049,7 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
   flex: 0 0 100%;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 .hotel-detail-copy {
   background: #fff;

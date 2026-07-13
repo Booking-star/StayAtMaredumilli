@@ -64,6 +64,7 @@ if (!app.includes("function positionBottomNav")) fail("Bottom nav reset helper i
 if (/visualViewport\?\.(addEventListener|removeEventListener)[\s\S]{0,80}positionBottomNav/.test(app)) fail("Bottom nav must not be repositioned on visual viewport scroll.");
 if (/window\.addEventListener\("scroll",\s*positionBottomNav/.test(app)) fail("Bottom nav must not be repositioned on page scroll.");
 if (!css.includes("--bottom-nav-space: 156px")) fail("Mobile bottom spacing must protect content from nav overlap.");
+if (!/\.slides img\s*{[\s\S]*object-fit:\s*contain/.test(css) || !/\.hotel-detail-slides img\s*{[\s\S]*object-fit:\s*contain/.test(css)) fail("Hotel images must show fully instead of being cropped.");
 if (!/supabase\|vercel\|github\|environment\|row-level security\|permission denied\|violates/.test(shared)) fail("Backend errors must be masked for customers.");
 if (!shared.includes("function showActionError") || !shared.includes("unhandledrejection") || !shared.includes("notifyAdmin")) fail("Unhandled button failures must show a friendly visible error.");
 if (!read("admin-ui.js").includes("cleanAdminMessage") || !read("admin-ui.js").includes("vercel|github|environment")) fail("Admin status must mask raw backend permission errors.");
