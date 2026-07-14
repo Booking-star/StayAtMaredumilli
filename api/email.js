@@ -12,6 +12,16 @@ function headerAddress(name, email) {
   return `"${String(name || "").replace(/["\\]/g, "")}" <${email}>`;
 }
 
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+
 function rupees(value) {
   return `Rs.${Number(value || 0).toLocaleString("en-IN")}`;
 }
@@ -59,7 +69,7 @@ async function smtpCommand(socket, command, expectedCodes) {
   return response;
 }
 
-async function sendMail({ to, subject, text }) {
+async function sendMail({ to, subject, text, html }) {
   if (!smtpConfigured() || !to) return;
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 465);
@@ -67,6 +77,7 @@ async function sendMail({ to, subject, text }) {
   const pass = process.env.SMTP_PASS;
   const recipients = Array.isArray(to) ? to.filter(Boolean) : [to];
   const body = String(text || "").replace(/\r?\n\./g, "\n..");
+  const htmlBody = html ? String(html).replace(/\r?\n\./g, "\n..") : "";
 
   for (const recipient of recipients) {
     const socket = tls.connect({ host, port, servername: host });
@@ -85,7 +96,8 @@ async function sendMail({ to, subject, text }) {
       await smtpCommand(socket, "DATA", [354]);
       const messageIdDomain = String(user).split("@")[1] || "stayatmaredumilli.com";
       const messageId = `<${Date.now()}.${Math.random().toString(16).slice(2)}@${messageIdDomain}>`;
-      socket.write([
+      const boundary = `stay-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const headers = [
         `From: ${headerAddress("Stay@Maredumilli", user)}`,
         `To: ${recipient}`,
         `Reply-To: ${SUPPORT_EMAIL}`,
@@ -93,12 +105,33 @@ async function sendMail({ to, subject, text }) {
         `Date: ${new Date().toUTCString()}`,
         `Message-ID: ${messageId}`,
         "MIME-Version: 1.0",
+        htmlBody
+          ? `Content-Type: multipart/alternative; boundary="${boundary}"`
+          : "Content-Type: text/plain; charset=UTF-8",
+        htmlBody ? "" : "Content-Transfer-Encoding: 8bit",
+      ].filter(line => line !== "");
+      const message = htmlBody ? [
+        ...headers,
+        "",
+        `--${boundary}`,
         "Content-Type: text/plain; charset=UTF-8",
         "Content-Transfer-Encoding: 8bit",
         "",
         body,
+        `--${boundary}`,
+        "Content-Type: text/html; charset=UTF-8",
+        "Content-Transfer-Encoding: 8bit",
+        "",
+        htmlBody,
+        `--${boundary}--`,
         "."
-      ].join("\r\n") + "\r\n");
+      ] : [
+        ...headers,
+        "",
+        body,
+        "."
+      ];
+      socket.write(message.join("\r\n") + "\r\n");
       await smtpCommand(socket, null, [250]);
       await smtpCommand(socket, "QUIT", [221]);
     } finally {
@@ -216,6 +249,57 @@ function adminEmailText({ bookingId, hold, paymentId, roomLabel }) {
   ].filter(Boolean).join("\n");
 }
 
+function bookingEmailHtml({ title, intro, bookingId, hold, paymentId, roomLabel, admin = false }) {
+  const balance = Math.max(Number(hold.total_price || 0) - Number(hold.payable_amount || 0), 0);
+  const rows = [
+    ["Booking Ref", bookingRef(bookingId)],
+    admin ? ["Booking ID", bookingId || ""] : null,
+    ["Room", roomLabel],
+    ["Dates", `${hold.check_in} to ${hold.check_out}`],
+    ["Rooms", hold.num_rooms || 1],
+    ["Guests", `${hold.num_adults || 0} adult(s), ${hold.num_kids || 0} kid(s)`],
+    admin ? ["Customer", hold.customer_name || ""] : null,
+    admin ? ["Phone", hold.customer_phone || ""] : null,
+    admin ? ["Email", hold.customer_email || ""] : null,
+    ["Total", rupees(hold.total_price)],
+    ["Paid now", rupees(hold.payable_amount)],
+    ["Balance at stay", rupees(balance)],
+    paymentId ? ["Payment ID", paymentId] : null
+  ].filter(Boolean);
+  return `<!doctype html>
+<html>
+  <body style="margin:0;background:#f5f3ee;font-family:Arial,Helvetica,sans-serif;color:#1f2933;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f3ee;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border:1px solid #e5e0d6;border-radius:14px;overflow:hidden;">
+            <tr>
+              <td style="background:#164e3b;color:#ffffff;padding:24px;">
+                <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.82;">Stay@Maredumilli</div>
+                <h1 style="margin:8px 0 0;font-size:24px;line-height:1.25;">${escapeHtml(title)}</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px;">
+                <p style="margin:0 0 18px;font-size:16px;line-height:1.55;">${escapeHtml(intro)}</p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #ece7dd;border-radius:10px;overflow:hidden;">
+                  ${rows.map(([label, value], index) => `
+                    <tr style="background:${index % 2 ? "#ffffff" : "#fbfaf7"};">
+                      <td style="padding:12px 14px;border-bottom:1px solid #ece7dd;color:#65717c;font-size:13px;width:38%;">${escapeHtml(label)}</td>
+                      <td style="padding:12px 14px;border-bottom:1px solid #ece7dd;font-size:14px;font-weight:600;">${escapeHtml(value)}</td>
+                    </tr>`).join("")}
+                </table>
+                <p style="margin:18px 0 0;color:#65717c;font-size:13px;line-height:1.5;">No cancellations and no refunds. For help, WhatsApp ${escapeHtml(SUPPORT_PHONE)} or email ${escapeHtml(SUPPORT_EMAIL)}.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
 async function sendBookingEmailsOnce({ bookingId, hold, paymentId }) {
   if (!smtpConfigured()) {
     console.warn("Booking email skipped: SMTP is not configured.");
@@ -231,12 +315,29 @@ async function sendBookingEmailsOnce({ bookingId, hold, paymentId }) {
     sendMail({
       to: hold.customer_email,
       subject,
-      text: customerEmailText({ bookingId, hold, paymentId, roomLabel })
+      text: customerEmailText({ bookingId, hold, paymentId, roomLabel }),
+      html: bookingEmailHtml({
+        title: "Booking Confirmed",
+        intro: `Hi ${hold.customer_name || "Guest"}, your Stay@Maredumilli booking is confirmed.`,
+        bookingId,
+        hold,
+        paymentId,
+        roomLabel
+      })
     }),
     sendMail({
       to: adminRecipients,
       subject: `New booking - ${bookingRef(bookingId)}`,
-      text: adminEmailText({ bookingId, hold, paymentId, roomLabel })
+      text: adminEmailText({ bookingId, hold, paymentId, roomLabel }),
+      html: bookingEmailHtml({
+        title: "New Confirmed Booking",
+        intro: "A new booking has been confirmed on Stay@Maredumilli.",
+        bookingId,
+        hold,
+        paymentId,
+        roomLabel,
+        admin: true
+      })
     })
   ]);
   results.forEach((result, index) => {
