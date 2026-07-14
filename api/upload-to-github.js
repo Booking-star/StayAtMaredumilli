@@ -1,4 +1,3 @@
-const fetch = require("node-fetch"); // In Vercel Node env, fetch is built-in, but node-fetch is available if needed, or we can use dynamic import, or global fetch since Vercel Node 18+ has native fetch. Let's use global fetch.
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {

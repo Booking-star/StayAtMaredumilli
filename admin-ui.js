@@ -12,6 +12,9 @@ function notifyAdmin(message, isError = false) {
 
 function cleanAdminMessage(message = "") {
   const text = String(message || "");
+  if (/upload failed|status 500|failed to fetch/i.test(text)) {
+    return "We couldn't upload the image. Please verify your internet connection, confirm file sizes, and try again.";
+  }
   if (/supabase|vercel|github|environment|row-level security|permission denied|violates|service role|schema cache|rpc|rest\/v1/i.test(text)) {
     return "Action could not be completed. Please check permissions or try again.";
   }
