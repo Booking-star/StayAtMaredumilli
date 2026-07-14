@@ -358,7 +358,9 @@ function updateBlockHint() {
 
 function renderAdminBlocks() {
   if (!adminBlockList) return;
-  const blocks = allBookings.filter(b => b.status === "offline_blocked");
+  
+  const roomId = document.querySelector("#adminCalendarRoomSelect")?.value || "";
+  const blocks = allBookings.filter(b => b.status === "offline_blocked" && String(b.room_id) === String(roomId));
   
   // Sort descending so newest blocks are always on top
   blocks.sort((a, b) => b.check_in.localeCompare(a.check_in));
@@ -562,9 +564,9 @@ adminUnblockBtn?.addEventListener("click", async () => {
 
 adminCalendarHotel?.addEventListener("change", () => {
   populateAdminRoomSelect();
-  renderAdminCalendar();
+  renderAdminBlocks();
 });
-document.querySelector("#adminCalendarRoomSelect")?.addEventListener("change", renderAdminCalendar);
+document.querySelector("#adminCalendarRoomSelect")?.addEventListener("change", renderAdminBlocks);
 
 document.querySelector("#adminCalendarPrevBtn")?.addEventListener("click", () => {
   const today = new Date();
@@ -576,7 +578,7 @@ document.querySelector("#adminCalendarPrevBtn")?.addEventListener("click", () =>
       adminCalMonth = 11;
       adminCalYear--;
     }
-    renderAdminCalendar();
+    renderAdminBlocks();
   }
 });
 
@@ -590,7 +592,7 @@ document.querySelector("#adminCalendarNextBtn")?.addEventListener("click", () =>
       adminCalMonth = 0;
       adminCalYear++;
     }
-    renderAdminCalendar();
+    renderAdminBlocks();
   }
 });
 adminCalendarRooms?.addEventListener("input", () => {
