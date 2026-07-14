@@ -3,6 +3,7 @@ const tls = require("tls");
 const SUPPORT_EMAIL = "stayatmaredumilli@gmail.com";
 const BOOKING_EMAIL = "stayatmaredumilli@gmail.com";
 const SUPPORT_PHONE = "+91 93924 39935";
+const WEBSITE_URL = "https://stayatmaredumilli.com";
 
 function smtpConfigured() {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
@@ -214,10 +215,12 @@ function customerEmailText({ bookingId, hold, paymentId, roomLabel }) {
     `Rooms: ${hold.num_rooms || 1}`,
     `Total: ${rupees(hold.total_price)}`,
     `Paid now: ${rupees(hold.payable_amount)}`,
-    `Balance at stay: ${rupees(balance)}`,
+    `Balance to be paid during check-in: ${rupees(balance)}`,
     paymentId ? `Payment ID: ${paymentId}` : "",
     "",
-    "No cancellations and no refunds. Please keep this email for check-in support.",
+    "Important:",
+    "No cancellations and no refunds.",
+    `Website: ${WEBSITE_URL}`,
     "",
     `Support WhatsApp: ${SUPPORT_PHONE}`,
     `Support Email: ${SUPPORT_EMAIL}`,
@@ -244,7 +247,8 @@ function adminEmailText({ bookingId, hold, paymentId, roomLabel }) {
     "",
     `Total: ${rupees(hold.total_price)}`,
     `Advance paid: ${rupees(hold.payable_amount)}`,
-    `Balance: ${rupees(balance)}`,
+    `Balance to be paid during check-in: ${rupees(balance)}`,
+    `Website: ${WEBSITE_URL}`,
     paymentId ? `Payment ID: ${paymentId}` : ""
   ].filter(Boolean).join("\n");
 }
@@ -263,7 +267,7 @@ function bookingEmailHtml({ title, intro, bookingId, hold, paymentId, roomLabel,
     admin ? ["Email", hold.customer_email || ""] : null,
     ["Total", rupees(hold.total_price)],
     ["Paid now", rupees(hold.payable_amount)],
-    ["Balance at stay", rupees(balance)],
+    ["Balance to be paid during check-in", rupees(balance)],
     paymentId ? ["Payment ID", paymentId] : null
   ].filter(Boolean);
   return `<!doctype html>
@@ -289,7 +293,16 @@ function bookingEmailHtml({ title, intro, bookingId, hold, paymentId, roomLabel,
                       <td style="padding:12px 14px;border-bottom:1px solid #ece7dd;font-size:14px;font-weight:600;">${escapeHtml(value)}</td>
                     </tr>`).join("")}
                 </table>
-                <p style="margin:18px 0 0;color:#65717c;font-size:13px;line-height:1.5;">No cancellations and no refunds. For help, WhatsApp ${escapeHtml(SUPPORT_PHONE)} or email ${escapeHtml(SUPPORT_EMAIL)}.</p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:18px;background:#fbfaf7;border:1px solid #ece7dd;border-radius:10px;">
+                  <tr>
+                    <td style="padding:14px;color:#65717c;font-size:13px;line-height:1.6;">
+                      <strong style="color:#1f2933;">Important</strong><br>
+                      No cancellations and no refunds.<br>
+                      Website: <a href="${WEBSITE_URL}" style="color:#164e3b;text-decoration:none;">${WEBSITE_URL}</a><br>
+                      Support: ${escapeHtml(SUPPORT_PHONE)} | ${escapeHtml(SUPPORT_EMAIL)}
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
           </table>
