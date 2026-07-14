@@ -204,21 +204,32 @@ function adminEmailText({ bookingId, hold, paymentId, roomLabel }) {
 }
 
 async function sendBookingEmailsOnce({ bookingId, hold, paymentId }) {
-  if (!smtpConfigured() || !hold) return;
+  if (!smtpConfigured()) {
+    console.warn("Booking email skipped: SMTP is not configured.");
+    return;
+  }
+  if (!hold) return;
   const claimed = await claimBookingEmail(bookingId);
   if (!claimed) return;
   const roomLabel = await roomSummary(hold.room_id);
   const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || BOOKING_EMAIL;
   const subject = `Booking confirmed - ${bookingRef(bookingId)}`;
-  await sendMail({
-    to: hold.customer_email,
-    subject,
-    text: customerEmailText({ bookingId, hold, paymentId, roomLabel })
-  });
-  await sendMail({
-    to: adminEmail,
-    subject: `New booking - ${bookingRef(bookingId)}`,
-    text: adminEmailText({ bookingId, hold, paymentId, roomLabel })
+  const results = await Promise.allSettled([
+    sendMail({
+      to: hold.customer_email,
+      subject,
+      text: customerEmailText({ bookingId, hold, paymentId, roomLabel })
+    }),
+    sendMail({
+      to: adminEmail,
+      subject: `New booking - ${bookingRef(bookingId)}`,
+      text: adminEmailText({ bookingId, hold, paymentId, roomLabel })
+    })
+  ]);
+  results.forEach((result, index) => {
+    if (result.status === "rejected") {
+      console.error(`${index ? "Admin" : "Customer"} booking email failed:`, result.reason?.message || result.reason);
+    }
   });
 }
 
