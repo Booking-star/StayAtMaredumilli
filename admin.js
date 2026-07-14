@@ -796,7 +796,14 @@ function setupAdminTabs() {
   salesHotelFilter?.addEventListener("change", renderSales);
   salesDateFrom?.addEventListener("change", renderSales);
   salesDateTo?.addEventListener("change", renderSales);
+  document.querySelector("#salesSearchInput")?.addEventListener("input", renderSales);
+  document.querySelector("#salesStatusFilter")?.addEventListener("change", renderSales);
+  document.querySelector("#salesExportCsvBtn")?.addEventListener("click", exportSalesToCsv);
   salesClearFiltersBtn?.addEventListener("click", () => {
+    const search = document.querySelector("#salesSearchInput");
+    if (search) search.value = "";
+    const status = document.querySelector("#salesStatusFilter");
+    if (status) status.value = "";
     if (salesHotelFilter) salesHotelFilter.value = "";
     if (salesDateFrom) salesDateFrom.value = "";
     if (salesDateTo) salesDateTo.value = "";
@@ -1269,17 +1276,100 @@ function renderCustomers() {
   `;
 }
 
+function exportSalesToCsv() {
+  const searchInput = document.querySelector("#salesSearchInput")?.value?.toLowerCase() || "";
+  const selectedHotel = salesHotelFilter?.value || "";
+  const selectedStatus = document.querySelector("#salesStatusFilter")?.value || "";
+  const dateFromStr = salesDateFrom?.value || "";
+  const dateToStr = salesDateTo?.value || "";
+
+  const filteredBookings = allBookings.filter(b => {
+    if (searchInput) {
+      const name = (b.customer_name || "").toLowerCase();
+      const phone = (b.customer_phone || "").toLowerCase();
+      const email = (b.customer_email || "").toLowerCase();
+      if (!name.includes(searchInput) && !phone.includes(searchInput) && !email.includes(searchInput)) return false;
+    }
+    if (selectedHotel && (b.hotel_name || b.room_name) !== selectedHotel) return false;
+    if (selectedStatus && b.status !== selectedStatus) return false;
+    if (b.created_at) {
+      const bDate = new Date(b.created_at);
+      if (dateFromStr && bDate < new Date(dateFromStr + "T00:00:00")) return false;
+      if (dateToStr && bDate > new Date(dateToStr + "T23:59:59")) return false;
+    } else {
+      if (dateFromStr || dateToStr) return false;
+    }
+    return true;
+  });
+
+  if (!filteredBookings.length) {
+    alert("No bookings to export.");
+    return;
+  }
+
+  // Headers
+  const headers = ["Guest Name", "Phone", "Email", "Hotel", "Room Type", "Rooms Count", "Check In", "Check Out", "Created At", "Total Price", "Owner Payout", "Platform Profit", "Status"];
+  
+  // Rows
+  const rows = filteredBookings.map(b => [
+    b.customer_name || "",
+    b.customer_phone || "",
+    b.customer_email || "",
+    b.hotel_name || "",
+    b.room_name || "",
+    b.num_rooms || 1,
+    b.check_in || "",
+    b.check_out || "",
+    b.created_at || "",
+    b.total_price || 0,
+    b.owner_amount || 0,
+    b.profit_amount || 0,
+    b.status || ""
+  ]);
+
+  // Convert to CSV string format
+  let csvContent = "data:text/csv;charset=utf-8,";
+  csvContent += headers.map(h => `"${h.replace(/"/g, '""')}"`).join(",") + "\n";
+  rows.forEach(row => {
+    csvContent += row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",") + "\n";
+  });
+
+  // Create temporary hidden link to download
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `sales_ledger_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 function renderSales() {
   if (!adminSalesList) return;
 
+  const searchInput = document.querySelector("#salesSearchInput")?.value?.toLowerCase() || "";
   const selectedHotel = salesHotelFilter?.value || "";
+  const selectedStatus = document.querySelector("#salesStatusFilter")?.value || "";
   const dateFromStr = salesDateFrom?.value || "";
   const dateToStr = salesDateTo?.value || "";
 
   // Filter bookings based on active filters
   const filteredBookings = allBookings.filter(b => {
+    // Search guest filter (name, phone, email)
+    if (searchInput) {
+      const name = (b.customer_name || "").toLowerCase();
+      const phone = (b.customer_phone || "").toLowerCase();
+      const email = (b.customer_email || "").toLowerCase();
+      if (!name.includes(searchInput) && !phone.includes(searchInput) && !email.includes(searchInput)) return false;
+    }
+
     // Hotel filter
     if (selectedHotel && (b.hotel_name || b.room_name) !== selectedHotel) {
+      return false;
+    }
+
+    // Status filter
+    if (selectedStatus && b.status !== selectedStatus) {
       return false;
     }
 
@@ -1314,34 +1404,93 @@ function renderSales() {
   document.querySelector("#adminTotalPayout").textContent = "Rs." + payout.toLocaleString("en-IN");
   document.querySelector("#adminTotalProfit").textContent = "Rs." + profit.toLocaleString("en-IN");
 
-  adminSalesList.innerHTML = filteredBookings.length ? filteredBookings.map(b => `
-    <article class="sales-item">
-      <div style="flex-grow: 1;">
-        <strong style="font-size: 15px; color: var(--text);">${escapeHtml(b.room_name || "Room blockage/booking")}</strong>
-        <p style="font-size: 13px; color: var(--muted); margin: 4px 0 0;">
-          <strong>Hotel:</strong> ${escapeHtml(b.hotel_name || "N/A")} &middot;
-          <strong>Guest:</strong> ${escapeHtml(b.customer_name)} (${escapeHtml(b.customer_phone)}) &middot; 
-          <strong>Email:</strong> ${escapeHtml(b.customer_email || "N/A")} &middot;
-          <strong>Dates:</strong> ${escapeHtml(b.check_in)} to ${escapeHtml(b.check_out)} &middot; 
-          <strong>Rooms:</strong> ${escapeHtml(b.num_rooms)} &middot;
-          <strong>Booked on:</strong> ${b.created_at ? escapeHtml(new Date(b.created_at).toLocaleString("en-IN")) : "N/A"}
-        </p>
-        ${b.payment_screenshot_url ? `<p><a href="${escapeHtml(b.payment_screenshot_url)}" target="_blank" rel="noopener">View payment screenshot</a> &middot; ${escapeHtml(b.manual_payment_status || "submitted")}</p>` : ""}
-      </div>
-      <div style="text-align: right;">
-        <strong style="font-size: 15px; color: var(--text);">Revenue: Rs.${b.total_price.toLocaleString("en-IN")}</strong>
-        <p style="font-size: 12px; color: var(--muted); margin: 2px 0 0;">
-          Payout: Rs.${(b.owner_amount || 0).toLocaleString("en-IN")} &middot; 
-          <span style="color: var(--primary); font-weight: bold;">Profit: Rs.${(b.profit_amount || 0).toLocaleString("en-IN")}</span>
-        </p>
-        ${b.status === "pending_payment" ? `
-          <button class="primary-btn" data-confirm-manual-payment="${escapeHtml(b.id)}" type="button">Confirm payment</button>
-          <button class="ghost-btn" data-cancel-manual-payment="${escapeHtml(b.id)}" type="button">Cancel booking</button>
-        ` : ""}
-        ${b.status === "offline_blocked" ? `<button class="ghost-btn" data-release-block="${escapeHtml(b.id)}" type="button">Release block</button>` : ""}
-      </div>
-    </article>
-  `).join("") : "No bookings matching the active filters.";
+  if (!filteredBookings.length) {
+    adminSalesList.innerHTML = `<p class="muted-line">No bookings matching the active filters.</p>`;
+    return;
+  }
+
+  let html = `
+    <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: #fff;">
+      <table class="ledger-table">
+        <thead>
+          <tr>
+            <th>Guest Details</th>
+            <th>Hotel & Room</th>
+            <th>Stay Dates</th>
+            <th style="text-align: right;">Financials</th>
+            <th style="text-align: center;">Status</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  filteredBookings.forEach(b => {
+    const formattedDate = b.created_at ? new Date(b.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "N/A";
+    
+    // Status text mapping
+    let statusLabel = b.status || "N/A";
+    if (statusLabel === "pending_payment") statusLabel = "Pending";
+    if (statusLabel === "offline_blocked") statusLabel = "Offline";
+    
+    const isPending = b.status === "pending_payment";
+    const isBlocked = b.status === "offline_blocked";
+
+    html += `
+      <tr>
+        <td>
+          <div style="font-weight: 700; color: var(--text);">${escapeHtml(b.customer_name || "Blocked Room")}</div>
+          <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+            ${escapeHtml(b.customer_phone || "")} ${b.customer_email ? `&middot; ${escapeHtml(b.customer_email)}` : ""}
+          </div>
+          <div style="font-size: 10px; color: var(--muted); margin-top: 1px;">
+            Booked: ${escapeHtml(formattedDate)}
+          </div>
+        </td>
+        <td>
+          <div style="font-weight: 600;">${escapeHtml(b.room_name || "N/A")}</div>
+          <div style="font-size: 11px; color: var(--muted);">${escapeHtml(b.hotel_name || "N/A")} &middot; ${escapeHtml(b.num_rooms)} room(s)</div>
+        </td>
+        <td>
+          <div style="font-weight: 600;">${escapeHtml(b.check_in)} to ${escapeHtml(b.check_out)}</div>
+          ${b.payment_screenshot_url ? `
+            <div style="font-size: 11px; margin-top: 4px;">
+              <a href="${escapeHtml(b.payment_screenshot_url)}" target="_blank" rel="noopener" style="color: var(--accent); font-weight: 700; text-decoration: underline;">View Screenshot</a>
+            </div>
+          ` : ""}
+        </td>
+        <td style="text-align: right;">
+          <div style="font-weight: 700; color: var(--text);">Total: Rs.${(b.total_price || 0).toLocaleString("en-IN")}</div>
+          <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+            Payout: Rs.${(b.owner_amount || 0).toLocaleString("en-IN")} &middot; 
+            <span style="color: var(--primary); font-weight: 600;">Profit: Rs.${(b.profit_amount || 0).toLocaleString("en-IN")}</span>
+          </div>
+        </td>
+        <td style="text-align: center;">
+          <span class="badge ${escapeHtml(b.status || "")}">${escapeHtml(statusLabel)}</span>
+        </td>
+        <td style="text-align: right;">
+          ${isPending ? `
+            <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
+              <button class="primary-btn" data-confirm-manual-payment="${escapeHtml(b.id)}" type="button" style="padding: 4px 8px; font-size: 11px; min-height: 26px; height: 26px; border-radius: 4px; margin: 0;">Confirm</button>
+              <button class="ghost-btn" data-cancel-manual-payment="${escapeHtml(b.id)}" type="button" style="padding: 4px 8px; font-size: 11px; min-height: 26px; height: 26px; border-radius: 4px; margin: 0;">Cancel</button>
+            </div>
+          ` : ""}
+          ${isBlocked ? `
+            <button class="ghost-btn" data-release-block="${escapeHtml(b.id)}" type="button" style="padding: 4px 8px; font-size: 11px; min-height: 26px; height: 26px; border-radius: 4px; margin: 0;">Release</button>
+          ` : ""}
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  adminSalesList.innerHTML = html;
 }
 
 async function releaseBlockedRoom(id) {

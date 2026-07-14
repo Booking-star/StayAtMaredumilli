@@ -409,24 +409,104 @@
             <h3 style="margin: 0;">Past Sales Ledger</h3>
             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
               <label style="font-size: 13px; margin: 0; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">
+                Search Guest
+                <input id="salesSearchInput" type="text" placeholder="Name, phone, or email" style="padding: 6px 12px; border-radius: 6px; background: #fff; border: 1px solid var(--border); color: var(--text); width: 180px;">
+              </label>
+              <label style="font-size: 13px; margin: 0; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">
                 Hotel filter
-                <select id="salesHotelFilter" style="padding: 6px 12px; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: var(--text); min-width: 150px;">
+                <select id="salesHotelFilter" style="padding: 6px 12px; border-radius: 6px; background: #fff; border: 1px solid var(--border); color: var(--text); min-width: 150px;">
                   <option value="">All Hotels</option>
                 </select>
               </label>
               <label style="font-size: 13px; margin: 0; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">
+                Status filter
+                <select id="salesStatusFilter" style="padding: 6px 12px; border-radius: 6px; background: #fff; border: 1px solid var(--border); color: var(--text); min-width: 120px;">
+                  <option value="">All Statuses</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="pending_payment">Pending Payment</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="offline_blocked">Offline Blocked</option>
+                </select>
+              </label>
+              <label style="font-size: 13px; margin: 0; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">
                 Booking Date (From)
-                <input id="salesDateFrom" type="date" style="padding: 6px 12px; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: var(--text);">
+                <input id="salesDateFrom" type="date" style="padding: 6px 12px; border-radius: 6px; background: #fff; border: 1px solid var(--border); color: var(--text);">
               </label>
               <label style="font-size: 13px; margin: 0; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">
                 Booking Date (To)
-                <input id="salesDateTo" type="date" style="padding: 6px 12px; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: var(--text);">
+                <input id="salesDateTo" type="date" style="padding: 6px 12px; border-radius: 6px; background: #fff; border: 1px solid var(--border); color: var(--text);">
               </label>
-              <button id="salesClearFiltersBtn" class="ghost-btn" type="button" style="margin: 0; align-self: flex-end; height: 34px; padding: 0 12px; font-size: 13px; border-color: rgba(255,255,255,0.15);">Clear</button>
+              <button id="salesExportCsvBtn" class="primary-btn" type="button" style="margin: 0; align-self: flex-end; height: 34px; padding: 0 12px; font-size: 13px; background: #10b981; border: none; color: #fff; border-radius: 6px;">Export CSV</button>
+              <button id="salesClearFiltersBtn" class="ghost-btn" type="button" style="margin: 0; align-self: flex-end; height: 34px; padding: 0 12px; font-size: 13px; border-radius: 6px; border: 1px solid var(--border); background: #fff;">Clear</button>
             </div>
           </div>
-          <div id="adminSalesList" class="admin-room-list"></div>
+          <div id="adminSalesList"></div>
         </section>
+
+        <style>
+          .ledger-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+          }
+          .ledger-table th {
+            padding: 12px 8px;
+            border-bottom: 2px solid var(--border);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+            background: #f8fafc;
+          }
+          .ledger-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+            color: var(--text);
+          }
+          .ledger-table tr:hover {
+            background: #f8fafc;
+          }
+          .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-align: center;
+            white-space: nowrap;
+          }
+          .badge.confirmed {
+            background: #e8f5e9;
+            color: #2e7d32;
+          }
+          .badge.pending_payment {
+            background: #fff8e1;
+            color: #f57f17;
+          }
+          .badge.cancelled {
+            background: #ffebee;
+            color: #c62828;
+          }
+          .badge.offline_blocked {
+            background: #eceff1;
+            color: #37474f;
+          }
+          
+          @media (max-width: 768px) {
+            .ledger-table th, .ledger-table td {
+              padding: 8px 4px;
+              font-size: 11px;
+            }
+            .badge {
+              font-size: 9px;
+              padding: 2px 4px;
+            }
+          }
+        </style>
       </div>
 
       <!-- Tab Content: Dynamic Pricing -->
