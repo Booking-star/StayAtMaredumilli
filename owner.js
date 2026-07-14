@@ -75,11 +75,19 @@ let allOccupancy = [];
 let activeTab = "current"; // "current", "future", "past"
 let isCustomBlockMode = false;
 let ownerLoadError = "";
+let ownerBookingsError = "";
 
 // Stepper values
 let nightsCount = 1;
 let roomsCount = 1;
 let maxRoomsToBlock = 1;
+
+function withTimeout(promise, message = "Action is taking too long. Please try again.", ms = 25000) {
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve({ error: new Error(message) }), ms))
+  ]).catch(error => ({ error }));
+}
 
 // Helper to format currency
 function formatPrice(value) {
@@ -174,6 +182,7 @@ async function refreshBookings() {
 
   const roomIds = ownerRooms.map(r => r.id);
   if (roomIds.length === 0) {
+    ownerBookingsError = "";
     allBookings = [];
     allOccupancy = [];
     calculateStats();
@@ -192,9 +201,11 @@ async function refreshBookings() {
 
   if (bookingsError) {
     console.error(bookingsError.message);
+    ownerBookingsError = ownerFriendlyError(bookingsError.message);
     allBookings = [];
   }
   else {
+    ownerBookingsError = "";
     allBookings = bookings || [];
   }
 
@@ -341,6 +352,15 @@ function renderCalendarGrid() {
 function renderBookings() {
   if (!bookingsCardsContainer) return;
 
+  if (ownerBookingsError) {
+    bookingsCardsContainer.innerHTML = `
+      <div style="padding: 24px; text-align: center; color: var(--danger); border: 1px dashed var(--border); border-radius: 8px; background: #fff;">
+        ${escapeHtml(ownerBookingsError)}
+      </div>
+    `;
+    return;
+  }
+
   const todayStr = getLocalDateString();
   const threeDaysLater = new Date();
   threeDaysLater.setDate(threeDaysLater.getDate() + 3);
@@ -464,10 +484,10 @@ async function cancelOrReleaseBooking(bookingId) {
 
   if (!confirm(promptMsg)) return;
 
-  const { error } = await supabaseClient
+  const { error } = await withTimeout(supabaseClient
     .from("bookings")
     .update({ status: "cancelled" })
-    .eq("id", bookingId);
+    .eq("id", bookingId), "Release is taking too long. Please try again.");
 
   if (error) {
     alert("Operation failed. Please try again or contact support.");
@@ -509,12 +529,13 @@ function openQuickModal(roomId, dateStr, remaining) {
     if (modalBlockSection) modalBlockSection.classList.add("hidden");
     if (modalReleaseSection) modalReleaseSection.classList.remove("hidden");
 
-    // Find the booking details for this block
-    const booking = allBookings.find(b => 
-      b.room_id === roomId && 
+    // Prefer an offline block when the date is full, so owners can release their own block.
+    const overlappingBookings = allBookings.filter(b =>
+      String(b.room_id) === String(roomId) &&
       b.check_in <= dateStr && 
       b.check_out > dateStr
     );
+    const booking = overlappingBookings.find(b => b.status === "offline_blocked") || overlappingBookings[0];
 
     if (booking) {
       const isOffline = booking.status === "offline_blocked";
@@ -717,7 +738,7 @@ function setupSubmissions() {
       // Close modal instantly for lightning fast user response
       closeQuickModal();
 
-      const { error: insertError } = await supabaseClient.rpc("create_booking_safe", {
+      const { error: insertError } = await withTimeout(supabaseClient.rpc("create_booking_safe", {
         p_room_id: roomId,
         p_customer_name: guestName,
         p_customer_phone: guestPhone,
@@ -731,7 +752,7 @@ function setupSubmissions() {
         p_status: "offline_blocked",
         p_influencer_id: null,
         p_firecamp: false
-      });
+      }), "Room block is taking too long. Please try again.");
 
       if (insertError) {
         // Revert cells to original state on failure
