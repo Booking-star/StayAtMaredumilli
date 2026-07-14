@@ -135,9 +135,8 @@ async function claimBookingEmail(bookingId) {
     const rows = await supabaseFetch(
       `bookings?id=eq.${encodeURIComponent(bookingId)}&confirmation_email_sent_at=is.null&select=id`,
       {
-        method: "PATCH",
+        method: "GET",
         headers: { Prefer: "return=representation" },
-        body: JSON.stringify({ confirmation_email_sent_at: new Date().toISOString() })
       }
     );
     return Array.isArray(rows) && rows.length > 0;
@@ -157,6 +156,15 @@ async function roomSummary(roomId) {
   ).catch(() => []);
   const room = rows?.[0];
   return [room?.room_name, room?.room_type].filter(Boolean).join(" - ") || "Booked room";
+}
+
+async function markBookingEmailSent(bookingId) {
+  if (!bookingId) return;
+  await supabaseFetch(`bookings?id=eq.${encodeURIComponent(bookingId)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ confirmation_email_sent_at: new Date().toISOString() })
+  }).catch(error => console.warn("Booking email marker update failed:", error.message));
 }
 
 function customerEmailText({ bookingId, hold, paymentId, roomLabel }) {
@@ -236,6 +244,10 @@ async function sendBookingEmailsOnce({ bookingId, hold, paymentId }) {
       console.error(`${index ? "Admin" : "Customer"} booking email failed:`, result.reason?.message || result.reason);
     }
   });
+  if (results.some(result => result.status === "fulfilled")) {
+    await markBookingEmailSent(bookingId);
+    console.log("Booking email sent:", bookingRef(bookingId));
+  }
 }
 
 module.exports = { sendBookingEmailsOnce };
