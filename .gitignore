@@ -5,3 +5,4 @@ node_modules/
 scripts/test-runner.js
 
 .env*
+public/

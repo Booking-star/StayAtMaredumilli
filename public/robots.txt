@@ -1,9 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /bookings
-Disallow: /profile
-Disallow: /checkout
-Disallow: /confirmation
-Disallow: /payment
-
-Sitemap: https://stayatmaredumilli.com/sitemap.xml

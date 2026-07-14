@@ -32,12 +32,29 @@ if (!fs.existsSync(publicDir)) {
   fs.mkdirSync(publicDir);
 }
 
-for (const file of ["index.html", "admin.html", "owner.html", "login.html", "privacy.html", "faq.html", "about.html", "policy.html", "policy.js", "404.html", "robots.txt", "sitemap.xml", "favicon.svg", "brand-logo.png", "styles.css", "shared.js", "app-room-ui.js", "app.js", "admin-ui.js", "admin.js", "admin-settings.js", "owner.js", "book.html", "book.js", "landing.mp4", "landing-vertical.mp4", "manifest.json", "sw.js"]) {
+const filesToCopy = [
+  "index.html", "admin.html", "owner.html", "login.html", "privacy.html",
+  "faq.html", "about.html", "policy.html", "policy.js", "404.html",
+  "robots.txt", "sitemap.xml", "favicon.ico", "favicon.svg", "brand-logo.png",
+  "styles.css", "shared.js", "admin-styles.css", "admin-shared.js",
+  "app-room-ui.js", "app.js", "admin-ui.js", "admin.js", "admin-settings.js",
+  "owner.js", "book.html", "book.js", "landing.mp4", "landing-vertical.mp4",
+  "manifest.json", "sw.js"
+];
+
+for (const file of filesToCopy) {
   fs.copyFileSync(file, path.join(publicDir, file));
 }
 
-fs.mkdirSync(path.join(publicDir, "policies"), { recursive: true });
-fs.copyFileSync(path.join("policies", "all-policies-combined.md"), path.join(publicDir, "policies", "all-policies-combined.md"));
+// Copy subfolders
+const foldersToCopy = ["checkout", "confirmation", "bookings", "profile", "images", "policies"];
+for (const folder of foldersToCopy) {
+  const srcFolder = path.join(process.cwd(), folder);
+  const destFolder = path.join(publicDir, folder);
+  if (fs.existsSync(srcFolder)) {
+    fs.cpSync(srcFolder, destFolder, { recursive: true });
+  }
+}
 
 fs.writeFileSync(
   path.join(publicDir, "supabase-config.js"),

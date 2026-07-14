@@ -54,7 +54,7 @@ module.exports = async function handler(req, res) {
 
     // Clean filename
     const safeName = filename.replace(/[^a-z0-9.-]/gi, "_");
-    const path = `public/images/rooms/${Date.now()}-${safeName}`;
+    const path = `images/rooms/${Date.now()}-${safeName}`;
 
     // 3. Upload to GitHub via REST API
     const ghResponse = await fetch(`https://api.github.com/repos/kandregulaashok15-gif/StayAtMaredumilli/contents/${path}`, {
@@ -77,7 +77,7 @@ module.exports = async function handler(req, res) {
     }
 
     // 4. Return relative local path
-    const relativeUrl = `/images/rooms/${path.split("public/images/rooms/")[1]}`;
+    const relativeUrl = `/images/rooms/${path.split("images/rooms/")[1]}`;
     return res.status(200).json({ url: relativeUrl });
   } catch (err) {
     console.error("Upload error handler:", err);

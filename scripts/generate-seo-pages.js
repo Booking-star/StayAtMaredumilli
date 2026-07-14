@@ -8,13 +8,21 @@ const PUBLIC = path.join(ROOT, "public");
 loadEnv();
 
 function loadEnv() {
-  const envPath = path.join(ROOT, ".env");
-  if (!fs.existsSync(envPath)) return;
-  for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const [key, ...parts] = trimmed.split("=");
-    if (key && parts.length && !process.env[key]) process.env[key.trim()] = parts.join("=").trim();
+  for (const file of [".env", ".env.local"]) {
+    const envPath = path.join(ROOT, file);
+    if (!fs.existsSync(envPath)) continue;
+    for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const [key, ...parts] = trimmed.split("=");
+      if (key && parts.length) {
+        let val = parts.join("=").trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        process.env[key.trim()] = val;
+      }
+    }
   }
 }
 
