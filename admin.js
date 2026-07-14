@@ -359,6 +359,15 @@ function updateBlockHint() {
 function renderAdminBlocks() {
   if (!adminBlockList) return;
   const blocks = allBookings.filter(b => b.status === "offline_blocked");
+  
+  // Sort descending so newest blocks are always on top
+  blocks.sort((a, b) => b.check_in.localeCompare(a.check_in));
+
+  const countSpan = document.querySelector("#adminBlockCount");
+  if (countSpan) {
+    countSpan.textContent = blocks.length ? `(${blocks.length} total)` : "(0)";
+  }
+
   adminBlockList.innerHTML = blocks.length ? blocks.map(b => `
     <article class="admin-block-item">
       <div>

@@ -226,8 +226,39 @@
               }
             }
           </style>
-          <h4 class="admin-subhead">Current offline blocks</h4>
-          <div id="adminBlockList" class="admin-room-list"></div>
+          <h4 class="admin-subhead" style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center;">
+            Current offline blocks
+            <span style="font-size: 12px; font-weight: 500; color: var(--muted);" id="adminBlockCount"></span>
+          </h4>
+          <div style="max-height: 280px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: #fafafa;">
+            <div id="adminBlockList" class="admin-room-list"></div>
+          </div>
+
+          <style>
+            #adminBlockList .admin-block-item {
+              padding: 10px 14px !important;
+              background: #fff !important;
+              border: 1px solid #e2e8f0 !important;
+              border-radius: 6px !important;
+              box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+            }
+            #adminBlockList .admin-block-item strong {
+              font-size: 14px !important;
+              color: var(--text) !important;
+            }
+            #adminBlockList .admin-block-item p {
+              font-size: 12px !important;
+              color: var(--muted) !important;
+              margin: 2px 0 0 !important;
+            }
+            #adminBlockList .admin-block-item .ghost-btn {
+              padding: 4px 10px !important;
+              font-size: 12px !important;
+              height: 28px !important;
+              min-height: 28px !important;
+              border-radius: 4px !important;
+            }
+          </style>
         </section>
       </div>
 
