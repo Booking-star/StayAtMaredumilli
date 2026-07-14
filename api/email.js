@@ -183,13 +183,20 @@ async function claimBookingEmail(bookingId) {
   }
 }
 
-async function roomSummary(roomId) {
-  if (!roomId) return "Booked room";
-  const rows = await supabaseFetch(
-    `rooms_public?id=eq.${encodeURIComponent(roomId)}&select=room_name,room_type&limit=1`
+async function roomDetails(roomId) {
+  if (!roomId) return { hotelName: "Booked stay", roomType: "", ownerName: "Not assigned" };
+  const privateRows = await supabaseFetch(
+    `rooms_with_owner_policy?id=eq.${encodeURIComponent(roomId)}&select=*&limit=1`
   ).catch(() => []);
-  const room = rows?.[0];
-  return [room?.room_name, room?.room_type].filter(Boolean).join(" - ") || "Booked room";
+  const publicRows = privateRows?.length ? [] : await supabaseFetch(
+    `rooms_public?id=eq.${encodeURIComponent(roomId)}&select=*&limit=1`
+  ).catch(() => []);
+  const room = privateRows?.[0] || publicRows?.[0] || {};
+  return {
+    hotelName: room.hotel_name || room.room_name || "Booked stay",
+    roomType: room.room_type || "",
+    ownerName: room.owner_name || "Not assigned"
+  };
 }
 
 async function markBookingEmailSent(bookingId) {
@@ -201,24 +208,30 @@ async function markBookingEmailSent(bookingId) {
   }).catch(error => console.warn("Booking email marker update failed:", error.message));
 }
 
-function customerEmailText({ bookingId, hold, paymentId, roomLabel }) {
+function customerEmailText({ bookingId, hold, paymentId, room }) {
   const balance = Math.max(Number(hold.total_price || 0) - Number(hold.payable_amount || 0), 0);
   return [
     `Hi ${hold.customer_name || "Guest"},`,
     "",
     "Your Stay@Maredumilli booking is confirmed.",
     "",
-    `Booking Ref: ${bookingRef(bookingId)}`,
-    `Room: ${roomLabel}`,
-    `Dates: ${hold.check_in} to ${hold.check_out}`,
+    "Stay Details",
+    `Check-in: ${hold.check_in}`,
+    `Check-out: ${hold.check_out}`,
+    `Rooms booked: ${hold.num_rooms || 1}`,
+    `Hotel name: ${room.hotelName}`,
+    `Room type: ${room.roomType || "Room"}`,
     `Guests: ${hold.num_adults || 0} adult(s), ${hold.num_kids || 0} kid(s)`,
-    `Rooms: ${hold.num_rooms || 1}`,
-    `Total: ${rupees(hold.total_price)}`,
+    "",
+    "Payment Details",
+    `Booking Ref: ${bookingRef(bookingId)}`,
+    `Total amount: ${rupees(hold.total_price)}`,
     `Paid now: ${rupees(hold.payable_amount)}`,
     `Balance to be paid during check-in: ${rupees(balance)}`,
     paymentId ? `Payment ID: ${paymentId}` : "",
     "",
-    "Important:",
+    "Check-in Note",
+    "Please show this booking confirmation during check-in.",
     "No cancellations and no refunds.",
     `Website: ${WEBSITE_URL}`,
     "",
@@ -229,47 +242,88 @@ function customerEmailText({ bookingId, hold, paymentId, roomLabel }) {
   ].filter(Boolean).join("\n");
 }
 
-function adminEmailText({ bookingId, hold, paymentId, roomLabel }) {
+function adminEmailText({ bookingId, hold, paymentId, room }) {
   const balance = Math.max(Number(hold.total_price || 0) - Number(hold.payable_amount || 0), 0);
   return [
     "New confirmed booking on Stay@Maredumilli.",
     "",
-    `Booking Ref: ${bookingRef(bookingId)}`,
-    `Booking ID: ${bookingId || ""}`,
-    `Room: ${roomLabel}`,
-    `Dates: ${hold.check_in} to ${hold.check_out}`,
-    `Rooms: ${hold.num_rooms || 1}`,
-    `Adults/Kids: ${hold.num_adults || 0}/${hold.num_kids || 0}`,
+    "Booking Summary",
+    `Check-in: ${hold.check_in}`,
+    `Check-out: ${hold.check_out}`,
+    `Rooms booked: ${hold.num_rooms || 1}`,
+    `Hotel name: ${room.hotelName}`,
+    `Hotel owner name: ${room.ownerName}`,
     "",
+    "Guest Details",
     `Customer: ${hold.customer_name || ""}`,
     `Phone: ${hold.customer_phone || ""}`,
     `Email: ${hold.customer_email || ""}`,
+    `Guests: ${hold.num_adults || 0} adult(s), ${hold.num_kids || 0} kid(s)`,
+    `Booking Ref: ${bookingRef(bookingId)}`,
+    paymentId ? `Payment ID: ${paymentId}` : "",
     "",
+    "Payment Details",
     `Total: ${rupees(hold.total_price)}`,
     `Advance paid: ${rupees(hold.payable_amount)}`,
     `Balance to be paid during check-in: ${rupees(balance)}`,
+    "",
+    "Important",
+    "No cancellations and no refunds.",
     `Website: ${WEBSITE_URL}`,
-    paymentId ? `Payment ID: ${paymentId}` : ""
+    `Support: ${SUPPORT_PHONE} | ${SUPPORT_EMAIL}`
   ].filter(Boolean).join("\n");
 }
 
-function bookingEmailHtml({ title, intro, bookingId, hold, paymentId, roomLabel, admin = false }) {
+function detailTable(rows) {
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #ece7dd;border-radius:10px;overflow:hidden;margin-bottom:16px;">
+    ${rows.map(([label, value], index) => `
+      <tr style="background:${index % 2 ? "#ffffff" : "#fbfaf7"};">
+        <td style="padding:12px 14px;border-bottom:1px solid #ece7dd;color:#65717c;font-size:13px;width:38%;">${escapeHtml(label)}</td>
+        <td style="padding:12px 14px;border-bottom:1px solid #ece7dd;font-size:14px;font-weight:600;">${escapeHtml(value)}</td>
+      </tr>`).join("")}
+  </table>`;
+}
+
+function bookingEmailHtml({ title, intro, bookingId, hold, paymentId, room, admin = false }) {
   const balance = Math.max(Number(hold.total_price || 0) - Number(hold.payable_amount || 0), 0);
-  const rows = [
-    ["Booking Ref", bookingRef(bookingId)],
-    admin ? ["Booking ID", bookingId || ""] : null,
-    ["Room", roomLabel],
-    ["Dates", `${hold.check_in} to ${hold.check_out}`],
-    ["Rooms", hold.num_rooms || 1],
-    ["Guests", `${hold.num_adults || 0} adult(s), ${hold.num_kids || 0} kid(s)`],
-    admin ? ["Customer", hold.customer_name || ""] : null,
-    admin ? ["Phone", hold.customer_phone || ""] : null,
-    admin ? ["Email", hold.customer_email || ""] : null,
-    ["Total", rupees(hold.total_price)],
-    ["Paid now", rupees(hold.payable_amount)],
-    ["Balance to be paid during check-in", rupees(balance)],
-    paymentId ? ["Payment ID", paymentId] : null
-  ].filter(Boolean);
+  const sections = admin ? [
+    ["Booking Summary", [
+      ["Check-in", hold.check_in],
+      ["Check-out", hold.check_out],
+      ["Rooms booked", hold.num_rooms || 1],
+      ["Hotel name", room.hotelName],
+      ["Hotel owner name", room.ownerName]
+    ]],
+    ["Guest Details", [
+      ["Customer", hold.customer_name || ""],
+      ["Phone", hold.customer_phone || ""],
+      ["Email", hold.customer_email || ""],
+      ["Guests", `${hold.num_adults || 0} adult(s), ${hold.num_kids || 0} kid(s)`],
+      ["Booking Ref", bookingRef(bookingId)],
+      paymentId ? ["Payment ID", paymentId] : null
+    ].filter(Boolean)],
+    ["Payment Details", [
+      ["Total", rupees(hold.total_price)],
+      ["Paid now", rupees(hold.payable_amount)],
+      ["Balance to be paid during check-in", rupees(balance)]
+    ]]
+  ] : [
+    ["Stay Details", [
+      ["Check-in", hold.check_in],
+      ["Check-out", hold.check_out],
+      ["Rooms booked", hold.num_rooms || 1],
+      ["Hotel name", room.hotelName],
+      ["Room type", room.roomType || "Room"],
+      ["Guests", `${hold.num_adults || 0} adult(s), ${hold.num_kids || 0} kid(s)`]
+    ]],
+    ["Payment Details", [
+      ["Booking Ref", bookingRef(bookingId)],
+      ["Total amount", rupees(hold.total_price)],
+      ["Paid now", rupees(hold.payable_amount)],
+      ["Balance to be paid during check-in", rupees(balance)],
+      paymentId ? ["Payment ID", paymentId] : null
+    ].filter(Boolean)]
+  ];
   return `<!doctype html>
 <html>
   <body style="margin:0;background:#f5f3ee;font-family:Arial,Helvetica,sans-serif;color:#1f2933;">
@@ -286,17 +340,15 @@ function bookingEmailHtml({ title, intro, bookingId, hold, paymentId, roomLabel,
             <tr>
               <td style="padding:24px;">
                 <p style="margin:0 0 18px;font-size:16px;line-height:1.55;">${escapeHtml(intro)}</p>
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #ece7dd;border-radius:10px;overflow:hidden;">
-                  ${rows.map(([label, value], index) => `
-                    <tr style="background:${index % 2 ? "#ffffff" : "#fbfaf7"};">
-                      <td style="padding:12px 14px;border-bottom:1px solid #ece7dd;color:#65717c;font-size:13px;width:38%;">${escapeHtml(label)}</td>
-                      <td style="padding:12px 14px;border-bottom:1px solid #ece7dd;font-size:14px;font-weight:600;">${escapeHtml(value)}</td>
-                    </tr>`).join("")}
-                </table>
+                ${sections.map(([heading, rows]) => `
+                  <h2 style="margin:18px 0 8px;font-size:16px;color:#1f2933;">${escapeHtml(heading)}</h2>
+                  ${detailTable(rows)}
+                `).join("")}
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:18px;background:#fbfaf7;border:1px solid #ece7dd;border-radius:10px;">
                   <tr>
                     <td style="padding:14px;color:#65717c;font-size:13px;line-height:1.6;">
-                      <strong style="color:#1f2933;">Important</strong><br>
+                      <strong style="color:#1f2933;">${admin ? "Important" : "Check-in Note"}</strong><br>
+                      ${admin ? "" : "Please show this booking confirmation during check-in.<br>"}
                       No cancellations and no refunds.<br>
                       Website: <a href="${WEBSITE_URL}" style="color:#164e3b;text-decoration:none;">${WEBSITE_URL}</a><br>
                       Support: ${escapeHtml(SUPPORT_PHONE)} | ${escapeHtml(SUPPORT_EMAIL)}
@@ -321,34 +373,34 @@ async function sendBookingEmailsOnce({ bookingId, hold, paymentId }) {
   if (!hold) return;
   const claimed = await claimBookingEmail(bookingId);
   if (!claimed) return;
-  const roomLabel = await roomSummary(hold.room_id);
+  const room = await roomDetails(hold.room_id);
   const adminRecipients = [process.env.SMTP_USER || BOOKING_EMAIL];
   const subject = `Booking confirmed - ${bookingRef(bookingId)}`;
   const results = await Promise.allSettled([
     sendMail({
       to: hold.customer_email,
       subject,
-      text: customerEmailText({ bookingId, hold, paymentId, roomLabel }),
+      text: customerEmailText({ bookingId, hold, paymentId, room }),
       html: bookingEmailHtml({
         title: "Booking Confirmed",
         intro: `Hi ${hold.customer_name || "Guest"}, your Stay@Maredumilli booking is confirmed.`,
         bookingId,
         hold,
         paymentId,
-        roomLabel
+        room
       })
     }),
     sendMail({
       to: adminRecipients,
       subject: `New booking - ${bookingRef(bookingId)}`,
-      text: adminEmailText({ bookingId, hold, paymentId, roomLabel }),
+      text: adminEmailText({ bookingId, hold, paymentId, room }),
       html: bookingEmailHtml({
         title: "New Confirmed Booking",
         intro: "A new booking has been confirmed on Stay@Maredumilli.",
         bookingId,
         hold,
         paymentId,
-        roomLabel,
+        room,
         admin: true
       })
     })
