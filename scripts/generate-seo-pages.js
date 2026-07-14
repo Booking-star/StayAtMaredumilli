@@ -55,12 +55,7 @@ function uniqueSlugs(rooms) {
 }
 
 function description(room) {
-  const parts = [
-    room.special_attention,
-    `${room.room_type || "Room"} stay in Maredumilli`,
-    room.amenities?.length ? `Amenities: ${room.amenities.slice(0, 5).join(", ")}` : ""
-  ].filter(Boolean).join(". ");
-  return parts.slice(0, 155);
+  return String(room.special_attention || `${room.room_type || "Room"} stay in Maredumilli`).slice(0, 155);
 }
 
 function image(room) {
