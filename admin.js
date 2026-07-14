@@ -300,15 +300,17 @@ adminRoomForm.addEventListener("submit", async event => {
   setStatus("Saving room and uploading images...");
   let imageUrls = [];
   try {
-    const uploadPromises = currentRoomImages.map(async (img, idx) => {
+    const resolved = [];
+    let idx = 0;
+    for (const img of currentRoomImages) {
       if (img.file) {
         const uploadedUrl = await uploadRoomImage(img.file);
-        return { url: uploadedUrl, order: img.order ?? (idx + 1) };
+        resolved.push({ url: uploadedUrl, order: img.order ?? (idx + 1) });
       } else {
-        return { url: img.url, order: img.order ?? (idx + 1) };
+        resolved.push({ url: img.url, order: img.order ?? (idx + 1) });
       }
-    });
-    const resolved = await Promise.all(uploadPromises);
+      idx++;
+    }
     imageUrls = resolved
       .sort((a, b) => {
         const orderA = typeof a.order === "number" && !isNaN(a.order) ? a.order : 999999;
