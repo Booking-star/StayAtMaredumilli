@@ -105,8 +105,8 @@
             </div>
           </div>
 
-          <div class="admin-calendar-scroll" style="overflow-x: auto; padding-bottom: 8px;">
-            <div id="adminCalendarGrid" class="calendar-month-view-grid" style="min-width: 600px;">
+          <div class="admin-calendar-scroll" style="padding-bottom: 8px;">
+            <div id="adminCalendarGrid" class="calendar-month-view-grid">
               <!-- Dynamically populated monthly grid -->
             </div>
           </div>
@@ -115,7 +115,8 @@
             .calendar-month-view-grid {
               display: grid;
               grid-template-columns: repeat(7, 1fr);
-              gap: 8px;
+              gap: 6px;
+              width: 100%;
             }
             .cal-day-header {
               text-align: center;
@@ -185,6 +186,9 @@
               padding: 2px 4px;
               border-radius: 4px;
               margin-top: 4px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
             .cal-day-cell.vacant .cal-day-status {
               color: #2e7d32;
@@ -194,6 +198,31 @@
             }
             .cal-day-cell.past .cal-day-status {
               color: var(--muted);
+            }
+            
+            @media (max-width: 768px) {
+              .cal-day-header {
+                font-size: 10px;
+                padding: 4px 0;
+              }
+              .cal-day-cell {
+                min-height: 48px;
+                padding: 4px;
+                gap: 2px;
+              }
+              .cal-day-num {
+                font-size: 11px;
+              }
+              .cal-day-cell.today .cal-day-num {
+                width: 18px;
+                height: 18px;
+                font-size: 10px;
+              }
+              .cal-day-status {
+                font-size: 9px;
+                margin-top: 2px;
+                padding: 1px;
+              }
             }
           </style>
           <h4 class="admin-subhead">Current offline blocks</h4>
