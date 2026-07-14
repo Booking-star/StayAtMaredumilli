@@ -192,10 +192,11 @@ async function refreshBookings() {
 
   if (bookingsError) {
     console.error(bookingsError.message);
-    return;
+    allBookings = [];
   }
-
-  allBookings = bookings || [];
+  else {
+    allBookings = bookings || [];
+  }
 
   const { data: occupancy, error: occupancyError } = await supabaseClient
     .from("booking_occupancy")
