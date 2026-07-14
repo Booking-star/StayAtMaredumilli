@@ -7,14 +7,14 @@
   <meta name="description" content="Stay@Maredumilli super admin dashboard for rooms, owners, bookings, pricing, payments, and sales.">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=admin-save-3">
+  <link rel="stylesheet" href="styles.css?v=admin-inventory-layout-1">
   <link rel="manifest" href="manifest.json">
   <script src="https://unpkg.com/lucide@1.24.0/dist/umd/lucide.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="supabase-config.js" defer></script>
   <script src="shared.js?v=utils-3" defer></script>
   <script src="admin-ui.js?v=admin-ui-3" defer></script>
-  <script src="admin.js?v=admin-calendar-2" defer></script>
+  <script src="admin.js?v=admin-calendar-3" defer></script>
   <script src="admin-settings.js?v=admin-settings-2" defer></script>
 </head>
 <body>
@@ -107,7 +107,12 @@
           </section>
         </form>
         <section class="panel">
-          <h3>Block rooms</h3>
+          <div class="admin-section-head">
+            <div>
+              <h3>Availability calendar</h3>
+              <p>Choose a hotel, enter rooms to block, then tap a date. Tap blocked dates to release offline blocks.</p>
+            </div>
+          </div>
           <form id="adminBlockForm" class="admin-block-form hidden">
             <label>Hotel / room
               <select id="adminBlockRoom" required></select>
@@ -135,15 +140,21 @@
               <input id="adminCalendarRooms" type="text" inputmode="numeric" pattern="[0-9]*" value="1">
             </label>
           </div>
-          <div style="overflow-x: auto; margin-bottom: 18px;">
+          <div class="admin-calendar-scroll">
             <div id="adminCalendarGrid" class="calendar-grid">
               <div style="padding: 24px; text-align: center; color: var(--muted);">Loading calendar grid...</div>
             </div>
           </div>
+          <h4 class="admin-subhead">Current offline blocks</h4>
           <div id="adminBlockList" class="admin-room-list"></div>
         </section>
         <section class="panel">
-          <h3>Saved rooms</h3>
+          <div class="admin-section-head">
+            <div>
+              <h3>Saved hotels / rooms</h3>
+              <p>Edit prices, photos, owner mapping, and room details.</p>
+            </div>
+          </div>
           <div id="adminRoomList" class="admin-room-list"></div>
         </section>
       </div>

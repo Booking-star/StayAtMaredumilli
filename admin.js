@@ -240,6 +240,7 @@ function renderAdminCalendar() {
     });
   });
   adminCalendarGrid.innerHTML = html;
+  adminCalendarGrid.parentElement.scrollLeft = 0;
 }
 
 function availableForBlock(room, from, to) {
@@ -269,7 +270,7 @@ function renderAdminBlocks() {
   if (!adminBlockList) return;
   const blocks = allBookings.filter(b => b.status === "offline_blocked");
   adminBlockList.innerHTML = blocks.length ? blocks.map(b => `
-    <article class="admin-room-item">
+    <article class="admin-block-item">
       <div>
         <strong>${escapeHtml(b.hotel_name || b.room_name || "Blocked room")}</strong>
         <p>${escapeHtml(b.check_in)} to ${escapeHtml(b.check_out)} &middot; ${escapeHtml(b.num_rooms)} room(s)</p>
@@ -460,8 +461,10 @@ adminUnblockBtn?.addEventListener("click", async () => {
 
 adminCalendarHotel?.addEventListener("change", renderAdminCalendar);
 adminCalendarRooms?.addEventListener("input", () => {
-  const value = Math.max(1, Number(adminCalendarRooms.value || 1));
-  adminCalendarRooms.value = String(value);
+  adminCalendarRooms.value = adminCalendarRooms.value.replace(/\D/g, "");
+});
+adminCalendarRooms?.addEventListener("blur", () => {
+  if (!adminCalendarRooms.value) adminCalendarRooms.value = "1";
 });
 
 adminCalendarGrid?.addEventListener("click", async event => {
@@ -474,6 +477,7 @@ adminCalendarGrid?.addEventListener("click", async event => {
   if (adminBlockFrom) adminBlockFrom.value = checkIn;
   if (adminBlockTo) adminBlockTo.value = checkOut;
   const roomsToBlock = Math.max(1, Number(adminCalendarRooms?.value || 1));
+  if (adminCalendarRooms) adminCalendarRooms.value = String(roomsToBlock);
   if (adminBlockRooms) adminBlockRooms.value = String(roomsToBlock);
   updateBlockHint();
 

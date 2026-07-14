@@ -659,6 +659,23 @@ h3 { margin-bottom: 10px; }
   color: var(--muted);
   font-size: 13px;
 }
+
+.admin-block-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fff;
+}
+
+.admin-block-item p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
 .admin-actions {
   display: flex;
   gap: 8px;
@@ -674,11 +691,11 @@ h3 { margin-bottom: 10px; }
 .admin-block-form label { margin: 0; }
 
 .admin-calendar-tools {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(190px, 260px) minmax(120px, 180px);
   gap: 12px;
   margin: 14px 0;
   align-items: end;
-  flex-wrap: wrap;
 }
 
 .admin-calendar-tools label {
@@ -686,6 +703,22 @@ h3 { margin-bottom: 10px; }
   font-size: 13px;
   font-weight: 700;
   color: var(--muted);
+}
+
+.admin-calendar-scroll {
+  overflow-x: auto;
+  margin-bottom: 18px;
+  padding-bottom: 2px;
+}
+
+#adminCalendarGrid {
+  grid-template-columns: minmax(118px, 150px) repeat(10, minmax(62px, 1fr));
+  min-width: 740px;
+}
+
+.admin-subhead {
+  margin: 18px 0 10px;
+  font-size: 16px;
 }
 .admin-section-head {
   display: flex;
@@ -1260,6 +1293,12 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
   .page-head { display: grid; }
   .section-title { align-items: start; }
   .booking-summary { display: none; }
+  .admin-calendar-tools {
+    grid-template-columns: 1fr 1fr;
+  }
+  .admin-block-item {
+    grid-template-columns: 1fr auto;
+  }
   .room-card {
     margin-left: 0;
     margin-right: 0;
