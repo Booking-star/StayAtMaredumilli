@@ -58,7 +58,7 @@ module.exports = async function handler(req, res) {
     const path = `public/images/rooms/${Date.now()}-${safeName}`;
 
     // 3. Upload to GitHub via REST API
-    const ghResponse = await fetch(`https://api.github.com/repos/Booking-star/StayAtMaredumilli/contents/${path}`, {
+    const ghResponse = await fetch(`https://api.github.com/repos/kandregulaashok15-gif/StayAtMaredumilli/contents/${path}`, {
       method: "PUT",
       headers: {
         "Authorization": `token ${githubToken}`,
