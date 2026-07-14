@@ -14,7 +14,7 @@
   <script src="supabase-config.js" defer></script>
   <script src="shared.js?v=utils-3" defer></script>
   <script src="admin-ui.js?v=admin-ui-3" defer></script>
-  <script src="admin.js?v=room-save-3" defer></script>
+  <script src="admin.js?v=admin-calendar-1" defer></script>
   <script src="admin-settings.js?v=admin-settings-2" defer></script>
 </head>
 <body>
@@ -127,6 +127,16 @@
             </div>
             <p id="adminBlockHint" class="muted-line"></p>
           </form>
+          <div class="admin-calendar-tools">
+            <label>Calendar hotel
+              <select id="adminCalendarHotel"></select>
+            </label>
+          </div>
+          <div style="overflow-x: auto; margin-bottom: 18px;">
+            <div id="adminCalendarGrid" class="calendar-grid">
+              <div style="padding: 24px; text-align: center; color: var(--muted);">Loading calendar grid...</div>
+            </div>
+          </div>
           <div id="adminBlockList" class="admin-room-list"></div>
         </section>
         <section class="panel">

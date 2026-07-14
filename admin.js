@@ -16,6 +16,8 @@ const adminBlockTo = document.querySelector("#adminBlockTo");
 const adminBlockRooms = document.querySelector("#adminBlockRooms");
 const adminBlockHint = document.querySelector("#adminBlockHint");
 const adminBlockList = document.querySelector("#adminBlockList");
+const adminCalendarHotel = document.querySelector("#adminCalendarHotel");
+const adminCalendarGrid = document.querySelector("#adminCalendarGrid");
 const supabaseConfig = window.STAY_SUPABASE || {};
 
 const supabaseClient = supabaseConfig.url && supabaseConfig.anonKey && window.supabase
@@ -177,6 +179,66 @@ function renderBlockRoomOptions() {
   if (!adminBlockRoom) return;
   adminBlockRoom.innerHTML = ownerRooms.map(room => `<option value="${escapeHtml(room.id)}">${escapeHtml(room.room_name)} - ${escapeHtml(room.room_type)}</option>`).join("");
   updateBlockHint();
+  renderAdminCalendarHotelOptions();
+  renderAdminCalendar();
+}
+
+function adminHotelKey(room) {
+  return room.owner_id ? `owner:${room.owner_id}` : `room:${room.id}`;
+}
+
+function renderAdminCalendarHotelOptions() {
+  if (!adminCalendarHotel) return;
+  const selected = adminCalendarHotel.value;
+  const hotels = [];
+  const seen = new Set();
+  ownerRooms.forEach(room => {
+    const key = adminHotelKey(room);
+    if (seen.has(key)) return;
+    seen.add(key);
+    hotels.push({ key, label: room.hotel_name || room.room_name || "Hotel" });
+  });
+  adminCalendarHotel.innerHTML = hotels.map(h => `<option value="${escapeHtml(h.key)}">${escapeHtml(h.label)}</option>`).join("");
+  if (hotels.some(h => h.key === selected)) adminCalendarHotel.value = selected;
+}
+
+function next10LocalDates() {
+  const dates = [];
+  for (let i = 0; i < 10; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    dates.push(getLocalDateString(d));
+  }
+  return dates;
+}
+
+function renderAdminCalendar() {
+  if (!adminCalendarGrid) return;
+  const key = adminCalendarHotel?.value || (ownerRooms[0] ? adminHotelKey(ownerRooms[0]) : "");
+  const rooms = ownerRooms.filter(room => adminHotelKey(room) === key);
+  if (!rooms.length) {
+    adminCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--muted); grid-column: 1 / span 11;">No rooms available for calendar.</div>`;
+    return;
+  }
+
+  const dates = next10LocalDates();
+  let html = `<div class="calendar-header-cell" style="font-weight: 700; color: var(--accent); display: flex; align-items: center; justify-content: center;">Rooms</div>`;
+  dates.forEach(dateStr => {
+    const d = new Date(`${dateStr}T00:00:00`);
+    html += `<div class="calendar-header-cell"><span class="day-num">${d.getDate()}</span><span class="day-name">${d.toLocaleDateString("en-IN", { weekday: "short" })}</span></div>`;
+  });
+
+  rooms.forEach(room => {
+    html += `<div class="calendar-room-cell"><span class="room-name">${escapeHtml(room.room_name)}</span><span class="room-type">${escapeHtml(room.room_type)} (${escapeHtml(room.available_rooms)} Room${room.available_rooms > 1 ? "s" : ""})</span></div>`;
+    dates.forEach(dateStr => {
+      const booked = allOccupancy
+        .filter(b => String(b.room_id) === String(room.id) && b.check_in <= dateStr && b.check_out > dateStr)
+        .reduce((sum, b) => sum + Number(b.num_rooms || 1), 0);
+      const remaining = Math.max(0, Number(room.available_rooms || 0) - booked);
+      html += `<button class="calendar-day-cell ${remaining > 0 ? "vacant" : "blocked"}" type="button" data-admin-room="${escapeHtml(room.id)}" data-admin-date="${dateStr}" data-admin-remaining="${remaining}"><span class="status-text">${remaining > 0 ? "Vacant" : "Full"}</span><span class="count-text">${remaining > 0 ? `${remaining} Free` : "Blocked"}</span></button>`;
+    });
+  });
+  adminCalendarGrid.innerHTML = html;
 }
 
 function availableForBlock(room, from, to) {
@@ -216,6 +278,7 @@ function renderAdminBlocks() {
       </div>
     </article>
   `).join("") : `<p class="muted-line">No blocked rooms right now.</p>`;
+  renderAdminCalendar();
 }
 
 adminRoomForm.addEventListener("submit", async event => {
@@ -331,6 +394,7 @@ async function blockRoomFromAdmin(roomId, checkIn, checkOut, rooms) {
   await loadSales();
   await loadOccupancy();
   updateBlockHint();
+  renderAdminCalendar();
   notifyAdmin("Room blocked for the selected dates.");
 }
 
@@ -382,6 +446,7 @@ adminUnblockBtn?.addEventListener("click", async () => {
   await loadSales();
   await loadOccupancy();
   updateBlockHint();
+  renderAdminCalendar();
   notifyAdmin(`Released ${idsToDelete.length} offline block(s) for ${hotelName}.`);
 });
 
@@ -390,6 +455,35 @@ adminUnblockBtn?.addEventListener("click", async () => {
     if (input === adminBlockFrom && adminBlockFrom.value) adminBlockTo.value = nextDate(adminBlockFrom.value);
     updateBlockHint();
   });
+});
+
+adminCalendarHotel?.addEventListener("change", renderAdminCalendar);
+
+adminCalendarGrid?.addEventListener("click", async event => {
+  const cell = event.target.closest("[data-admin-room]");
+  if (!cell) return;
+  const roomId = cell.dataset.adminRoom;
+  const checkIn = cell.dataset.adminDate;
+  const checkOut = nextDate(checkIn);
+  if (adminBlockRoom) adminBlockRoom.value = roomId;
+  if (adminBlockFrom) adminBlockFrom.value = checkIn;
+  if (adminBlockTo) adminBlockTo.value = checkOut;
+  if (adminBlockRooms) adminBlockRooms.value = "1";
+  updateBlockHint();
+
+  if (Number(cell.dataset.adminRemaining || 0) > 0) {
+    await blockRoomFromAdmin(roomId, checkIn, checkOut, 1);
+    return;
+  }
+
+  const block = allBookings.find(b =>
+    b.status === "offline_blocked" &&
+    String(b.room_id) === String(roomId) &&
+    b.check_in <= checkIn &&
+    b.check_out > checkIn
+  );
+  if (block) await releaseBlockedRoom(block.id);
+  else notifyAdmin("This date is full from customer bookings, not an offline block.", true);
 });
 
 function editRoom(id) {
@@ -882,6 +976,7 @@ async function loadOccupancy() {
   }
   allOccupancy = data || [];
   updateBlockHint();
+  renderAdminCalendar();
 }
 
 async function loadCustomers() {
