@@ -76,9 +76,10 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: `GitHub API upload failed: ${ghResponse.status} ${errText}` });
     }
 
-    // 4. Return relative local path
-    const relativeUrl = `/images/rooms/${path.split("images/rooms/")[1]}`;
-    return res.status(200).json({ url: relativeUrl });
+    // 4. Return absolute jsDelivr CDN path
+    const filename = path.split("images/rooms/")[1];
+    const cdnUrl = `https://cdn.jsdelivr.net/gh/kandregulaashok15-gif/StayAtMaredumilli/images/rooms/${filename}`;
+    return res.status(200).json({ url: cdnUrl });
   } catch (err) {
     console.error("Upload error handler:", err);
     return res.status(500).json({ error: err.message });
