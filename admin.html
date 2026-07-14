@@ -85,12 +85,23 @@
             </div>
             <p id="adminBlockHint" class="muted-line"></p>
           </form>
-          <div class="admin-calendar-tools">
-            <label>Calendar hotel
-              <select id="adminCalendarHotel"></select>
+          <div class="admin-calendar-tools" style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; margin: 14px 0;">
+            <label style="margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">Calendar hotel
+              <select id="adminCalendarHotel" style="height: 38px; border: 1px solid var(--border); border-radius: 6px; padding: 0 12px; font-size: 14px; background: #fff;"></select>
             </label>
-            <label>Rooms to block
-              <input id="adminCalendarRooms" type="text" inputmode="numeric" pattern="[0-9]*" value="1">
+            <label style="margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">Start Date
+              <input id="adminCalendarStart" type="date" style="height: 38px; border: 1px solid var(--border); border-radius: 6px; padding: 0 12px; font-size: 14px;">
+            </label>
+            <label style="margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">Range
+              <select id="adminCalendarRange" style="height: 38px; border: 1px solid var(--border); border-radius: 6px; padding: 0 12px; font-size: 14px; background: #fff;">
+                <option value="10">10 Days</option>
+                <option value="30" selected>30 Days</option>
+                <option value="60">2 Months (60 Days)</option>
+                <option value="90">3 Months (90 Days)</option>
+              </select>
+            </label>
+            <label style="margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">Rooms to block
+              <input id="adminCalendarRooms" type="text" inputmode="numeric" pattern="[0-9]*" value="1" style="height: 38px; border: 1px solid var(--border); border-radius: 6px; padding: 0 12px; font-size: 14px;">
             </label>
           </div>
           <div class="admin-calendar-scroll">

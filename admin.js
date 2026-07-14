@@ -214,9 +214,20 @@ function renderAdminCalendarHotelOptions() {
 }
 
 function next10LocalDates() {
+  const startInput = document.querySelector("#adminCalendarStart");
+  const rangeSelect = document.querySelector("#adminCalendarRange");
+  
+  let startDate = new Date();
+  if (startInput && startInput.value) {
+    startDate = new Date(`${startInput.value}T00:00:00`);
+  } else if (startInput) {
+    startInput.value = getLocalDateString(startDate);
+  }
+  
+  const range = rangeSelect ? Number(rangeSelect.value) : 30;
   const dates = [];
-  for (let i = 0; i < 10; i++) {
-    const d = new Date();
+  for (let i = 0; i < range; i++) {
+    const d = new Date(startDate);
     d.setDate(d.getDate() + i);
     dates.push(getLocalDateString(d));
   }
@@ -227,12 +238,23 @@ function renderAdminCalendar() {
   if (!adminCalendarGrid) return;
   const key = adminCalendarHotel?.value || (ownerRooms[0] ? adminHotelKey(ownerRooms[0]) : "");
   const rooms = ownerRooms.filter(room => adminHotelKey(room) === key);
-  if (!rooms.length) {
-    adminCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--muted); grid-column: 1 / span 11;">No rooms available for calendar.</div>`;
-    return;
+  
+  const startInput = document.querySelector("#adminCalendarStart");
+  if (startInput && !startInput.value) {
+    startInput.value = getLocalDateString(new Date());
   }
 
   const dates = next10LocalDates();
+
+  if (!rooms.length) {
+    adminCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--muted); grid-column: 1 / -1;">No rooms available for calendar.</div>`;
+    return;
+  }
+
+  // Dynamically set columns and minimum width
+  adminCalendarGrid.style.gridTemplateColumns = `minmax(118px, 150px) repeat(${dates.length}, minmax(62px, 1fr))`;
+  adminCalendarGrid.style.minWidth = `${150 + dates.length * 62}px`;
+
   let html = `<div class="calendar-header-cell" style="font-weight: 700; color: var(--accent); display: flex; align-items: center; justify-content: center;">Rooms</div>`;
   dates.forEach(dateStr => {
     const d = new Date(`${dateStr}T00:00:00`);
@@ -472,6 +494,8 @@ adminUnblockBtn?.addEventListener("click", async () => {
 });
 
 adminCalendarHotel?.addEventListener("change", renderAdminCalendar);
+document.querySelector("#adminCalendarStart")?.addEventListener("change", renderAdminCalendar);
+document.querySelector("#adminCalendarRange")?.addEventListener("change", renderAdminCalendar);
 adminCalendarRooms?.addEventListener("input", () => {
   adminCalendarRooms.value = adminCalendarRooms.value.replace(/\D/g, "");
 });

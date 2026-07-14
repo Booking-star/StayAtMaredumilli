@@ -273,11 +273,25 @@ function calculateStats() {
   if (statFutureBookings) statFutureBookings.textContent = futureCount;
 }
 
-// Generate next 10 days in local time
+// Generate days list in local time
 function getNext10Days() {
+  const startInput = document.querySelector("#ownerCalendarStart");
+  const rangeSelect = document.querySelector("#ownerCalendarRange");
+  
+  let startDate = new Date();
+  if (startInput && startInput.value) {
+    startDate = new Date(`${startInput.value}T00:00:00`);
+  } else if (startInput) {
+    const year = startDate.getFullYear();
+    const month = String(startDate.getMonth() + 1).padStart(2, '0');
+    const day = String(startDate.getDate()).padStart(2, '0');
+    startInput.value = `${year}-${month}-${day}`;
+  }
+  
+  const range = rangeSelect ? Number(rangeSelect.value) : 30;
   const dates = [];
-  for (let i = 0; i < 10; i++) {
-    const d = new Date();
+  for (let i = 0; i < range; i++) {
+    const d = new Date(startDate);
     d.setDate(d.getDate() + i);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -290,21 +304,35 @@ function getNext10Days() {
 // Render the visual Room Calendar Grid
 function renderCalendarGrid() {
   if (!ownerCalendarGrid) return;
-  if (ownerLoadError) {
-    ownerCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--danger); grid-column: 1 / span 11;">${escapeHtml(ownerLoadError)}</div>`;
-    return;
-  }
-  if (ownerRooms.length === 0) {
-    ownerCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--muted); grid-column: 1 / span 11;">No rooms assigned to your account.</div>`;
-    return;
+  
+  const startInput = document.querySelector("#ownerCalendarStart");
+  if (startInput && !startInput.value) {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    startInput.value = `${year}-${month}-${day}`;
   }
 
   const dates = getNext10Days();
 
+  if (ownerLoadError) {
+    ownerCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--danger); grid-column: 1 / -1;">${escapeHtml(ownerLoadError)}</div>`;
+    return;
+  }
+  if (ownerRooms.length === 0) {
+    ownerCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--muted); grid-column: 1 / -1;">No rooms assigned to your account.</div>`;
+    return;
+  }
+
+  // Dynamically set columns and minimum width
+  ownerCalendarGrid.style.gridTemplateColumns = `minmax(140px, 180px) repeat(${dates.length}, minmax(70px, 1fr))`;
+  ownerCalendarGrid.style.minWidth = `${180 + dates.length * 70}px`;
+
   // 1. Build Header HTML
   let headerHtml = `<div class="calendar-header-cell" style="font-weight: 700; color: var(--accent); display: flex; align-items: center; justify-content: center;">Rooms</div>`;
   dates.forEach(dateStr => {
-    const d = new Date(dateStr);
+    const d = new Date(`${dateStr}T00:00:00`);
     const dayName = d.toLocaleDateString("en-IN", { weekday: "short" });
     const dayNum = d.getDate();
     headerHtml += `
@@ -362,6 +390,9 @@ function renderCalendarGrid() {
     });
   });
 }
+
+document.querySelector("#ownerCalendarStart")?.addEventListener("change", renderCalendarGrid);
+document.querySelector("#ownerCalendarRange")?.addEventListener("change", renderCalendarGrid);
 
 // Render dynamic booking cards
 function renderBookings() {
