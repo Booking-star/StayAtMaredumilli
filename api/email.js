@@ -225,8 +225,7 @@ async function sendBookingEmailsOnce({ bookingId, hold, paymentId }) {
   const claimed = await claimBookingEmail(bookingId);
   if (!claimed) return;
   const roomLabel = await roomSummary(hold.room_id);
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || BOOKING_EMAIL;
-  const adminRecipients = [...new Set([adminEmail, process.env.SMTP_USER].filter(Boolean))];
+  const adminRecipients = [process.env.SMTP_USER || BOOKING_EMAIL];
   const subject = `Booking confirmed - ${bookingRef(bookingId)}`;
   const results = await Promise.allSettled([
     sendMail({
