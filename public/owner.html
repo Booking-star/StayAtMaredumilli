@@ -13,7 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="supabase-config.js" defer></script>
   <script src="shared.js?v=utils-1" defer></script>
-  <script src="owner.js?v=owner-grid-fallback" defer></script>
+  <script src="owner.js?v=owner-booking-filter-1" defer></script>
 </head>
 <body>
   <main class="app admin-app">
@@ -86,6 +86,11 @@
             <button id="tabCurrent" class="ghost-btn active-tab" style="padding: 6px 12px; font-size: 13px; font-weight: 700; border-radius: 6px;" type="button">Next 3 Days</button>
             <button id="tabFuture" class="ghost-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 700; border-radius: 6px;" type="button">Future</button>
             <button id="tabPast" class="ghost-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 700; border-radius: 6px;" type="button">Past Sales</button>
+            <select id="ownerBookingTypeFilter" aria-label="Filter bookings" style="padding: 6px 12px; font-size: 13px; font-weight: 700; border-radius: 6px; border: 1px solid var(--border); background: #fff;">
+              <option value="all">All</option>
+              <option value="online">Online</option>
+              <option value="offline">Offline</option>
+            </select>
           </div>
         </div>
         

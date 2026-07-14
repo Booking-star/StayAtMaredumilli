@@ -51,6 +51,7 @@ const modalBookingRooms = document.querySelector("#modalBookingRooms");
 const tabCurrent = document.querySelector("#tabCurrent");
 const tabFuture = document.querySelector("#tabFuture");
 const tabPast = document.querySelector("#tabPast");
+const ownerBookingTypeFilter = document.querySelector("#ownerBookingTypeFilter");
 
 const btnCustomBlock = document.querySelector("#btnCustomBlock");
 const modalStaticRoomRow = document.querySelector("#modalStaticRoomRow");
@@ -73,6 +74,7 @@ let ownerRooms = [];
 let allBookings = [];
 let allOccupancy = [];
 let activeTab = "current"; // "current", "future", "past"
+let activeBookingType = "all";
 let isCustomBlockMode = false;
 let ownerLoadError = "";
 let ownerBookingsError = "";
@@ -192,7 +194,7 @@ async function refreshBookings() {
   }
 
   // Fetch bookings for this owner's rooms
-  const { data: bookings, error: bookingsError } = await supabaseClient
+  let { data: bookings, error: bookingsError } = await supabaseClient
     .from("owner_bookings")
     .select("id,room_id,check_in,check_out,num_rooms,num_adults,num_kids,total_price,owner_amount,status,payment_option,created_at")
     .in("room_id", roomIds)
@@ -200,11 +202,21 @@ async function refreshBookings() {
     .order("check_in", { ascending: true });
 
   if (bookingsError) {
+    const fallback = await supabaseClient
+      .from("bookings")
+      .select("id,room_id,check_in,check_out,num_rooms,num_adults,num_kids,total_price,owner_amount,status,payment_option,created_at")
+      .in("room_id", roomIds)
+      .neq("status", "cancelled")
+      .order("check_in", { ascending: true });
+    bookings = fallback.data;
+    bookingsError = fallback.error;
+  }
+
+  if (bookingsError) {
     console.error(bookingsError.message);
     ownerBookingsError = ownerFriendlyError(bookingsError.message);
     allBookings = [];
-  }
-  else {
+  } else {
     ownerBookingsError = "";
     allBookings = bookings || [];
   }
@@ -376,6 +388,12 @@ function renderBookings() {
     filtered = allBookings.filter(b => b.check_out < todayStr);
   }
 
+  if (activeBookingType === "offline") {
+    filtered = filtered.filter(b => b.status === "offline_blocked");
+  } else if (activeBookingType === "online") {
+    filtered = filtered.filter(b => b.status !== "offline_blocked");
+  }
+
   if (filtered.length === 0) {
     bookingsCardsContainer.innerHTML = `
       ${activeTab === "past" ? `
@@ -467,6 +485,11 @@ function renderBookings() {
     });
   });
 }
+
+ownerBookingTypeFilter?.addEventListener("change", () => {
+  activeBookingType = ownerBookingTypeFilter.value || "all";
+  renderBookings();
+});
 
 // Cancel or release booking logic
 async function cancelOrReleaseBooking(bookingId) {

@@ -18,6 +18,7 @@ const adminBlockHint = document.querySelector("#adminBlockHint");
 const adminBlockList = document.querySelector("#adminBlockList");
 const adminCalendarHotel = document.querySelector("#adminCalendarHotel");
 const adminCalendarGrid = document.querySelector("#adminCalendarGrid");
+const adminCalendarRooms = document.querySelector("#adminCalendarRooms");
 const supabaseConfig = window.STAY_SUPABASE || {};
 
 const supabaseClient = supabaseConfig.url && supabaseConfig.anonKey && window.supabase
@@ -458,6 +459,10 @@ adminUnblockBtn?.addEventListener("click", async () => {
 });
 
 adminCalendarHotel?.addEventListener("change", renderAdminCalendar);
+adminCalendarRooms?.addEventListener("input", () => {
+  const value = Math.max(1, Number(adminCalendarRooms.value || 1));
+  adminCalendarRooms.value = String(value);
+});
 
 adminCalendarGrid?.addEventListener("click", async event => {
   const cell = event.target.closest("[data-admin-room]");
@@ -468,11 +473,12 @@ adminCalendarGrid?.addEventListener("click", async event => {
   if (adminBlockRoom) adminBlockRoom.value = roomId;
   if (adminBlockFrom) adminBlockFrom.value = checkIn;
   if (adminBlockTo) adminBlockTo.value = checkOut;
-  if (adminBlockRooms) adminBlockRooms.value = "1";
+  const roomsToBlock = Math.max(1, Number(adminCalendarRooms?.value || 1));
+  if (adminBlockRooms) adminBlockRooms.value = String(roomsToBlock);
   updateBlockHint();
 
   if (Number(cell.dataset.adminRemaining || 0) > 0) {
-    await blockRoomFromAdmin(roomId, checkIn, checkOut, 1);
+    await blockRoomFromAdmin(roomId, checkIn, checkOut, roomsToBlock);
     return;
   }
 

@@ -14,7 +14,7 @@
   <script src="supabase-config.js" defer></script>
   <script src="shared.js?v=utils-3" defer></script>
   <script src="admin-ui.js?v=admin-ui-3" defer></script>
-  <script src="admin.js?v=admin-calendar-1" defer></script>
+  <script src="admin.js?v=admin-calendar-2" defer></script>
   <script src="admin-settings.js?v=admin-settings-2" defer></script>
 </head>
 <body>
@@ -108,7 +108,7 @@
         </form>
         <section class="panel">
           <h3>Block rooms</h3>
-          <form id="adminBlockForm" class="admin-block-form">
+          <form id="adminBlockForm" class="admin-block-form hidden">
             <label>Hotel / room
               <select id="adminBlockRoom" required></select>
             </label>
@@ -130,6 +130,9 @@
           <div class="admin-calendar-tools">
             <label>Calendar hotel
               <select id="adminCalendarHotel"></select>
+            </label>
+            <label>Rooms to block
+              <input id="adminCalendarRooms" type="text" inputmode="numeric" pattern="[0-9]*" value="1">
             </label>
           </div>
           <div style="overflow-x: auto; margin-bottom: 18px;">
