@@ -370,6 +370,12 @@ async function startRazorpayPayment(order, details, roomObj, pricing) {
     return Boolean(response?.ok);
   };
   return new Promise((resolve, reject) => {
+    if (typeof Razorpay === "undefined") {
+      return reject(new Error("Razorpay payment gateway failed to load. Please check your internet connection or disable ad-blockers, then refresh and try again."));
+    }
+    if (order.key_id?.startsWith("rzp_live_") && location.protocol !== "https:") {
+      return reject(new Error("Razorpay live mode payments require a secure HTTPS connection. Please switch to Test Mode in your admin settings for local testing or deploy to Vercel."));
+    }
     const checkout = new Razorpay({
       key: order.key_id,
       amount: order.amount * 100,
@@ -616,7 +622,15 @@ async function handleCheckoutFormSubmit(event) {
   
   const guestName = bookingName.value.trim();
   const guestPhone = normalizePhone(bookingPhone.value);
-  const guestEmail = bookingEmail.value.trim();
+  let guestEmail = bookingEmail.value.trim();
+  if (!guestEmail && supabaseClient) {
+    const sessionData = await supabaseClient.auth.getSession().catch(() => null);
+    guestEmail = sessionData?.data?.session?.user?.email || profile?.email || "";
+    if (guestEmail) {
+      bookingEmail.value = guestEmail;
+    }
+  }
+
   const manualMode = paymentSettings.mode !== "razorpay" && paymentSettings.mode !== "mock";
   const screenshotFile = paymentScreenshotInput?.files?.[0] || null;
   
