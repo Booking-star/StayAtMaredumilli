@@ -8,6 +8,10 @@ function smtpConfigured() {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 }
 
+function headerAddress(name, email) {
+  return `"${String(name || "").replace(/["\\]/g, "")}" <${email}>`;
+}
+
 function rupees(value) {
   return `Rs.${Number(value || 0).toLocaleString("en-IN")}`;
 }
@@ -79,9 +83,10 @@ async function sendMail({ to, subject, text }) {
       await smtpCommand(socket, `MAIL FROM:<${user}>`, [250]);
       await smtpCommand(socket, `RCPT TO:<${recipient}>`, [250, 251]);
       await smtpCommand(socket, "DATA", [354]);
-      const messageId = `<${Date.now()}.${Math.random().toString(16).slice(2)}@stayatmaredumilli.com>`;
+      const messageIdDomain = String(user).split("@")[1] || "stayatmaredumilli.com";
+      const messageId = `<${Date.now()}.${Math.random().toString(16).slice(2)}@${messageIdDomain}>`;
       socket.write([
-        `From: Stay@Maredumilli <${user}>`,
+        `From: ${headerAddress("Stay@Maredumilli", user)}`,
         `To: ${recipient}`,
         `Reply-To: ${SUPPORT_EMAIL}`,
         `Subject: ${subject}`,
