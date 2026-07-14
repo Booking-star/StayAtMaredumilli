@@ -35,6 +35,30 @@ async function userFromReq(req) {
   return response.ok ? response.json() : null;
 }
 
+async function createConfirmedUser({ email, password, name }) {
+  const { url, key } = env();
+  const response = await fetch(`${url}/auth/v1/admin/users`, {
+    method: "POST",
+    signal: AbortSignal.timeout(15000),
+    headers: {
+      apikey: key,
+      authorization: `Bearer ${key}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { name }
+    })
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.msg || data?.message || data?.error || "Team login could not be created.");
+  const created = data?.user || data;
+  if (!created?.id) throw new Error("Team login could not be created.");
+  return created;
+}
+
 async function maybe(path, options, fallback = []) {
   try {
     return await sb(path, options);
@@ -100,6 +124,53 @@ async function loadMembers(current) {
     role: row.role,
     joined_at: row.joined_at
   }));
+}
+
+async function requireAdmin(user) {
+  const rows = await maybe(`profiles?id=eq.${encodeURIComponent(user.id)}&select=role&limit=1`, {}, []);
+  const profile = rows?.[0];
+  const allowed =
+    user.email === "admin@stayatmaredumilli.com" ||
+    user.email === "admin@staymaredumilli.com" ||
+    profile?.role === "admin";
+  if (!allowed) throw new Error("Super admin access only.");
+}
+
+function adminMemberInput(body = {}) {
+  const name = String(body.name || "").trim();
+  const email = String(body.email || "").trim().toLowerCase();
+  const password = String(body.password || "");
+  const hotelId = String(body.hotel_id || "").trim();
+  const role = body.role === "owner" ? "owner" : "member";
+  if (!name || !email || !password || !hotelId) throw new Error("Please fill all required team member details.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Please enter a valid email address.");
+  if (password.length < 6) throw new Error("Password must be at least 6 characters.");
+  return { name, email, password, hotelId, role };
+}
+
+async function adminCreateMember(user, body) {
+  await requireAdmin(user);
+  const input = adminMemberInput(body);
+  const hotelRows = await sb(`hotel_owners?id=eq.${encodeURIComponent(input.hotelId)}&active=eq.true&select=id&limit=1`);
+  if (!hotelRows?.[0]) throw new Error("Selected hotel is not available.");
+  const created = await createConfirmedUser(input);
+  await sb("profiles?on_conflict=id", {
+    method: "POST",
+    headers: { prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ id: created.id, role: "owner" })
+  });
+  await sb("hotel_members?on_conflict=hotel_id,user_id", {
+    method: "POST",
+    headers: { prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({
+      hotel_id: input.hotelId,
+      user_id: created.id,
+      role: input.role,
+      status: "active",
+      joined_at: new Date().toISOString()
+    })
+  });
+  return { user_id: created.id };
 }
 
 async function requireMembership(user, hotelId) {
@@ -208,6 +279,7 @@ module.exports = async function handler(req, res) {
       action === "context" ? await loadContext(user, body.hotel_id) :
       action === "generateInvite" ? await generateInvite(user, body.hotel_id) :
       action === "redeemInvite" ? await redeemInvite(user, String(body.code || "").trim()) :
+      action === "adminCreateMember" ? await adminCreateMember(user, body) :
       action === "createBlock" ? await createBlock(user, body) :
       action === "releaseBlock" ? await releaseBlock(user, body) :
       null;
@@ -220,6 +292,7 @@ module.exports = async function handler(req, res) {
 };
 
 function ownerError(message = "") {
-  if (/expired|already used|Only the owner|Only the creator|Room is not available/i.test(message)) return message;
+  if (/already|registered|exists/i.test(message)) return "This email already has a login. Use a new email for now.";
+  if (/expired|already used|Only the owner|Only the creator|Room is not available|Super admin|fill all|required|valid email|Password|Selected hotel/i.test(message)) return message;
   return "Operation failed. Please try again or contact support.";
 }

@@ -879,13 +879,14 @@ adminTeamForm?.addEventListener("submit", async event => {
   submitBtn.textContent = "Creating...";
   try {
     const token = await adminSessionToken();
-    const response = await fetch("/api/admin-team-member", {
+    const response = await fetch("/api/owner-team", {
       method: "POST",
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${token}`
       },
       body: JSON.stringify({
+        action: "adminCreateMember",
         name: adminTeamName.value.trim(),
         email: adminTeamEmail.value.trim(),
         password: adminTeamPassword.value,
