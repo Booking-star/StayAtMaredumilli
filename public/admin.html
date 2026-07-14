@@ -14,7 +14,7 @@
   <script src="supabase-config.js" defer></script>
   <script src="shared.js?v=utils-3" defer></script>
   <script src="admin-ui.js?v=admin-ui-3" defer></script>
-  <script src="admin.js?v=admin-calendar-4" defer></script>
+  <script src="admin.js?v=admin-team-1" defer></script>
   <script src="admin-settings.js?v=admin-settings-2" defer></script>
 </head>
 <body>
@@ -45,6 +45,7 @@
           <option value="inventory">Hotel Inventory</option>
           <option value="hotels">Saved Hotels</option>
           <option value="owners">Hotel Owners</option>
+          <option value="team">Team Members</option>
           <option value="sales">Sales Report</option>
           <option value="customers">Customers</option>
           <option value="pricing">Dynamic Pricing</option>
@@ -192,6 +193,35 @@
         <section class="panel">
           <h3>Registered Owners</h3>
           <div id="adminOwnerList" class="admin-room-list"></div>
+        </section>
+      </div>
+
+      <!-- Tab Content: Team Members -->
+      <div id="contentTeam" class="hidden">
+        <section class="panel">
+          <h3>Create Team Login</h3>
+          <p class="muted-line">Create a login for hotel staff or family and connect it to the selected hotel.</p>
+          <form id="adminTeamForm" class="form-grid">
+            <label>Team Member Name <input id="adminTeamName" required placeholder="Staff name"></label>
+            <label>Username / Email <input id="adminTeamEmail" type="email" required placeholder="staff@example.com" autocomplete="username"></label>
+            <label>Password <input id="adminTeamPassword" type="password" required placeholder="Password" autocomplete="new-password"></label>
+            <label>Hotel
+              <select id="adminTeamHotel" required></select>
+            </label>
+            <label>Access Role
+              <select id="adminTeamRole" required>
+                <option value="member">Team member</option>
+                <option value="owner">Owner access</option>
+              </select>
+            </label>
+            <div style="display: flex; align-items: end; justify-content: flex-end;">
+              <button class="primary-btn" type="submit" style="height: 42px;">Create Team Login</button>
+            </div>
+          </form>
+        </section>
+        <section class="panel">
+          <h3>Hotel Team Access</h3>
+          <div id="adminTeamList" class="team-list"></div>
         </section>
       </div>
 

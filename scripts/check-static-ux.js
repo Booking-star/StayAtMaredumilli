@@ -23,6 +23,7 @@ const manualBooking = read("api/manual-booking.js");
 const logClientError = read("api/log-client-error.js");
 const whatsappWebhook = read("api/whatsapp-webhook.js");
 const ownerTeamApi = fs.existsSync("api/owner-team.js") ? read("api/owner-team.js") : "";
+const adminTeamApi = fs.existsSync("api/admin-team-member.js") ? read("api/admin-team-member.js") : "";
 const seo = read("scripts/generate-seo-pages.js");
 const vercel = read("vercel.json");
 const visibleRuntime = app + book + admin + owner + read("admin-settings.js") + read("login.html");
@@ -51,7 +52,8 @@ const visibleRuntime = app + book + admin + owner + read("admin-settings.js") + 
   "api/manual-booking.js",
   "api/log-client-error.js",
   "api/whatsapp-webhook.js",
-  "api/owner-team.js"
+  "api/owner-team.js",
+  "api/admin-team-member.js"
 ].forEach(file => execFileSync(process.execPath, ["--check", file], { stdio: "pipe" }));
 
 if ((index.match(/terms-of-service/g) || []).length !== 1) fail("Terms link should appear once on home/profile.");
@@ -75,6 +77,8 @@ if (!shared.includes("function showActionError") || !shared.includes("unhandledr
 if (!read("admin-ui.js").includes("cleanAdminMessage") || !read("admin-ui.js").includes("vercel|github|environment")) fail("Admin status must mask raw backend permission errors.");
 if (!owner.includes("ownerFriendlyError") || !owner.includes("vercel|github|environment")) fail("Owner status must mask raw backend permission errors.");
 if (/alert\([^)]*error\.message|innerHTML\s*=[^;]*error\.message/.test(admin + owner)) fail("Admin/owner UI must not show raw backend errors.");
+if (!admin.includes("/api/admin-team-member") || !adminTeamApi.includes("/auth/v1/admin/users") || !adminTeamApi.includes("hotel_members")) fail("Super admin must be able to create team logins and hotel access.");
+if (!read("login.html").includes('.from("hotel_members")')) fail("Team members must be able to sign in to the owner portal.");
 if (admin.includes("Successfully registered") || admin.includes("Successfully updated owner")) fail("Admin owner save must use inline status, not blocking alerts.");
 if (!admin.includes('submitBtn.textContent = editingOwnerId ? "Update Owner" : "Register Owner"')) fail("Owner save button must reset after success or failure.");
 if (!admin.includes("Please fill all required room details") || !admin.includes("Please fill all required owner details")) fail("Admin forms must show validation feedback.");

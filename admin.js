@@ -38,6 +38,7 @@ const adminOwnerList = document.querySelector("#adminOwnerList");
 const contentInventory = document.querySelector("#contentInventory");
 const contentHotels = document.querySelector("#contentHotels");
 const contentOwners = document.querySelector("#contentOwners");
+const contentTeam = document.querySelector("#contentTeam");
 const contentSales = document.querySelector("#contentSales");
 const contentCustomers = document.querySelector("#contentCustomers");
 const contentPricing = document.querySelector("#contentPricing");
@@ -64,6 +65,13 @@ const adminOwnerAltPhone = document.querySelector("#adminOwnerAltPhone");
 const adminOwnerEmail = document.querySelector("#adminOwnerEmail");
 const adminOwnerPassword = document.querySelector("#adminOwnerPassword");
 const adminOwnerWeekendPolicy = document.querySelector("#adminOwnerWeekendPolicy");
+const adminTeamForm = document.querySelector("#adminTeamForm");
+const adminTeamName = document.querySelector("#adminTeamName");
+const adminTeamEmail = document.querySelector("#adminTeamEmail");
+const adminTeamPassword = document.querySelector("#adminTeamPassword");
+const adminTeamHotel = document.querySelector("#adminTeamHotel");
+const adminTeamRole = document.querySelector("#adminTeamRole");
+const adminTeamList = document.querySelector("#adminTeamList");
 
 const adminWeekdayOwnerPrice = document.querySelector("#adminWeekdayOwnerPrice");
 const adminWeekendOwnerPrice = document.querySelector("#adminWeekendOwnerPrice");
@@ -87,6 +95,7 @@ function addDays(date, days) {
 
 let ownerRooms = [];
 let hotelOwners = [];
+let hotelTeamMembers = [];
 let allBookings = [];
 let allOccupancy = [];
 let upcomingBookings = [];
@@ -677,6 +686,7 @@ function showAdminSection(section) {
     inventory: { content: contentInventory },
     hotels: { content: contentHotels },
     owners: { content: contentOwners, load: loadOwners },
+    team: { content: contentTeam, load: loadTeamMembers },
     sales: { content: contentSales, load: loadSales },
     customers: { content: contentCustomers, load: loadCustomers },
     pricing: { content: contentPricing, load: loadPricingSettings },
@@ -751,6 +761,9 @@ function setupRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "hotel_owners" }, () => {
       loadOwners();
     })
+    .on("postgres_changes", { event: "*", schema: "public", table: "hotel_members" }, () => {
+      if (!contentTeam?.classList.contains("hidden")) loadTeamMembers();
+    })
     .subscribe();
 }
 
@@ -808,6 +821,96 @@ function populateOwnerDropdown() {
     hotelOwners.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.hotel_name || o.owner_name)} (${escapeHtml(o.owner_name)})</option>`).join("");
   adminRoomOwner.value = selected;
 }
+
+function populateTeamHotelDropdown() {
+  if (!adminTeamHotel) return;
+  const selected = adminTeamHotel.value;
+  adminTeamHotel.innerHTML = hotelOwners.length
+    ? hotelOwners.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.hotel_name || o.owner_name)} (${escapeHtml(o.owner_name || "Owner")})</option>`).join("")
+    : `<option value="">No hotels available</option>`;
+  if (selected && hotelOwners.some(o => String(o.id) === selected)) adminTeamHotel.value = selected;
+}
+
+function hotelNameForTeam(hotelId) {
+  const owner = hotelOwners.find(o => String(o.id) === String(hotelId));
+  return owner?.hotel_name || owner?.owner_name || "Hotel";
+}
+
+async function loadTeamMembers() {
+  if (!supabaseClient || !adminTeamList) return;
+  if (!hotelOwners.length) await loadOwners();
+  populateTeamHotelDropdown();
+  const { data, error } = await supabaseClient
+    .from("hotel_members")
+    .select("id,hotel_id,user_id,role,status,joined_at,invited_at")
+    .order("invited_at", { ascending: false });
+  if (error) {
+    adminTeamList.innerHTML = `<p class="muted-line">Team access could not be loaded right now.</p>`;
+    notifyAdmin("Team access could not be loaded.", true);
+    return;
+  }
+  hotelTeamMembers = data || [];
+  renderTeamMembers();
+}
+
+function renderTeamMembers() {
+  if (!adminTeamList) return;
+  adminTeamList.innerHTML = hotelTeamMembers.length ? hotelTeamMembers.map(member => `
+    <article class="team-member-row">
+      <div>
+        <strong>${escapeHtml(hotelNameForTeam(member.hotel_id))}</strong>
+        <p>${escapeHtml(member.role === "owner" ? "Owner access" : "Team member")} &middot; ${escapeHtml(member.status || "active")} &middot; ${escapeHtml(member.user_id)}</p>
+      </div>
+      <span class="status-badge">${escapeHtml(member.joined_at ? "Active" : "Pending")}</span>
+    </article>
+  `).join("") : `<p class="muted-line">No team members added yet.</p>`;
+}
+
+async function adminSessionToken() {
+  const { data } = await supabaseClient.auth.getSession();
+  return data?.session?.access_token || "";
+}
+
+adminTeamForm?.addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!supabaseClient) return;
+  const submitBtn = adminTeamForm.querySelector("button[type='submit']");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Creating...";
+  try {
+    const token = await adminSessionToken();
+    const response = await fetch("/api/admin-team-member", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        name: adminTeamName.value.trim(),
+        email: adminTeamEmail.value.trim(),
+        password: adminTeamPassword.value,
+        hotel_id: adminTeamHotel.value,
+        role: adminTeamRole.value
+      })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "Team member could not be created.");
+    notifyAdmin("Team login created and connected to hotel.");
+    adminTeamForm.reset();
+    populateTeamHotelDropdown();
+    await loadTeamMembers();
+  } catch (error) {
+    notifyAdmin(error.message || "Team member could not be created.", true);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Create Team Login";
+  }
+});
+
+adminTeamForm?.addEventListener("invalid", event => {
+  notifyAdmin("Please fill all required team member details before saving.", true);
+  event.target.focus();
+}, true);
 
 // Handle owner form submit (create Auth user OR update existing profile + auth credentials)
 if (adminOwnerForm) {
