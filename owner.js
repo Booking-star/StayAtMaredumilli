@@ -74,6 +74,7 @@ let allBookings = [];
 let allOccupancy = [];
 let activeTab = "current"; // "current", "future", "past"
 let isCustomBlockMode = false;
+let ownerLoadError = "";
 
 // Stepper values
 let nightsCount = 1;
@@ -137,16 +138,31 @@ async function loadOwnerData(userId) {
   if (ownerGreeting) ownerGreeting.textContent = `Welcome back, ${currentOwner.owner_name}`;
 
   // 2. Fetch Rooms
-  const { data: rooms, error: roomsError } = await supabaseClient
+  let { data: rooms, error: roomsError } = await supabaseClient
     .from("rooms_with_owner_policy")
     .select("*")
     .eq("owner_id", userId)
     .eq("active", true);
 
   if (roomsError) {
+    const fallback = await supabaseClient
+      .from("rooms")
+      .select("*")
+      .eq("owner_id", userId)
+      .eq("active", true);
+    rooms = fallback.data;
+    roomsError = fallback.error;
+  }
+
+  if (roomsError) {
     console.error(roomsError.message);
+    ownerLoadError = ownerFriendlyError(roomsError.message);
+    ownerRooms = [];
+    renderCalendarGrid();
+    renderBookings();
     return;
   }
+  ownerLoadError = "";
   ownerRooms = rooms || [];
 
   // 3. Fetch Bookings & Render
@@ -247,6 +263,10 @@ function getNext10Days() {
 // Render the visual Room Calendar Grid
 function renderCalendarGrid() {
   if (!ownerCalendarGrid) return;
+  if (ownerLoadError) {
+    ownerCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--danger); grid-column: 1 / span 11;">${escapeHtml(ownerLoadError)}</div>`;
+    return;
+  }
   if (ownerRooms.length === 0) {
     ownerCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--muted); grid-column: 1 / span 11;">No rooms assigned to your account.</div>`;
     return;
