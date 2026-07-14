@@ -1,16 +1,22 @@
 const fs = require("fs");
 const path = require("path");
 
-// Load local .env file if it exists
-const envPath = path.join(process.cwd(), ".env");
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, "utf8");
-  for (const line of envContent.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const [key, ...valueParts] = trimmed.split("=");
-    if (key && valueParts.length) {
-      process.env[key.trim()] = valueParts.join("=").trim();
+// Load local .env or .env.local files if they exist
+for (const file of [".env", ".env.local"]) {
+  const envPath = path.join(process.cwd(), file);
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, "utf8");
+    for (const line of envContent.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const [key, ...valueParts] = trimmed.split("=");
+      if (key && valueParts.length) {
+        let val = valueParts.join("=").trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        process.env[key.trim()] = val;
+      }
     }
   }
 }
