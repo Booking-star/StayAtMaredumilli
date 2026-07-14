@@ -157,7 +157,7 @@ function writeHotel(room) {
   const body = `<main class="hotel-detail-page" data-room-id="${escapeHtml(room.id)}">
     <nav class="hotel-detail-nav">
       <a class="wordmark" href="/" aria-label="Stay@Maredumilli home"><img class="brand-logo" src="/brand-logo.png" alt="" aria-hidden="true"><span>Stay@Maredumilli</span></a>
-      <a class="ghost-btn" href="/hotels">All hotels</a>
+      <a class="ghost-btn" href="/">All hotels</a>
     </nav>
     <section class="hotel-detail-hero">
       <div class="hotel-detail-carousel">
