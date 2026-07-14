@@ -22,6 +22,7 @@ const paymentSettings = read("api/payment-settings.js");
 const manualBooking = read("api/manual-booking.js");
 const logClientError = read("api/log-client-error.js");
 const whatsappWebhook = read("api/whatsapp-webhook.js");
+const ownerTeamApi = fs.existsSync("api/owner-team.js") ? read("api/owner-team.js") : "";
 const seo = read("scripts/generate-seo-pages.js");
 const vercel = read("vercel.json");
 const visibleRuntime = app + book + admin + owner + read("admin-settings.js") + read("login.html");
@@ -49,7 +50,8 @@ const visibleRuntime = app + book + admin + owner + read("admin-settings.js") + 
   "api/payment-settings.js",
   "api/manual-booking.js",
   "api/log-client-error.js",
-  "api/whatsapp-webhook.js"
+  "api/whatsapp-webhook.js",
+  "api/owner-team.js"
 ].forEach(file => execFileSync(process.execPath, ["--check", file], { stdio: "pipe" }));
 
 if ((index.match(/terms-of-service/g) || []).length !== 1) fail("Terms link should appear once on home/profile.");
@@ -82,7 +84,7 @@ if (/javascript:/i.test(index + app + book + read("book.html"))) fail("Customer 
 if (/type="number"/.test(index + read("book.html") + read("admin.html") + admin)) fail("Use text inputs with inputmode numeric instead of mobile-hostile number inputs.");
 if (/notifyAdmin\(`[^`]*\$\{error\.message\}/.test(read("admin-settings.js"))) fail("Admin settings must not show raw backend errors.");
 if (!admin.includes('.from("booking_occupancy")') || !admin.includes("allOccupancy")) fail("Admin availability must use shared occupancy, including live payment holds.");
-if (!owner.includes('.from("booking_occupancy")') || !owner.includes("allOccupancy")) fail("Owner availability must use shared occupancy, including live payment holds.");
+if ((!owner.includes('.from("booking_occupancy")') && !ownerTeamApi.includes("booking_occupancy")) || !owner.includes("allOccupancy")) fail("Owner availability must use shared occupancy, including live payment holds.");
 if (!owner.includes('table: "booking_holds"')) fail("Owner availability must refresh when payment holds change.");
 if (owner.includes("'Cancel Booking'") || !owner.includes("Customer bookings cannot be released")) fail("Owner panel must not allow releasing paid customer bookings.");
 if (!owner.includes('modalSubmitRelease.dataset.bookingId = ""') || !owner.includes("modalSubmitRelease.classList.add(\"hidden\")")) fail("Owner block modal must hide release action when creating a new block.");

@@ -52,6 +52,13 @@ const tabCurrent = document.querySelector("#tabCurrent");
 const tabFuture = document.querySelector("#tabFuture");
 const tabPast = document.querySelector("#tabPast");
 const ownerBookingTypeFilter = document.querySelector("#ownerBookingTypeFilter");
+const ownerHotelSwitcherPanel = document.querySelector("#ownerHotelSwitcherPanel");
+const ownerHotelSwitcher = document.querySelector("#ownerHotelSwitcher");
+const ownerInviteBtn = document.querySelector("#ownerInviteBtn");
+const ownerInviteResult = document.querySelector("#ownerInviteResult");
+const ownerJoinCode = document.querySelector("#ownerJoinCode");
+const ownerJoinBtn = document.querySelector("#ownerJoinBtn");
+const ownerTeamList = document.querySelector("#ownerTeamList");
 
 const btnCustomBlock = document.querySelector("#btnCustomBlock");
 const modalStaticRoomRow = document.querySelector("#modalStaticRoomRow");
@@ -70,6 +77,11 @@ const supabaseClient = supabaseConfig.url && supabaseConfig.anonKey && window.su
   : null;
 
 let currentOwner = null;
+let currentUserId = "";
+let currentMembership = null;
+let ownerMemberships = [];
+let ownerTeamMembers = [];
+let selectedHotelId = localStorage.getItem("stayOwnerHotelId") || "";
 let ownerRooms = [];
 let allBookings = [];
 let allOccupancy = [];
@@ -89,6 +101,23 @@ function withTimeout(promise, message = "Action is taking too long. Please try a
     promise,
     new Promise(resolve => setTimeout(() => resolve({ error: new Error(message) }), ms))
   ]).catch(error => ({ error }));
+}
+
+async function ownerApi(action, payload = {}) {
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  const token = sessionData?.session?.access_token;
+  if (!token) throw new Error("Please login again.");
+  const response = await fetch("/api/owner-team", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ action, hotel_id: selectedHotelId, ...payload })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "Operation failed. Please try again or contact support.");
+  return data;
 }
 
 // Helper to format currency
@@ -129,113 +158,87 @@ function showAuthScreen(showLogin) {
 // Load owner data
 async function loadOwnerData(userId) {
   if (!supabaseClient) return;
-  
-  // 1. Fetch Owner Profile
-  const { data: ownerProfile, error: profileError } = await supabaseClient
-    .from("hotel_owners")
-    .select("*")
-    .eq("id", userId)
-    .eq("active", true)
-    .single();
-
-  if (profileError || !ownerProfile) {
-    alert("Access Denied: You are not registered as a hotel owner. Please contact the administrator.");
-    await supabaseClient.auth.signOut();
-    return;
-  }
-
-  currentOwner = ownerProfile;
-  if (ownerGreeting) ownerGreeting.textContent = `Welcome back, ${currentOwner.owner_name}`;
-
-  // 2. Fetch Rooms
-  let { data: rooms, error: roomsError } = await supabaseClient
-    .from("rooms_with_owner_policy")
-    .select("*")
-    .eq("owner_id", userId)
-    .eq("active", true);
-
-  if (roomsError) {
-    const fallback = await supabaseClient
-      .from("rooms")
-      .select("*")
-      .eq("owner_id", userId)
-      .eq("active", true);
-    rooms = fallback.data;
-    roomsError = fallback.error;
-  }
-
-  if (roomsError) {
-    console.error(roomsError.message);
-    ownerLoadError = ownerFriendlyError(roomsError.message);
-    ownerRooms = [];
-    renderCalendarGrid();
-    renderBookings();
-    return;
-  }
-  ownerLoadError = "";
-  ownerRooms = rooms || [];
-
-  // 3. Fetch Bookings & Render
-  await refreshBookings();
+  currentUserId = userId;
+  await refreshOwnerContext();
 }
 
 async function refreshBookings() {
-  if (!supabaseClient || !currentOwner) return;
+  await refreshOwnerContext();
+}
 
-  const roomIds = ownerRooms.map(r => r.id);
-  if (roomIds.length === 0) {
+async function refreshOwnerContext() {
+  if (!supabaseClient) return;
+  try {
+    const data = await ownerApi("context", selectedHotelId ? { hotel_id: selectedHotelId } : {});
+    ownerMemberships = data.memberships || [];
+    currentMembership = data.current || null;
+    if (!currentMembership) {
+      alert("Access Denied: You are not connected to any hotel. Ask the owner for an invite code.");
+      ownerRooms = [];
+      allBookings = [];
+      allOccupancy = [];
+      renderHotelSwitcher();
+      renderTeamAccess();
+      renderCalendarGrid();
+      renderBookings();
+      return;
+    }
+    selectedHotelId = currentMembership.hotel_id;
+    localStorage.setItem("stayOwnerHotelId", selectedHotelId);
+    currentOwner = {
+      id: currentMembership.hotel_id,
+      owner_name: currentMembership.owner_name || currentMembership.hotel_name,
+      hotel_name: currentMembership.hotel_name
+    };
+    ownerRooms = data.rooms || [];
+    allBookings = data.bookings || [];
+    allOccupancy = data.occupancy || allBookings;
+    ownerTeamMembers = data.members || [];
+    ownerLoadError = "";
     ownerBookingsError = "";
-    allBookings = [];
-    allOccupancy = [];
+    if (ownerGreeting) ownerGreeting.textContent = `${currentMembership.hotel_name} (${currentMembership.role})`;
+    renderHotelSwitcher();
+    renderTeamAccess();
     calculateStats();
     renderCalendarGrid();
     renderBookings();
+  } catch (error) {
+    ownerLoadError = ownerFriendlyError(error.message);
+    renderCalendarGrid();
+    renderBookings();
+  }
+}
+
+function renderHotelSwitcher() {
+  if (!ownerHotelSwitcher || !ownerHotelSwitcherPanel) return;
+  ownerHotelSwitcherPanel.classList.toggle("hidden", ownerMemberships.length <= 1);
+  ownerHotelSwitcher.innerHTML = ownerMemberships.map(item => `
+    <option value="${escapeHtml(item.hotel_id)}">${escapeHtml(item.hotel_name)} (${escapeHtml(item.role)})</option>
+  `).join("");
+  ownerHotelSwitcher.value = selectedHotelId || ownerMemberships[0]?.hotel_id || "";
+}
+
+function renderTeamAccess() {
+  const isOwner = currentMembership?.role === "owner";
+  if (ownerInviteBtn) ownerInviteBtn.disabled = !isOwner;
+  if (!ownerTeamList) return;
+  if (!currentMembership) {
+    ownerTeamList.innerHTML = `<p class="muted-line">Enter an invite code to join a hotel.</p>`;
     return;
   }
-
-  // Fetch bookings for this owner's rooms
-  let { data: bookings, error: bookingsError } = await supabaseClient
-    .from("owner_bookings")
-    .select("id,room_id,check_in,check_out,num_rooms,num_adults,num_kids,total_price,owner_amount,status,payment_option,created_at")
-    .in("room_id", roomIds)
-    .neq("status", "cancelled")
-    .order("check_in", { ascending: true });
-
-  if (bookingsError) {
-    const fallback = await supabaseClient
-      .from("bookings")
-      .select("id,room_id,check_in,check_out,num_rooms,num_adults,num_kids,total_price,owner_amount,status,payment_option,created_at")
-      .in("room_id", roomIds)
-      .neq("status", "cancelled")
-      .order("check_in", { ascending: true });
-    bookings = fallback.data;
-    bookingsError = fallback.error;
+  if (!isOwner) {
+    ownerTeamList.innerHTML = `<p class="muted-line">You are a team member here. Owners manage team access.</p>`;
+    return;
   }
-
-  if (bookingsError) {
-    console.error(bookingsError.message);
-    ownerBookingsError = ownerFriendlyError(bookingsError.message);
-    allBookings = [];
-  } else {
-    ownerBookingsError = "";
-    allBookings = bookings || [];
-  }
-
-  const { data: occupancy, error: occupancyError } = await supabaseClient
-    .from("booking_occupancy")
-    .select("room_id,check_in,check_out,num_rooms,status")
-    .in("room_id", roomIds);
-
-  if (occupancyError) {
-    console.error(occupancyError.message);
-    allOccupancy = allBookings;
-  } else {
-    allOccupancy = occupancy || [];
-  }
-
-  calculateStats();
-  renderCalendarGrid();
-  renderBookings();
+  ownerTeamList.innerHTML = ownerTeamMembers.length ? ownerTeamMembers.map(member => `
+    <article class="team-member-row">
+      <div>
+        <strong>${escapeHtml(member.role === "owner" ? "Owner" : "Team member")}</strong>
+        <p>${escapeHtml(member.user_id)}${member.joined_at ? ` &middot; Joined ${escapeHtml(formatDate(member.joined_at))}` : ""}</p>
+      </div>
+      <span>${escapeHtml(member.status || "active")}</span>
+    </article>
+  `).join("") : `<p class="muted-line">No team members added yet.</p>`;
 }
 
 function calculateStats() {
@@ -448,6 +451,7 @@ function renderBookings() {
   const cardsHtml = filtered.map(booking => {
     const room = ownerRooms.find(r => r.id === booking.room_id) || {};
     const isOffline = booking.status === "offline_blocked";
+    const canRelease = isOffline && (currentMembership?.role === "owner" || String(booking.created_by || "") === String(currentUserId));
     
     // Calculate nights
     const diffTime = Math.abs(new Date(booking.check_out) - new Date(booking.check_in));
@@ -461,6 +465,7 @@ function renderBookings() {
         </div>
         <div class="booking-card-body">
           <p><strong>Booking:</strong> ${isOffline ? 'Offline block' : 'Customer booking'}</p>
+          ${booking.source ? `<p><strong>Source:</strong> ${escapeHtml(booking.source)}</p>` : ""}
           <p><strong>Guests:</strong> ${escapeHtml(booking.num_adults || 0)} adult(s), ${escapeHtml(booking.num_kids || 0)} kid(s)</p>
           <p><strong>Rooms:</strong> ${escapeHtml(booking.num_rooms)} Room(s)</p>
           <p><strong>Status:</strong> ${isOffline ? 'Offline Blocked' : 'Customer Confirmed'}</p>
@@ -468,7 +473,7 @@ function renderBookings() {
           ${isOffline ? '' : `<p><strong>Total Revenue:</strong> ${formatPrice(booking.total_price)}</p>`}
         </div>
         ${isOffline ? `<div class="booking-card-actions">
-          <button class="release-btn" data-cancel-id="${booking.id}">Release Room</button>
+          <button class="release-btn" data-cancel-id="${booking.id}" ${canRelease ? "" : "disabled"}>${canRelease ? "Release Room" : "Only creator/owner can release"}</button>
         </div>` : ""}
       </div>
     `;
@@ -503,20 +508,21 @@ async function cancelOrReleaseBooking(bookingId) {
     alert("Customer bookings cannot be released from the owner panel. Please contact Stay@Maredumilli support.");
     return;
   }
+  if (currentMembership?.role !== "owner" && String(booking.created_by || "") !== String(currentUserId)) {
+    alert("Only the creator or owner can release this block.");
+    return;
+  }
   const promptMsg = "Are you sure you want to release this offline room blockage?";
 
   if (!confirm(promptMsg)) return;
 
-  const { error } = await withTimeout(supabaseClient
-    .from("bookings")
-    .update({ status: "cancelled" })
-    .eq("id", bookingId), "Release is taking too long. Please try again.");
-
-  if (error) {
-    alert("Operation failed. Please try again or contact support.");
-  } else {
+  try {
+    await ownerApi("releaseBlock", { booking_id: bookingId });
     alert("Room blockage released!");
     await refreshBookings();
+  } catch (error) {
+    const message = ownerFriendlyError(error.message);
+    alert(message);
   }
 }
 
@@ -571,8 +577,11 @@ function openQuickModal(roomId, dateStr, remaining) {
       if (modalBookingDates) modalBookingDates.textContent = `${formatDate(booking.check_in)} to ${formatDate(booking.check_out)}`;
       if (modalBookingRooms) modalBookingRooms.textContent = `${booking.num_rooms} Room(s)`;
       if (modalSubmitRelease) {
+        const canRelease = currentMembership?.role === "owner" || String(booking.created_by || "") === String(currentUserId);
         modalSubmitRelease.dataset.bookingId = isOffline ? booking.id : "";
         modalSubmitRelease.classList.toggle("hidden", !isOffline);
+        modalSubmitRelease.disabled = isOffline && !canRelease;
+        modalSubmitRelease.textContent = canRelease ? "Release Room (Make Free)" : "Only creator/owner can release";
       }
     } else {
       if (modalBookingStatus) modalBookingStatus.textContent = "Fully Booked";
@@ -583,6 +592,8 @@ function openQuickModal(roomId, dateStr, remaining) {
       if (modalSubmitRelease) {
         modalSubmitRelease.dataset.bookingId = "";
         modalSubmitRelease.classList.add("hidden");
+        modalSubmitRelease.disabled = false;
+        modalSubmitRelease.textContent = "Release Room (Make Free)";
       }
     }
   } else {
@@ -592,6 +603,8 @@ function openQuickModal(roomId, dateStr, remaining) {
     if (modalSubmitRelease) {
       modalSubmitRelease.dataset.bookingId = "";
       modalSubmitRelease.classList.add("hidden");
+      modalSubmitRelease.disabled = false;
+      modalSubmitRelease.textContent = "Release Room (Make Free)";
     }
 
     if (modalGuestName) modalGuestName.value = "";
@@ -674,6 +687,46 @@ function setupSubmissions() {
       if (e.target === quickBookingModal) closeQuickModal();
     });
   }
+
+  ownerHotelSwitcher?.addEventListener("change", async () => {
+    selectedHotelId = ownerHotelSwitcher.value;
+    localStorage.setItem("stayOwnerHotelId", selectedHotelId);
+    await refreshOwnerContext();
+  });
+
+  ownerInviteBtn?.addEventListener("click", async () => {
+    if (!currentMembership || currentMembership.role !== "owner") return alert("Only the owner can invite team members.");
+    try {
+      const invite = await ownerApi("generateInvite");
+      if (ownerInviteResult) {
+        ownerInviteResult.classList.remove("hidden");
+        ownerInviteResult.textContent = `Invite code: ${invite.code} - expires in 15 minutes. Share this code with your team member.`;
+      }
+    } catch (error) {
+      const message = ownerFriendlyError(error.message);
+      alert(message);
+    }
+  });
+
+  ownerJoinCode?.addEventListener("input", () => {
+    ownerJoinCode.value = ownerJoinCode.value.replace(/\D/g, "").slice(0, 6);
+  });
+
+  ownerJoinBtn?.addEventListener("click", async () => {
+    const code = ownerJoinCode?.value?.trim() || "";
+    if (!/^\d{6}$/.test(code)) return alert("Enter a valid 6 digit invite code.");
+    try {
+      const result = await ownerApi("redeemInvite", { code });
+      selectedHotelId = result.hotel_id;
+      localStorage.setItem("stayOwnerHotelId", selectedHotelId);
+      if (ownerJoinCode) ownerJoinCode.value = "";
+      await refreshOwnerContext();
+      alert("Hotel access added.");
+    } catch (error) {
+      const message = ownerFriendlyError(error.message);
+      alert(message);
+    }
+  });
 
   // Submit Block Offline
   if (modalSubmitBlock) {
@@ -761,31 +814,24 @@ function setupSubmissions() {
       // Close modal instantly for lightning fast user response
       closeQuickModal();
 
-      const { error: insertError } = await withTimeout(supabaseClient.rpc("create_booking_safe", {
-        p_room_id: roomId,
-        p_customer_name: guestName,
-        p_customer_phone: guestPhone,
-        p_customer_email: null,
-        p_check_in: checkInStr,
-        p_check_out: checkOutStr,
-        p_num_rooms: roomsCount,
-        p_num_adults: 1,
-        p_num_kids: 0,
-        p_payment_option: "offline",
-        p_status: "offline_blocked",
-        p_influencer_id: null,
-        p_firecamp: false
-      }), "Room block is taking too long. Please try again.");
-
-      if (insertError) {
+      try {
+        await ownerApi("createBlock", {
+          room_id: roomId,
+          customer_name: guestName,
+          customer_phone: guestPhone,
+          check_in: checkInStr,
+          check_out: checkOutStr,
+          num_rooms: roomsCount
+        });
+        await refreshBookings();
+      } catch (error) {
         // Revert cells to original state on failure
         optimisticReverts.forEach(state => {
           state.element.className = state.className;
           state.element.innerHTML = state.innerHTML;
         });
-        alert(ownerFriendlyError(insertError.message));
-      } else {
-        await refreshBookings();
+        const message = ownerFriendlyError(error.message);
+        alert(message);
       }
     });
   }
@@ -835,8 +881,15 @@ window.addEventListener("DOMContentLoaded", () => {
       } else {
         showAuthScreen(true);
         currentOwner = null;
+        currentMembership = null;
+        ownerMemberships = [];
+        ownerTeamMembers = [];
+        currentUserId = "";
         ownerRooms = [];
         allBookings = [];
+        allOccupancy = [];
+        renderHotelSwitcher();
+        renderTeamAccess();
         renderCalendarGrid();
         renderBookings();
       }
@@ -979,7 +1032,10 @@ function setupRealtime() {
       refreshBookings();
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => {
-      if (currentOwner) loadOwnerData(currentOwner.id);
+      if (currentOwner) refreshOwnerContext();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "hotel_members" }, () => {
+      refreshOwnerContext();
     })
     .subscribe();
 }
