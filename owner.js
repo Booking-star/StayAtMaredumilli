@@ -273,119 +273,138 @@ function calculateStats() {
   if (statFutureBookings) statFutureBookings.textContent = futureCount;
 }
 
-// Generate days list in local time
-function getNext10Days() {
-  const startInput = document.querySelector("#ownerCalendarStart");
-  const rangeSelect = document.querySelector("#ownerCalendarRange");
-  
-  let startDate = new Date();
-  if (startInput && startInput.value) {
-    startDate = new Date(`${startInput.value}T00:00:00`);
-  } else if (startInput) {
-    const year = startDate.getFullYear();
-    const month = String(startDate.getMonth() + 1).padStart(2, '0');
-    const day = String(startDate.getDate()).padStart(2, '0');
-    startInput.value = `${year}-${month}-${day}`;
+function populateOwnerRoomSelect() {
+  const roomSelect = document.querySelector("#ownerCalendarRoomSelect");
+  if (!roomSelect) return;
+  const selected = roomSelect.value;
+  roomSelect.innerHTML = ownerRooms.map(r => `<option value="${escapeHtml(r.id)}">${escapeHtml(r.room_name)} (${escapeHtml(r.room_type)})</option>`).join("");
+  if (ownerRooms.some(r => r.id === selected)) {
+    roomSelect.value = selected;
+  } else if (ownerRooms.length) {
+    roomSelect.value = ownerRooms[0].id;
   }
-  
-  const range = rangeSelect ? Number(rangeSelect.value) : 30;
-  const dates = [];
-  for (let i = 0; i < range; i++) {
-    const d = new Date(startDate);
-    d.setDate(d.getDate() + i);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    dates.push(`${year}-${month}-${day}`);
-  }
-  return dates;
 }
+
+let ownerCalYear = new Date().getFullYear();
+let ownerCalMonth = new Date().getMonth(); // 0-indexed
 
 // Render the visual Room Calendar Grid
 function renderCalendarGrid() {
   if (!ownerCalendarGrid) return;
-  
-  const startInput = document.querySelector("#ownerCalendarStart");
-  if (startInput && !startInput.value) {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    startInput.value = `${year}-${month}-${day}`;
-  }
-
-  const dates = getNext10Days();
 
   if (ownerLoadError) {
     ownerCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--danger); grid-column: 1 / -1;">${escapeHtml(ownerLoadError)}</div>`;
     return;
   }
-  if (ownerRooms.length === 0) {
-    ownerCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--muted); grid-column: 1 / -1;">No rooms assigned to your account.</div>`;
+
+  const roomSelect = document.querySelector("#ownerCalendarRoomSelect");
+  if (roomSelect && roomSelect.children.length === 0 && ownerRooms.length > 0) {
+    populateOwnerRoomSelect();
+  }
+
+  const roomId = roomSelect?.value || "";
+  const room = ownerRooms.find(r => r.id === roomId);
+
+  const monthTitle = document.querySelector("#ownerCalendarMonthTitle");
+
+  if (!room) {
+    ownerCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--muted); grid-column: 1 / -1;">No room selected.</div>`;
+    if (monthTitle) monthTitle.textContent = "";
     return;
   }
 
-  // Dynamically set columns and minimum width
-  ownerCalendarGrid.style.gridTemplateColumns = `minmax(140px, 180px) repeat(${dates.length}, minmax(70px, 1fr))`;
-  ownerCalendarGrid.style.minWidth = `${180 + dates.length * 70}px`;
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  if (monthTitle) {
+    monthTitle.textContent = `${months[ownerCalMonth]} ${ownerCalYear}`;
+  }
 
-  // 1. Build Header HTML
-  let headerHtml = `<div class="calendar-header-cell" style="font-weight: 700; color: var(--accent); display: flex; align-items: center; justify-content: center;">Rooms</div>`;
-  dates.forEach(dateStr => {
-    const d = new Date(`${dateStr}T00:00:00`);
-    const dayName = d.toLocaleDateString("en-IN", { weekday: "short" });
-    const dayNum = d.getDate();
-    headerHtml += `
-      <div class="calendar-header-cell">
-        <span class="day-num">${dayNum}</span>
-        <span class="day-name">${dayName}</span>
-      </div>
+  const today = new Date();
+  const todayStr = getLocalDateString(today);
+
+  // Calculate month parameters
+  const firstDayIndex = new Date(ownerCalYear, ownerCalMonth, 1).getDay(); // Sunday = 0, Monday = 1
+  const numDays = new Date(ownerCalYear, ownerCalMonth + 1, 0).getDate();
+  const prevNumDays = new Date(ownerCalYear, ownerCalMonth, 0).getDate();
+
+  let html = "";
+  
+  // Day headers
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  dayNames.forEach(name => {
+    html += `<div class="cal-day-header">${name}</div>`;
+  });
+
+  const cells = [];
+
+  // Padding from previous month
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    const d = new Date(ownerCalYear, ownerCalMonth - 1, prevNumDays - i);
+    cells.push({ date: d, isCurrentMonth: false });
+  }
+
+  // Current month days
+  for (let i = 1; i <= numDays; i++) {
+    const d = new Date(ownerCalYear, ownerCalMonth, i);
+    cells.push({ date: d, isCurrentMonth: true });
+  }
+
+  // Padding from next month
+  const totalCells = cells.length <= 35 ? 35 : 42;
+  let nextMonthDay = 1;
+  while (cells.length < totalCells) {
+    const d = new Date(ownerCalYear, ownerCalMonth + 1, nextMonthDay++);
+    cells.push({ date: d, isCurrentMonth: false });
+  }
+
+  // Render cells
+  cells.forEach(cell => {
+    const dateStr = getLocalDateString(cell.date);
+    const dayNum = cell.date.getDate();
+    const isPast = dateStr < todayStr;
+    const isToday = dateStr === todayStr;
+
+    // Calculate booked occupancy
+    const overlapping = allOccupancy.filter(b => 
+      String(b.room_id) === String(room.id) && 
+      b.check_in <= dateStr && 
+      b.check_out > dateStr
+    );
+    const bookedCount = overlapping.reduce((sum, b) => sum + Number(b.num_rooms || 1), 0);
+    const remaining = Math.max(0, Number(room.available_rooms || 0) - bookedCount);
+    const isVacant = remaining > 0;
+
+    let cellClass = "cal-day-cell";
+    if (!cell.isCurrentMonth) cellClass += " other-month";
+    if (isPast) {
+      cellClass += " past";
+    } else {
+      cellClass += isVacant ? " vacant" : " blocked";
+    }
+    if (isToday) cellClass += " today";
+
+    const statusText = isPast ? "Past" : (isVacant ? `${remaining} Free` : "Blocked");
+
+    html += `
+      <button class="${cellClass}" type="button" 
+              data-room-id="${escapeHtml(room.id)}" 
+              data-date="${dateStr}" 
+              data-remaining="${remaining}"
+              ${isPast ? "disabled" : ""}>
+        <span class="cal-day-num">${dayNum}</span>
+        <span class="cal-day-status">${statusText}</span>
+      </button>
     `;
   });
 
-  // 2. Build rows HTML
-  let rowsHtml = "";
-  ownerRooms.forEach(room => {
-    rowsHtml += `
-      <div class="calendar-room-cell">
-        <span class="room-name">${escapeHtml(room.room_name)}</span>
-        <span class="room-type">${escapeHtml(room.room_type)} (${escapeHtml(room.available_rooms)} Room${room.available_rooms > 1 ? 's' : ''})</span>
-      </div>
-    `;
-
-    dates.forEach(dateStr => {
-      // Find overlapping bookings for this room on this date
-      const overlapping = allOccupancy.filter(b => 
-        String(b.room_id) === String(room.id) && 
-        b.check_in <= dateStr && 
-        b.check_out > dateStr
-      );
-
-      const bookedCount = overlapping.reduce((sum, b) => sum + Number(b.num_rooms || 1), 0);
-      const remaining = Math.max(0, room.available_rooms - bookedCount);
-      const isVacant = remaining > 0;
-
-      rowsHtml += `
-        <div class="calendar-day-cell ${isVacant ? 'vacant' : 'blocked'}" 
-             data-room-id="${room.id}" 
-             data-date="${dateStr}" 
-             data-remaining="${remaining}">
-          <span class="status-text">${isVacant ? 'Vacant' : 'Full'}</span>
-          <span class="count-text">${isVacant ? remaining + ' Free' : 'Blocked'}</span>
-        </div>
-      `;
-    });
-  });
-
-  ownerCalendarGrid.innerHTML = headerHtml + rowsHtml;
+  ownerCalendarGrid.innerHTML = html;
 
   // Add click listeners to cells
-  const cells = ownerCalendarGrid.querySelectorAll(".calendar-day-cell");
-  cells.forEach(cell => {
-    cell.addEventListener("click", () => {
-      const roomId = cell.dataset.roomId;
-      const dateStr = cell.dataset.date;
-      const remaining = parseInt(cell.dataset.remaining, 10);
+  const cellButtons = ownerCalendarGrid.querySelectorAll(".cal-day-cell:not(.past)");
+  cellButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const roomId = btn.dataset.roomId;
+      const dateStr = btn.dataset.date;
+      const remaining = parseInt(btn.dataset.remaining, 10);
       openQuickModal(roomId, dateStr, remaining);
     });
   });
@@ -932,6 +951,36 @@ window.addEventListener("DOMContentLoaded", () => {
     renderCalendarGrid();
     renderBookings();
   }
+
+  document.querySelector("#ownerCalendarRoomSelect")?.addEventListener("change", renderCalendarGrid);
+
+  document.querySelector("#ownerCalendarPrevBtn")?.addEventListener("click", () => {
+    const today = new Date();
+    const minLimit = new Date(today.getFullYear(), today.getMonth(), 1);
+    const current = new Date(ownerCalYear, ownerCalMonth - 1, 1);
+    if (current >= minLimit) {
+      ownerCalMonth--;
+      if (ownerCalMonth < 0) {
+        ownerCalMonth = 11;
+        ownerCalYear--;
+      }
+      renderCalendarGrid();
+    }
+  });
+
+  document.querySelector("#ownerCalendarNextBtn")?.addEventListener("click", () => {
+    const today = new Date();
+    const maxLimit = new Date(today.getFullYear(), today.getMonth() + 3, 1);
+    const current = new Date(ownerCalYear, ownerCalMonth + 1, 1);
+    if (current <= maxLimit) {
+      ownerCalMonth++;
+      if (ownerCalMonth > 11) {
+        ownerCalMonth = 0;
+        ownerCalYear++;
+      }
+      renderCalendarGrid();
+    }
+  });
 });
 
 function setupCustomBlockerBtn() {

@@ -210,69 +210,127 @@ function renderAdminCalendarHotelOptions() {
     hotels.push({ key, label: room.hotel_name || room.room_name || "Hotel" });
   });
   adminCalendarHotel.innerHTML = hotels.map(h => `<option value="${escapeHtml(h.key)}">${escapeHtml(h.label)}</option>`).join("");
-  if (hotels.some(h => h.key === selected)) adminCalendarHotel.value = selected;
+  if (hotels.some(h => h.key === selected)) {
+    adminCalendarHotel.value = selected;
+  } else if (hotels.length) {
+    adminCalendarHotel.value = hotels[0].key;
+  }
+  populateAdminRoomSelect();
 }
 
-function next10LocalDates() {
-  const startInput = document.querySelector("#adminCalendarStart");
-  const rangeSelect = document.querySelector("#adminCalendarRange");
-  
-  let startDate = new Date();
-  if (startInput && startInput.value) {
-    startDate = new Date(`${startInput.value}T00:00:00`);
-  } else if (startInput) {
-    startInput.value = getLocalDateString(startDate);
-  }
-  
-  const range = rangeSelect ? Number(rangeSelect.value) : 30;
-  const dates = [];
-  for (let i = 0; i < range; i++) {
-    const d = new Date(startDate);
-    d.setDate(d.getDate() + i);
-    dates.push(getLocalDateString(d));
-  }
-  return dates;
-}
-
-function renderAdminCalendar() {
-  if (!adminCalendarGrid) return;
-  const key = adminCalendarHotel?.value || (ownerRooms[0] ? adminHotelKey(ownerRooms[0]) : "");
+function populateAdminRoomSelect() {
+  const roomSelect = document.querySelector("#adminCalendarRoomSelect");
+  if (!roomSelect) return;
+  const key = adminCalendarHotel?.value || "";
   const rooms = ownerRooms.filter(room => adminHotelKey(room) === key);
   
-  const startInput = document.querySelector("#adminCalendarStart");
-  if (startInput && !startInput.value) {
-    startInput.value = getLocalDateString(new Date());
+  const selected = roomSelect.value;
+  roomSelect.innerHTML = rooms.map(r => `<option value="${escapeHtml(r.id)}">${escapeHtml(r.room_name)} (${escapeHtml(r.room_type)})</option>`).join("");
+  if (rooms.some(r => r.id === selected)) {
+    roomSelect.value = selected;
+  } else if (rooms.length) {
+    roomSelect.value = rooms[0].id;
   }
+}
 
-  const dates = next10LocalDates();
+let adminCalYear = new Date().getFullYear();
+let adminCalMonth = new Date().getMonth(); // 0-indexed
 
-  if (!rooms.length) {
-    adminCalendarGrid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--muted); grid-column: 1 / -1;">No rooms available for calendar.</div>`;
+function renderAdminCalendar() {
+  const grid = document.querySelector("#adminCalendarGrid");
+  const monthTitle = document.querySelector("#adminCalendarMonthTitle");
+  if (!grid) return;
+
+  const roomId = document.querySelector("#adminCalendarRoomSelect")?.value || "";
+  const room = ownerRooms.find(r => r.id === roomId);
+
+  if (!room) {
+    grid.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--muted); grid-column: 1 / -1;">No room selected.</div>`;
+    if (monthTitle) monthTitle.textContent = "";
     return;
   }
 
-  // Dynamically set columns and minimum width
-  adminCalendarGrid.style.gridTemplateColumns = `minmax(118px, 150px) repeat(${dates.length}, minmax(62px, 1fr))`;
-  adminCalendarGrid.style.minWidth = `${150 + dates.length * 62}px`;
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  if (monthTitle) {
+    monthTitle.textContent = `${months[adminCalMonth]} ${adminCalYear}`;
+  }
 
-  let html = `<div class="calendar-header-cell" style="font-weight: 700; color: var(--accent); display: flex; align-items: center; justify-content: center;">Rooms</div>`;
-  dates.forEach(dateStr => {
-    const d = new Date(`${dateStr}T00:00:00`);
-    html += `<div class="calendar-header-cell"><span class="day-num">${d.getDate()}</span><span class="day-name">${d.toLocaleDateString("en-IN", { weekday: "short" })}</span></div>`;
+  const today = new Date();
+  const todayStr = getLocalDateString(today);
+
+  // Calculate month parameters
+  const firstDayIndex = new Date(adminCalYear, adminCalMonth, 1).getDay(); // Sunday = 0, Monday = 1
+  const numDays = new Date(adminCalYear, adminCalMonth + 1, 0).getDate();
+  const prevNumDays = new Date(adminCalYear, adminCalMonth, 0).getDate();
+
+  let html = "";
+  
+  // Day headers
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  dayNames.forEach(name => {
+    html += `<div class="cal-day-header">${name}</div>`;
   });
 
-  rooms.forEach(room => {
-    html += `<div class="calendar-room-cell"><span class="room-name">${escapeHtml(room.room_name)}</span><span class="room-type">${escapeHtml(room.room_type)} (${escapeHtml(room.available_rooms)} Room${room.available_rooms > 1 ? "s" : ""})</span></div>`;
-    dates.forEach(dateStr => {
-      const booked = allOccupancy
-        .filter(b => String(b.room_id) === String(room.id) && b.check_in <= dateStr && b.check_out > dateStr)
-        .reduce((sum, b) => sum + Number(b.num_rooms || 1), 0);
-      const remaining = Math.max(0, Number(room.available_rooms || 0) - booked);
-      html += `<button class="calendar-day-cell ${remaining > 0 ? "vacant" : "blocked"}" type="button" data-admin-room="${escapeHtml(room.id)}" data-admin-date="${dateStr}" data-admin-remaining="${remaining}"><span class="status-text">${remaining > 0 ? "Vacant" : "Full"}</span><span class="count-text">${remaining > 0 ? `${remaining} Free` : "Blocked"}</span></button>`;
-    });
+  const cells = [];
+
+  // Padding from previous month
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    const d = new Date(adminCalYear, adminCalMonth - 1, prevNumDays - i);
+    cells.push({ date: d, isCurrentMonth: false });
+  }
+
+  // Current month days
+  for (let i = 1; i <= numDays; i++) {
+    const d = new Date(adminCalYear, adminCalMonth, i);
+    cells.push({ date: d, isCurrentMonth: true });
+  }
+
+  // Padding from next month
+  const totalCells = cells.length <= 35 ? 35 : 42;
+  let nextMonthDay = 1;
+  while (cells.length < totalCells) {
+    const d = new Date(adminCalYear, adminCalMonth + 1, nextMonthDay++);
+    cells.push({ date: d, isCurrentMonth: false });
+  }
+
+  // Render cells
+  cells.forEach(cell => {
+    const dateStr = getLocalDateString(cell.date);
+    const dayNum = cell.date.getDate();
+    const isPast = dateStr < todayStr;
+    const isToday = dateStr === todayStr;
+
+    // Calculate booked occupancy
+    const booked = allOccupancy
+      .filter(b => String(b.room_id) === String(room.id) && b.check_in <= dateStr && b.check_out > dateStr)
+      .reduce((sum, b) => sum + Number(b.num_rooms || 1), 0);
+    const remaining = Math.max(0, Number(room.available_rooms || 0) - booked);
+    const isVacant = remaining > 0;
+
+    let cellClass = "cal-day-cell";
+    if (!cell.isCurrentMonth) cellClass += " other-month";
+    if (isPast) {
+      cellClass += " past";
+    } else {
+      cellClass += isVacant ? " vacant" : " blocked";
+    }
+    if (isToday) cellClass += " today";
+
+    const statusText = isPast ? "Past" : (isVacant ? `${remaining} Free` : "Blocked");
+
+    html += `
+      <button class="${cellClass}" type="button" 
+              data-admin-room="${escapeHtml(room.id)}" 
+              data-admin-date="${dateStr}" 
+              data-admin-remaining="${remaining}"
+              ${isPast ? "disabled" : ""}>
+        <span class="cal-day-num">${dayNum}</span>
+        <span class="cal-day-status">${statusText}</span>
+      </button>
+    `;
   });
-  adminCalendarGrid.innerHTML = html;
-  adminCalendarGrid.parentElement.scrollLeft = 0;
+
+  grid.innerHTML = html;
 }
 
 function availableForBlock(room, from, to) {
@@ -493,9 +551,39 @@ adminUnblockBtn?.addEventListener("click", async () => {
   });
 });
 
-adminCalendarHotel?.addEventListener("change", renderAdminCalendar);
-document.querySelector("#adminCalendarStart")?.addEventListener("change", renderAdminCalendar);
-document.querySelector("#adminCalendarRange")?.addEventListener("change", renderAdminCalendar);
+adminCalendarHotel?.addEventListener("change", () => {
+  populateAdminRoomSelect();
+  renderAdminCalendar();
+});
+document.querySelector("#adminCalendarRoomSelect")?.addEventListener("change", renderAdminCalendar);
+
+document.querySelector("#adminCalendarPrevBtn")?.addEventListener("click", () => {
+  const today = new Date();
+  const minLimit = new Date(today.getFullYear(), today.getMonth(), 1);
+  const current = new Date(adminCalYear, adminCalMonth - 1, 1);
+  if (current >= minLimit) {
+    adminCalMonth--;
+    if (adminCalMonth < 0) {
+      adminCalMonth = 11;
+      adminCalYear--;
+    }
+    renderAdminCalendar();
+  }
+});
+
+document.querySelector("#adminCalendarNextBtn")?.addEventListener("click", () => {
+  const today = new Date();
+  const maxLimit = new Date(today.getFullYear(), today.getMonth() + 3, 1);
+  const current = new Date(adminCalYear, adminCalMonth + 1, 1);
+  if (current <= maxLimit) {
+    adminCalMonth++;
+    if (adminCalMonth > 11) {
+      adminCalMonth = 0;
+      adminCalYear++;
+    }
+    renderAdminCalendar();
+  }
+});
 adminCalendarRooms?.addEventListener("input", () => {
   adminCalendarRooms.value = adminCalendarRooms.value.replace(/\D/g, "");
 });
