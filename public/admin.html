@@ -14,7 +14,7 @@
   <script src="supabase-config.js" defer></script>
   <script src="shared.js?v=utils-3" defer></script>
   <script src="admin-ui.js?v=admin-ui-3" defer></script>
-  <script src="admin.js?v=admin-calendar-3" defer></script>
+  <script src="admin.js?v=admin-calendar-4" defer></script>
   <script src="admin-settings.js?v=admin-settings-2" defer></script>
 </head>
 <body>
@@ -43,6 +43,7 @@
         <label for="adminSectionSelect" style="font-size: 14px; font-weight: bold; color: var(--muted);">Select Dashboard View:</label>
         <select id="adminSectionSelect" class="admin-section-select" aria-label="Choose admin section">
           <option value="inventory">Hotel Inventory</option>
+          <option value="hotels">Saved Hotels</option>
           <option value="owners">Hotel Owners</option>
           <option value="sales">Sales Report</option>
           <option value="customers">Customers</option>
@@ -57,6 +58,52 @@
 
       <!-- Tab Content: Hotel Inventory -->
       <div id="contentInventory">
+        <section class="panel">
+          <div class="admin-section-head">
+            <div>
+              <h3>Availability calendar</h3>
+              <p>Choose a hotel, enter rooms to block, then tap a date. Tap blocked dates to release offline blocks.</p>
+            </div>
+          </div>
+          <form id="adminBlockForm" class="admin-block-form hidden">
+            <label>Hotel / room
+              <select id="adminBlockRoom" required></select>
+            </label>
+            <label>Check-in
+              <input id="adminBlockFrom" type="date" required>
+            </label>
+            <label>Check-out
+              <input id="adminBlockTo" type="date" required>
+            </label>
+            <label>No. of rooms
+              <input id="adminBlockRooms" type="text" inputmode="numeric" pattern="[0-9]*" value="1" required>
+            </label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button class="primary-btn" type="submit" style="margin: 0; white-space: nowrap;">Block</button>
+              <button id="adminUnblockBtn" class="ghost-btn" type="button" style="margin: 0; white-space: nowrap; color: var(--danger); border-color: rgba(214,41,118,0.2);">Unblock</button>
+            </div>
+            <p id="adminBlockHint" class="muted-line"></p>
+          </form>
+          <div class="admin-calendar-tools">
+            <label>Calendar hotel
+              <select id="adminCalendarHotel"></select>
+            </label>
+            <label>Rooms to block
+              <input id="adminCalendarRooms" type="text" inputmode="numeric" pattern="[0-9]*" value="1">
+            </label>
+          </div>
+          <div class="admin-calendar-scroll">
+            <div id="adminCalendarGrid" class="calendar-grid">
+              <div style="padding: 24px; text-align: center; color: var(--muted);">Loading calendar grid...</div>
+            </div>
+          </div>
+          <h4 class="admin-subhead">Current offline blocks</h4>
+          <div id="adminBlockList" class="admin-room-list"></div>
+        </section>
+      </div>
+
+      <!-- Tab Content: Saved Hotels -->
+      <div id="contentHotels" class="hidden">
         <button id="addHotelBtn" class="primary-btn" type="button">Add new hotel</button>
         <form id="adminRoomForm" class="admin-form hidden">
           <section class="panel">
@@ -106,48 +153,6 @@
             </div>
           </section>
         </form>
-        <section class="panel">
-          <div class="admin-section-head">
-            <div>
-              <h3>Availability calendar</h3>
-              <p>Choose a hotel, enter rooms to block, then tap a date. Tap blocked dates to release offline blocks.</p>
-            </div>
-          </div>
-          <form id="adminBlockForm" class="admin-block-form hidden">
-            <label>Hotel / room
-              <select id="adminBlockRoom" required></select>
-            </label>
-            <label>Check-in
-              <input id="adminBlockFrom" type="date" required>
-            </label>
-            <label>Check-out
-              <input id="adminBlockTo" type="date" required>
-            </label>
-            <label>No. of rooms
-              <input id="adminBlockRooms" type="text" inputmode="numeric" pattern="[0-9]*" value="1" required>
-            </label>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <button class="primary-btn" type="submit" style="margin: 0; white-space: nowrap;">Block</button>
-              <button id="adminUnblockBtn" class="ghost-btn" type="button" style="margin: 0; white-space: nowrap; color: var(--danger); border-color: rgba(214,41,118,0.2);">Unblock</button>
-            </div>
-            <p id="adminBlockHint" class="muted-line"></p>
-          </form>
-          <div class="admin-calendar-tools">
-            <label>Calendar hotel
-              <select id="adminCalendarHotel"></select>
-            </label>
-            <label>Rooms to block
-              <input id="adminCalendarRooms" type="text" inputmode="numeric" pattern="[0-9]*" value="1">
-            </label>
-          </div>
-          <div class="admin-calendar-scroll">
-            <div id="adminCalendarGrid" class="calendar-grid">
-              <div style="padding: 24px; text-align: center; color: var(--muted);">Loading calendar grid...</div>
-            </div>
-          </div>
-          <h4 class="admin-subhead">Current offline blocks</h4>
-          <div id="adminBlockList" class="admin-room-list"></div>
-        </section>
         <section class="panel">
           <div class="admin-section-head">
             <div>

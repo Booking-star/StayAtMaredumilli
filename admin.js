@@ -36,6 +36,7 @@ const cancelOwnerFormBtn = document.querySelector("#cancelOwnerFormBtn");
 const adminOwnerList = document.querySelector("#adminOwnerList");
 
 const contentInventory = document.querySelector("#contentInventory");
+const contentHotels = document.querySelector("#contentHotels");
 const contentOwners = document.querySelector("#contentOwners");
 const contentSales = document.querySelector("#contentSales");
 const contentCustomers = document.querySelector("#contentCustomers");
@@ -674,6 +675,7 @@ function setupAdminTabs() {
 function showAdminSection(section) {
   const sections = {
     inventory: { content: contentInventory },
+    hotels: { content: contentHotels },
     owners: { content: contentOwners, load: loadOwners },
     sales: { content: contentSales, load: loadSales },
     customers: { content: contentCustomers, load: loadCustomers },
