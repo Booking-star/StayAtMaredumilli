@@ -410,9 +410,6 @@ function renderCalendarGrid() {
   });
 }
 
-document.querySelector("#ownerCalendarStart")?.addEventListener("change", renderCalendarGrid);
-document.querySelector("#ownerCalendarRange")?.addEventListener("change", renderCalendarGrid);
-
 // Render dynamic booking cards
 function renderBookings() {
   if (!bookingsCardsContainer) return;
