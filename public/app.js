@@ -106,6 +106,14 @@ function closeOpenDialogs() {
   document.querySelectorAll("dialog[open]").forEach(dialog => dialog.close());
 }
 
+async function safeLoad(loader) {
+  try {
+    await loader();
+  } catch (error) {
+    console.error("Page data load failed:", error?.message || error);
+  }
+}
+
 function normalizePricingSettings(settings = {}) {
   return {
     occupancy80Surcharge: Math.max(0, Number(settings.occupancy80Surcharge ?? defaultPricingSettings.occupancy80Surcharge) || 0),
@@ -1336,12 +1344,12 @@ window.addEventListener("DOMContentLoaded", async () => {
   capturePendingBookingParam();
   const consumedHashSession = await consumeAuthHash();
   Promise.all([
-    loadAllBookings(),
-    loadHighlights(),
-    loadCustomerBookings(),
-    loadPricingSettings(),
-    loadPaymentSettings(),
-    loadOwnerRooms()
+    safeLoad(loadAllBookings),
+    safeLoad(loadHighlights),
+    safeLoad(loadCustomerBookings),
+    safeLoad(loadPricingSettings),
+    safeLoad(loadPaymentSettings),
+    safeLoad(loadOwnerRooms)
   ]).then(() => {
     render();
     openPendingBookingIfReady();
@@ -1429,16 +1437,16 @@ function setupRealtime() {
   supabaseClient
     .channel("customer-realtime-sync")
     .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
-      Promise.all([loadAllBookings(), loadCustomerBookings(), loadOwnerRooms()]).then(render);
+      Promise.all([safeLoad(loadAllBookings), safeLoad(loadCustomerBookings), safeLoad(loadOwnerRooms)]).then(render);
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "booking_holds" }, () => {
-      Promise.all([loadAllBookings(), loadOwnerRooms()]).then(render);
+      Promise.all([safeLoad(loadAllBookings), safeLoad(loadOwnerRooms)]).then(render);
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, () => {
-      Promise.all([loadAllBookings(), loadOwnerRooms()]).then(render);
+      Promise.all([safeLoad(loadAllBookings), safeLoad(loadOwnerRooms)]).then(render);
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, () => {
-      Promise.all([loadPricingSettings(), loadPaymentSettings()]).then(render);
+      Promise.all([safeLoad(loadPricingSettings), safeLoad(loadPaymentSettings)]).then(render);
     })
     .subscribe();
 }
