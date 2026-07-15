@@ -201,10 +201,12 @@ async function refreshOwnerContext() {
     renderTeamAccess();
     calculateStats();
     renderCalendarGrid();
+    renderCustom3MonthCalendar();
     renderBookings();
   } catch (error) {
     ownerLoadError = ownerFriendlyError(error.message);
     renderCalendarGrid();
+    renderCustom3MonthCalendar();
     renderBookings();
   }
 }
@@ -1022,6 +1024,10 @@ function setupCustomBlockerBtn() {
       quickBookingModal.classList.remove("hidden");
     });
   }
+  
+  modalRoomSelect?.addEventListener("change", () => {
+    renderCustom3MonthCalendar();
+  });
 }
 
 // Generate next 3 months list of calendars
@@ -1035,6 +1041,10 @@ function renderCustom3MonthCalendar() {
   const maxStr = getLocalDateString(threeMonthsLater);
   
   const selectedDateStr = modalCustomDate.value || todayStr;
+  
+  const roomSelect = document.querySelector("#modalRoomSelect");
+  const roomId = isCustomBlockMode ? (roomSelect?.value || "") : (modalRoomId?.value || "");
+  const room = ownerRooms.find(r => r.id === roomId);
   
   let html = "";
   const daysOfWeek = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -1070,14 +1080,32 @@ function renderCustom3MonthCalendar() {
             const disabled = (dayDateStr < todayStr) || (dayDateStr > maxStr);
             const isSelected = dayDateStr === selectedDateStr;
             
+            // Calculate booked occupancy and remaining available rooms
+            let displayHtml = `<span class="day-num">${dayNum}</span>`;
+            let statusClass = "";
+            if (room && !disabled) {
+              const overlapping = allOccupancy.filter(b => 
+                String(b.room_id) === String(room.id) && 
+                b.check_in <= dayDateStr && 
+                b.check_out > dayDateStr
+              );
+              const bookedCount = overlapping.reduce((sum, b) => sum + Number(b.num_rooms || 1), 0);
+              const remaining = Math.max(0, Number(room.available_rooms || 0) - bookedCount);
+              statusClass = remaining > 0 ? "vacant" : "blocked";
+              displayHtml = `
+                <span class="day-num">${dayNum}</span>
+                <span class="day-avail">${remaining} free</span>
+              `;
+            }
+            
             return `
               <button 
                 type="button" 
-                class="custom-calendar-day ${isSelected ? "selected" : ""}" 
+                class="custom-calendar-day ${statusClass} ${isSelected ? "selected" : ""}" 
                 data-date="${dayDateStr}"
                 ${disabled ? "disabled" : ""}
               >
-                ${dayNum}
+                ${displayHtml}
               </button>
             `;
           }).join("")}
@@ -1093,7 +1121,7 @@ function renderCustom3MonthCalendar() {
     btn.addEventListener("click", (e) => {
       const selectedDate = e.currentTarget.dataset.date;
       modalCustomDate.value = selectedDate;
-      renderCustom3MonthCalendar(); // Re-render to update highlghts
+      renderCustom3MonthCalendar(); // Re-render to update highlights
     });
   });
 }
