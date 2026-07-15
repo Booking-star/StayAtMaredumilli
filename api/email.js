@@ -71,7 +71,39 @@ async function smtpCommand(socket, command, expectedCodes) {
 }
 
 async function sendMail({ to, subject, text, html }) {
-  if (!smtpConfigured() || !to) return;
+  if (!to) return;
+
+  if (process.env.BREVO_API_KEY) {
+    const senderEmail = process.env.SMTP_FROM || SUPPORT_EMAIL;
+    const recipients = Array.isArray(to) ? to.filter(Boolean) : [to];
+    for (const recipient of recipients) {
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "accept": "application/json",
+          "api-key": process.env.BREVO_API_KEY,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          sender: {
+            name: "Stay@Maredumilli",
+            email: senderEmail
+          },
+          to: [{ email: recipient }],
+          subject: subject,
+          textContent: text,
+          htmlContent: html
+        })
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(`Brevo API rejected email: ${JSON.stringify(data)}`);
+      }
+    }
+    return;
+  }
+
+  if (!smtpConfigured()) return;
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 465);
   const user = process.env.SMTP_USER;
