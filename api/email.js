@@ -76,6 +76,7 @@ async function sendMail({ to, subject, text, html }) {
   const port = Number(process.env.SMTP_PORT || 465);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
+  const senderEmail = process.env.SMTP_FROM || (user.includes("@") ? user : SUPPORT_EMAIL);
   const recipients = Array.isArray(to) ? to.filter(Boolean) : [to];
   const body = String(text || "").replace(/\r?\n\./g, "\n..");
   const htmlBody = html ? String(html).replace(/\r?\n\./g, "\n..") : "";
@@ -92,14 +93,14 @@ async function sendMail({ to, subject, text, html }) {
       await smtpCommand(socket, "AUTH LOGIN", [334]);
       await smtpCommand(socket, Buffer.from(user).toString("base64"), [334]);
       await smtpCommand(socket, Buffer.from(pass).toString("base64"), [235]);
-      await smtpCommand(socket, `MAIL FROM:<${user}>`, [250]);
+      await smtpCommand(socket, `MAIL FROM:<${senderEmail}>`, [250]);
       await smtpCommand(socket, `RCPT TO:<${recipient}>`, [250, 251]);
       await smtpCommand(socket, "DATA", [354]);
-      const messageIdDomain = String(user).split("@")[1] || "stayatmaredumilli.com";
+      const messageIdDomain = String(senderEmail).split("@")[1] || "stayatmaredumilli.com";
       const messageId = `<${Date.now()}.${Math.random().toString(16).slice(2)}@${messageIdDomain}>`;
       const boundary = `stay-${Date.now()}-${Math.random().toString(16).slice(2)}`;
       const headers = [
-        `From: ${headerAddress("Stay@Maredumilli", user)}`,
+        `From: ${headerAddress("Stay@Maredumilli", senderEmail)}`,
         `To: ${recipient}`,
         `Reply-To: ${SUPPORT_EMAIL}`,
         `Subject: ${subject}`,
