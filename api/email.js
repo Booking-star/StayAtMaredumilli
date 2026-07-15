@@ -195,7 +195,8 @@ async function roomDetails(roomId) {
   return {
     hotelName: room.hotel_name || room.room_name || "Booked stay",
     roomType: room.room_type || "",
-    ownerName: room.owner_name || "Not assigned"
+    ownerName: room.owner_name || "Not assigned",
+    mapLink: room.map_link || ""
   };
 }
 
@@ -220,8 +221,8 @@ function customerEmailText({ bookingId, hold, paymentId, room }) {
     `Check-out: ${hold.check_out}`,
     `Rooms booked: ${hold.num_rooms || 1}`,
     `Hotel name: ${room.hotelName}`,
-    `Room type: ${room.roomType || "Room"}`,
     `Guests: ${hold.num_adults || 0} adult(s), ${hold.num_kids || 0} kid(s)`,
+    room.mapLink ? `Location: ${room.mapLink}` : "",
     "",
     "Payment Details",
     `Booking Ref: ${bookingRef(bookingId)}`,
@@ -314,8 +315,9 @@ function bookingEmailHtml({ title, intro, bookingId, hold, paymentId, room, admi
       ["Rooms booked", hold.num_rooms || 1],
       ["Hotel name", room.hotelName],
       ["Room type", room.roomType || "Room"],
-      ["Guests", `${hold.num_adults || 0} adult(s), ${hold.num_kids || 0} kid(s)`]
-    ]],
+      ["Guests", `${hold.num_adults || 0} adult(s), ${hold.num_kids || 0} kid(s)`],
+      room.mapLink ? ["Location", room.mapLink] : null
+    ].filter(Boolean)],
     ["Payment Details", [
       ["Booking Ref", bookingRef(bookingId)],
       ["Total amount", rupees(hold.total_price)],

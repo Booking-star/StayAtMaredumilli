@@ -426,6 +426,7 @@ adminRoomForm.addEventListener("submit", async event => {
     owner_id: adminRoomOwner && adminRoomOwner.value ? adminRoomOwner.value : null,
     amenities,
     special_attention: document.querySelector("#adminSpecialAttention").value,
+    map_link: document.querySelector("#adminMapLink").value || "",
     image_urls: imageUrls
   };
   const query = editingRoomId
@@ -648,6 +649,7 @@ function editRoom(id) {
   document.querySelector("#adminWeekendPrice").value = room.weekend_price;
   adminWeekendOwnerPrice.value = room.weekend_owner_price || 0;
   document.querySelector("#adminSpecialAttention").value = room.special_attention || "";
+  document.querySelector("#adminMapLink").value = room.map_link || "";
   if (adminRoomOwner) adminRoomOwner.value = room.owner_id || "";
   adminRoomForm.querySelectorAll(".amenity-checks input").forEach(input => {
     input.checked = (room.amenities || []).includes(input.value);

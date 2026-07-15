@@ -210,6 +210,7 @@ function bookingFromRow(row, roomsById = {}) {
     rooms: row.num_rooms || 1,
     payment: row.payment_option || "20",
     status: bookingStatusLabel(row.status),
+    mapLink: publicRoom?.map_link || room?.mapLink || "",
     createdAt: row.created_at
   };
 }
@@ -692,6 +693,13 @@ function renderBookings() {
         <h3>${escapeHtml(rooms.find(item => item.id === booking.roomId)?.name || booking.roomName || "Stay booking")}</h3>
         <p>${escapeHtml(booking.from)} to ${escapeHtml(booking.to)} &middot; ${escapeHtml(booking.adults)} adults &middot; ${escapeHtml(booking.rooms)} room(s)</p>
         <small>Ref: ${escapeHtml(booking.reference || bookingReference(booking.id))} &middot; ${booking.payment === "100" ? "Paid 100%" : "Paid 20% advance"}</small>
+        ${booking.status === "Confirmed" && booking.mapLink ? `
+          <div style="margin-top: 6px;">
+            <a href="${escapeHtml(booking.mapLink)}" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--accent); font-weight: 700; text-decoration: none;">
+              <i data-lucide="map-pin" style="width: 12px; height: 12px;"></i> View Location
+            </a>
+          </div>
+        ` : ""}
       </div>
       <div class="booking-actions"><span>${escapeHtml(booking.status)}</span><button class="ghost-btn" data-booking-index="${index}" type="button">View Details</button></div>
     </article>
@@ -710,6 +718,7 @@ function openBookingDetails(index) {
     <p>${escapeHtml(booking.adults)} adults &middot; ${escapeHtml(booking.children || 0)} kids &middot; ${escapeHtml(booking.rooms)} room(s)</p>
     <p>${booking.payment === "100" ? "Paid 100%" : "Paid 20% advance"}</p>
     <p>Status: ${escapeHtml(booking.status)}</p>
+    ${booking.status === "Confirmed" && booking.mapLink ? `<p><strong>Location:</strong> <a href="${escapeHtml(booking.mapLink)}" target="_blank" rel="noopener" style="color: var(--accent); font-weight: 700; text-decoration: underline;">${escapeHtml(booking.mapLink)}</a></p>` : ""}
   `;
   bookingDetailsModal.showModal();
 }
@@ -1116,7 +1125,8 @@ function roomFromSupabase(row) {
     status: `${row.available_rooms} rooms available`,
     images: row.image_urls?.length ? row.image_urls : ["https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1000&q=80"],
     amenities: row.amenities || [],
-    specialAttention: row.special_attention || ""
+    specialAttention: row.special_attention || "",
+    mapLink: row.map_link || ""
   };
 }
 
