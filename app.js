@@ -405,6 +405,49 @@ function roomCard(room, cardIndex = 0) {
             ${partialFit ? `Max ${remainingRooms} rooms / ${maxAdultsAvailable} adults` : remainingRooms > 0 ? `${remainingRooms} rooms left` : "Sold Out"}
           </span>
         </div>
+        ${(() => {
+          const startDateStr = bookingDetails?.from || getLocalDateString(new Date());
+          const startDate = new Date(startDateStr);
+          let gridHtml = '';
+          
+          for (let i = 0; i < 7; i++) {
+            const d = new Date(startDate);
+            d.setDate(d.getDate() + i);
+            const dateStr = getLocalDateString(d);
+            const totalRooms = Number(room.availableRooms || 0);
+            const booked = bookedRoomsOnDate(room, dateStr);
+            const available = Math.max(0, totalRooms - booked);
+            
+            const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+            const dayNum = d.getDate();
+            
+            const isFull = available <= 0;
+            const statusText = isFull ? "Full" : `${available} L`;
+            const bgColor = isFull ? "#ffeef0" : "#eefdf4";
+            const textColor = isFull ? "#ea384c" : "#10b981";
+            const borderColor = isFull ? "#fcd3d7" : "#a7f3d0";
+            
+            gridHtml += `
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border-radius: 6px; background: ${bgColor}; border: 1px solid ${borderColor}; min-width: 40px; font-size: 11px;">
+                <span style="color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase;">${dayName}</span>
+                <strong style="font-size: 13px; font-weight: 800; color: var(--text); margin: 1px 0;">${dayNum}</strong>
+                <span style="font-size: 9px; font-weight: 800; color: ${textColor}; text-transform: uppercase;">${statusText}</span>
+              </div>
+            `;
+          }
+          
+          return `
+            <div class="availability-strip" style="margin: 12px 0 4px 0;">
+              <p style="margin: 0 0 6px 0; font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 4px;">
+                <i data-lucide="calendar" style="width: 12px; height: 12px;"></i>
+                7-Day Availability (from ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+              </p>
+              <div style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px;">
+                ${gridHtml}
+              </div>
+            </div>
+          `;
+        })()}
         <div class="price-row">
           <strong>${priceLabel(room, roomDetails)} <small>per room/day</small></strong>
           ${remainingRooms > 0 
