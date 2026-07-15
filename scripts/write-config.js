@@ -38,7 +38,7 @@ const filesToCopy = [
   "robots.txt", "sitemap.xml", "favicon.ico", "favicon.svg", "brand-logo.png",
   "styles.css", "shared.js", "admin-styles.css", "admin-shared.js",
   "app-room-ui.js", "app.js", "admin-ui.js", "admin.js", "admin-settings.js",
-  "owner.js", "book.html", "book.js", "landing.mp4", "landing-vertical.mp4",
+  "owner.js", "book.html", "book.js", "payment-service.js", "landing.mp4", "landing-vertical.mp4",
   "manifest.json", "sw.js"
 ];
 

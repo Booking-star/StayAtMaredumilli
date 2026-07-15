@@ -9,7 +9,7 @@ const fail = message => {
 const index = read("index.html");
 const css = read("styles.css");
 const shared = read("shared.js");
-const book = read("book.js");
+const book = read("book.js") + read("payment-service.js");
 const app = read("app.js");
 const admin = read("admin.js");
 const owner = read("owner.js");

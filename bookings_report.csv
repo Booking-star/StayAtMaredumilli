@@ -1,0 +1,46 @@
+﻿Hotel Name,Check-in,Check-out,Room Name,Room Type,No. of Rooms,Status,Customer Name,Phone,Email,Total Price,Booking Date
+Dream Valley,2026-07-18,2026-07-19,Valley Resort,Double Bed,3,offline_blocked,Admin offline block,admin,N/A,13497,2026-07-15T07:13:27.812746+00:00
+Dream Valley,2026-07-18,2026-07-19,Valley Resort,Single Bed,3,offline_blocked,Admin offline block,admin,N/A,8997,2026-07-15T07:14:16.181822+00:00
+Dream Valley,2026-07-18,2026-07-19,Valley Resort,Single Bed,1,offline_blocked,Admin offline block,admin,N/A,2999,2026-07-15T07:14:31.180634+00:00
+Dream Valley,2026-07-19,2026-07-20,Valley Resort,Double Bed,3,offline_blocked,Admin offline block,admin,N/A,13497,2026-07-15T07:13:37.160574+00:00
+Dream Valley,2026-07-25,2026-07-26,Valley Resort,Double Bed,3,offline_blocked,Admin offline block,admin,N/A,13497,2026-07-15T07:13:04.937208+00:00
+Lake hill Resort,2026-07-15,2026-07-16,Lake Side Resort,Single Bed,3,offline_blocked,Admin offline block,admin,N/A,9000,2026-07-14T17:17:55.600393+00:00
+Lake hill Resort,2026-07-16,2026-07-17,Lake Side Resort,Single Bed,1,offline_blocked,Admin offline block,admin,N/A,3000,2026-07-15T07:09:50.392632+00:00
+Lake hill Resort,2026-07-16,2026-07-17,Lake Side Resort,Single Bed,1,offline_blocked,Admin offline block,admin,N/A,3000,2026-07-15T07:09:52.328791+00:00
+Lake hill Resort,2026-07-17,2026-07-18,Lake Side Resort,Single Bed,3,offline_blocked,Admin offline block,admin,N/A,9000,2026-07-15T07:11:27.897257+00:00
+Lake hill Resort,2026-07-18,2026-07-19,Lake Side Resort,Single Bed,4,offline_blocked,Offline Walk-in,N/A,N/A,12000,2026-07-14T06:03:30.21181+00:00
+Lake hill Resort,2026-07-19,2026-07-20,Lake Side Resort,Single Bed,2,offline_blocked,Admin offline block,admin,N/A,6000,2026-07-14T17:16:27.073007+00:00
+Lake hill Resort,2026-07-19,2026-07-20,Lake Side Resort,Single Bed,1,offline_blocked,Admin offline block,admin,N/A,3000,2026-07-15T07:10:21.493426+00:00
+Lake hill Resort,2026-07-19,2026-07-20,Lake Side Resort,Single Bed,1,offline_blocked,Admin offline block,admin,N/A,3000,2026-07-15T07:10:23.236728+00:00
+Lake hill Resort,2026-07-25,2026-07-26,Lake Side Resort,Single Bed,4,offline_blocked,Admin offline block,admin,N/A,12000,2026-07-15T07:10:30.096907+00:00
+Lake hill Resort,2026-07-27,2026-07-28,Lake Side Resort,Single Bed,2,offline_blocked,Admin offline block,admin,N/A,6000,2026-07-15T07:10:39.506755+00:00
+Lake hill Resort,2026-07-31,2026-08-01,Lake Side Resort,Single Bed,4,offline_blocked,Admin offline block,admin,N/A,12000,2026-07-15T07:10:52.022307+00:00
+Lake hill Resort,2026-08-01,2026-08-02,Lake Side Resort,Single Bed,4,offline_blocked,Admin offline block,admin,N/A,12000,2026-07-15T07:11:02.765393+00:00
+Mango Resort,2026-07-15,2026-07-16,Mango Resort,Single bed NonAc,1,offline_blocked,Admin offline block,admin,N/A,2500,2026-07-14T17:37:43.52208+00:00
+Mango Resort,2026-07-15,2026-07-16,Mango Resort,Single bed NonAc,1,offline_blocked,Admin offline block,admin,N/A,2500,2026-07-14T17:37:44.514385+00:00
+Mango Resort,2026-07-17,2026-07-18,Mango Resort,Single bed NonAc,1,offline_blocked,Admin offline block,admin,N/A,2500,2026-07-14T17:37:56.312413+00:00
+Mango Resort,2026-07-17,2026-07-18,Mango Resort,Single bed NonAc,1,offline_blocked,Admin offline block,admin,N/A,2500,2026-07-14T17:37:59.961309+00:00
+Mango Resort,2026-07-18,2026-07-19,Mango Resort,Single bed NonAc,2,offline_blocked,Admin offline block,admin,N/A,6000,2026-07-14T17:38:08.573239+00:00
+Mango Resort,2026-07-28,2026-07-29,Mango Resort,Single bed NonAc,1,offline_blocked,Admin offline block,admin,N/A,2500,2026-07-15T07:15:38.950644+00:00
+Mango Resort,2026-07-28,2026-07-29,Mango Resort,Single bed NonAc,1,offline_blocked,Admin offline block,admin,N/A,2500,2026-07-15T07:15:40.05103+00:00
+Mowgli Resort,2026-07-15,2026-07-16,Mowgli Huts,Double Bed,1,offline_blocked,Admin offline block,admin,N/A,2000,2026-07-14T17:13:48.721834+00:00
+Mowgli Resort,2026-07-15,2026-07-16,Mowgli Huts,Double Bed,1,offline_blocked,Admin offline block,admin,N/A,2000,2026-07-14T17:13:49.783431+00:00
+Mowgli Resort,2026-07-17,2026-07-18,Mowgli Huts,Double Bed,10,offline_blocked,Offline Walk-in,N/A,N/A,25000,2026-07-15T06:12:24.441491+00:00
+Mowgli Resort,2026-07-18,2026-07-19,Mowgli Huts,Double Bed,1,offline_blocked,Admin offline block,admin,N/A,2500,2026-07-14T17:13:04.46575+00:00
+Mowgli Resort,2026-07-18,2026-07-19,Mowgli Huts,Double Bed,1,offline_blocked,Admin offline block,admin,N/A,2500,2026-07-14T17:13:41.406451+00:00
+Mowgli Resort,2026-07-18,2026-07-19,Mowgli Huts,Double Bed,1,offline_blocked,Admin offline block,admin,N/A,2500,2026-07-14T17:14:52.408242+00:00
+Mowgli Resort,2026-07-18,2026-07-19,Mowgli Huts,Double Bed,1,offline_blocked,Admin offline block,admin,N/A,2500,2026-07-14T17:14:52.457152+00:00
+Mowgli Resort,2026-07-18,2026-07-19,Mowgli Huts,Double Bed,1,offline_blocked,Admin offline block,admin,N/A,2500,2026-07-14T17:14:52.460178+00:00
+Mowgli Resort,2026-07-18,2026-07-19,Mowgli Huts,Double Bed,1,offline_blocked,Admin offline block,admin,N/A,2500,2026-07-14T17:14:52.463105+00:00
+Mowgli Resort,2026-07-18,2026-07-19,Mowgli Huts,Double Bed,4,offline_blocked,Admin offline block,admin,N/A,10000,2026-07-14T17:15:11.88434+00:00
+Mowgli Resort,2026-07-19,2026-07-20,Mowgli Huts,Double Bed,10,offline_blocked,Offline Walk-in,N/A,N/A,25000,2026-07-15T06:12:37.768641+00:00
+Pushpa,2026-07-16,2026-07-17,PUSHPA,SUITE ROOM,4,offline_blocked,Admin offline block,admin,N/A,7996,2026-07-15T07:07:01.290266+00:00
+Pushpa,2026-07-17,2026-07-18,PUSHPA,SUITE ROOM,4,offline_blocked,Admin offline block,admin,N/A,7996,2026-07-15T07:06:44.469581+00:00
+Pushpa,2026-07-17,2026-07-18,Pushpa,Double Bedroom,4,offline_blocked,Admin offline block,admin,N/A,200,2026-07-15T07:07:11.052634+00:00
+Pushpa,2026-07-18,2026-07-19,PUSHPA,SUITE ROOM,4,offline_blocked,Admin offline block,admin,N/A,7996,2026-07-15T07:06:46.412267+00:00
+Pushpa,2026-07-18,2026-07-19,Pushpa,Double Bedroom,3,offline_blocked,Admin offline block,admin,N/A,150,2026-07-15T07:07:22.801711+00:00
+Pushpa,2026-07-19,2026-07-20,PUSHPA,SUITE ROOM,4,offline_blocked,Admin offline block,admin,N/A,7996,2026-07-15T07:06:49.230951+00:00
+Pushpa,2026-07-19,2026-07-20,Pushpa,Double Bedroom,4,offline_blocked,Admin offline block,admin,N/A,200,2026-07-15T07:07:14.433331+00:00
+Pushpa,2026-07-24,2026-07-25,Pushpa,Double Bedroom,4,offline_blocked,Admin offline block,admin,N/A,200,2026-07-15T07:07:37.490777+00:00
+Pushpa,2026-07-25,2026-07-26,Pushpa,Double Bedroom,4,offline_blocked,Admin offline block,admin,N/A,200,2026-07-15T07:07:39.025749+00:00
+Pushpa,2026-07-26,2026-07-27,Pushpa,Double Bedroom,4,offline_blocked,Admin offline block,admin,N/A,200,2026-07-15T07:07:42.100894+00:00
