@@ -107,13 +107,22 @@
         </div>
       </div>
       <div class="profile-grid">
-        <section class="panel">
+        <section class="panel" id="profileDetailsPanel">
           <h3>User details</h3>
           <label>Name <input id="profileName" placeholder="Your full name"></label>
           <label>Phone <input id="profilePhone" inputmode="numeric" autocomplete="tel" placeholder="Your mobile number"></label>
           <label>Email <input id="profileEmail" placeholder="Signed-in email" readonly></label>
           <button id="saveProfileBtn" class="primary-btn" type="button">Save Profile</button>
           <button id="logoutBtn" class="ghost-btn" type="button">Logout</button>
+        </section>
+        <section class="panel text-center hidden" id="profileLoginPromptPanel" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px;">
+          <i data-lucide="user-round" style="width: 48px; height: 48px; color: var(--accent); margin-bottom: 16px;"></i>
+          <h3 style="font-size: 20px; margin-bottom: 8px;">Login Required</h3>
+          <p style="color: var(--muted); margin-bottom: 24px; font-size: 14px; text-align: center; line-height: 1.4;">Sign in with Google to view and save your personal details.</p>
+          <button class="google-btn inline-login-btn" type="button" style="margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span class="google-g">G</span>
+            Sign in with Google
+          </button>
         </section>
         <section class="panel">
           <h3>Support</h3>

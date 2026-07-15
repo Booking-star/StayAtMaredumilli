@@ -665,6 +665,21 @@ function scheduleAvailabilityRefresh(room = null) {
 }
 
 function renderBookings() {
+  if (!profile.email) {
+    bookingsList.innerHTML = `
+      <div class="panel text-center" style="padding: 40px 24px; border-radius: 12px; max-width: 480px; margin: 40px auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+        <i data-lucide="lock" style="width: 48px; height: 48px; color: var(--accent); margin-bottom: 16px;"></i>
+        <h3 style="font-size: 20px; margin-bottom: 8px;">Login Required</h3>
+        <p style="color: var(--muted); margin-bottom: 24px; font-size: 14px; text-align: center; line-height: 1.4;">Please sign in with Google to view and manage your bookings.</p>
+        <button class="google-btn inline-login-btn" type="button" style="margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span class="google-g">G</span>
+          Sign in with Google
+        </button>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
   bookingsList.innerHTML = bookings.length ? bookings.map((booking, index) => `
     <article class="booking-item">
       ${(() => {
@@ -706,9 +721,19 @@ function showSuccess(message) {
 }
 
 function renderProfile() {
-  document.querySelector("#profileName").value = profile.name || "";
-  document.querySelector("#profilePhone").value = profile.phone || "";
-  document.querySelector("#profileEmail").value = profile.email || "";
+  const detailsPanel = document.querySelector("#profileDetailsPanel");
+  const loginPromptPanel = document.querySelector("#profileLoginPromptPanel");
+  if (!detailsPanel || !loginPromptPanel) return;
+  if (!profile.email) {
+    detailsPanel.classList.add("hidden");
+    loginPromptPanel.classList.remove("hidden");
+  } else {
+    detailsPanel.classList.remove("hidden");
+    loginPromptPanel.classList.add("hidden");
+    document.querySelector("#profileName").value = profile.name || "";
+    document.querySelector("#profilePhone").value = profile.phone || "";
+    document.querySelector("#profileEmail").value = profile.email || "";
+  }
 }
 
 function profileFromUser(user) {
@@ -1007,10 +1032,22 @@ function enterApp(showSearch = true) {
 }
 
 async function resumeSession(showSearch = false) {
-  if (!supabaseClient) return false;
-  if (localStorage.getItem(customerSignedOutKey) === "1") return false;
+  if (!supabaseClient) {
+    enterApp(true);
+    render();
+    return false;
+  }
+  if (localStorage.getItem(customerSignedOutKey) === "1") {
+    enterApp(true);
+    render();
+    return false;
+  }
   const { data, error } = await supabaseClient.auth.getSession();
-  if (!data.session) return false;
+  if (!data.session) {
+    enterApp(true);
+    render();
+    return false;
+  }
   profileFromUser(data.session.user);
   await loadCustomerProfile(data.session.user);
   await loadCustomerBookings();
@@ -1120,6 +1157,11 @@ function resetCarouselImagesAfterScroll() {
 }
 
 document.addEventListener("click", event => {
+  const inlineLogin = event.target.closest(".inline-login-btn");
+  if (inlineLogin) {
+    loginBtn.click();
+    return;
+  }
   const button = event.target.closest("[data-action]");
   if (!button) return;
   const room = rooms.find(item => item.id === button.dataset.room);
