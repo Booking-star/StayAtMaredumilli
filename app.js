@@ -181,9 +181,11 @@ async function loadAllBookings() {
     allBookings = getStore("stayBookings", []);
     return;
   }
+  const todayStr = getLocalDateString();
   const { data, error } = await supabaseClient
     .from("booking_occupancy")
-    .select("*");
+    .select("*")
+    .gte("check_out", todayStr);
   if (error) {
     console.error(error);
     return;

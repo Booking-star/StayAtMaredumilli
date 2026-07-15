@@ -9,7 +9,6 @@
   <url><loc>https://stayatmaredumilli.com/policies/cancellation-policy</loc><priority>0.3</priority></url>
   <url><loc>https://stayatmaredumilli.com/policies/check-in-policy</loc><priority>0.3</priority></url>
   <url><loc>https://stayatmaredumilli.com/hotels/mowgli-huts</loc><priority>0.7</priority></url>
-  <url><loc>https://stayatmaredumilli.com/hotels/test-resort</loc><priority>0.7</priority></url>
   <url><loc>https://stayatmaredumilli.com/hotels/pushpa</loc><priority>0.7</priority></url>
   <url><loc>https://stayatmaredumilli.com/hotels/lake-side-resort</loc><priority>0.7</priority></url>
   <url><loc>https://stayatmaredumilli.com/hotels/nature-huts</loc><priority>0.7</priority></url>
@@ -17,6 +16,6 @@
   <url><loc>https://stayatmaredumilli.com/hotels/valley-resort</loc><priority>0.7</priority></url>
   <url><loc>https://stayatmaredumilli.com/hotels/mango-resort</loc><priority>0.7</priority></url>
   <url><loc>https://stayatmaredumilli.com/hotels/valley-resort-2</loc><priority>0.7</priority></url>
-  <url><loc>https://stayatmaredumilli.com/hotels/pushpa-2</loc><priority>0.7</priority></url>
   <url><loc>https://stayatmaredumilli.com/hotels/nature-huts-2</loc><priority>0.7</priority></url>
+  <url><loc>https://stayatmaredumilli.com/hotels/pushpa-2</loc><priority>0.7</priority></url>
 </urlset>

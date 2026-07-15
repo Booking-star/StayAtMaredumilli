@@ -261,9 +261,11 @@ async function loadPaymentSettings() {
 
 async function loadAllBookings() {
   if (!supabaseClient) return;
+  const todayStr = getLocalDateString();
   const { data, error } = await supabaseClient
     .from("booking_occupancy")
-    .select("*");
+    .select("*")
+    .gte("check_out", todayStr);
   if (error) {
     console.error("Booking occupancy loading failed:", error);
     return;
