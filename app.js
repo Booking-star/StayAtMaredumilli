@@ -897,9 +897,9 @@ function openUpiPayment(event) {
 }
 
 function setAppVisible(visible) {
-  landing.classList.toggle("hidden", visible);
-  app.classList.toggle("hidden", !visible);
-  document.querySelector(".bottom-nav")?.classList.toggle("hidden", !visible);
+  landing.classList.add("hidden");
+  app.classList.remove("hidden");
+  document.querySelector(".bottom-nav")?.classList.remove("hidden");
   positionBottomNav();
 }
 
@@ -1361,7 +1361,8 @@ document.querySelector("#logoutBtn")?.addEventListener("click", async () => {
   bookings = [];
   bookingDetails = null;
   selectedRoomId = null;
-  setAppVisible(false);
+  showScreen("#home");
+  render();
   loginBtn.disabled = false;
 });
 document.querySelector(".support-btn").addEventListener("click", () => {
