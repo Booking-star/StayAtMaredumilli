@@ -15,6 +15,7 @@ const supabaseClient = supabaseConfig.url && supabaseConfig.anonKey && window.su
 
 // DOM Elements
 const authPrompt = document.getElementById("authPrompt");
+const checkoutShell = document.getElementById("checkoutShell");
 const loginBtn = document.getElementById("loginBtn");
 const checkoutContainer = document.getElementById("checkoutContainer");
 const checkoutTitle = document.getElementById("checkoutTitle");
@@ -573,8 +574,32 @@ async function signInWithGoogle() {
   }
 }
 
+function setLandingVideo() {
+  const video = authPrompt?.querySelector(".landing-video");
+  if (!video) return;
+  const src = window.innerWidth >= window.innerHeight ? "/landing.mp4" : "/landing-vertical.mp4";
+  if (!video.src.endsWith(src)) {
+    video.classList.remove("ready");
+    video.src = src;
+    video.load();
+    video.play().catch(() => {});
+  }
+}
+
 // Init
 window.addEventListener("DOMContentLoaded", async () => {
+  const video = authPrompt?.querySelector(".landing-video");
+  if (video) {
+    video.addEventListener("loadeddata", () => video.classList.add("ready"));
+    video.addEventListener("error", () => video.classList.add("hidden"));
+  }
+
+  window.addEventListener("resize", () => {
+    if (authPrompt && !authPrompt.classList.contains("hidden")) {
+      setLandingVideo();
+    }
+  });
+
   if (window.lucide) lucide.createIcons();
   
   const params = new URLSearchParams(location.search);
@@ -590,6 +615,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   
   if (!supabaseClient) {
     authPrompt.classList.add("hidden");
+    checkoutShell?.classList.remove("hidden");
     checkoutContainer.classList.remove("hidden");
     return;
   }
@@ -600,7 +626,9 @@ window.addEventListener("DOMContentLoaded", async () => {
     handleUserSession(session);
   } else {
     authPrompt.classList.remove("hidden");
+    checkoutShell?.classList.add("hidden");
     checkoutContainer.classList.add("hidden");
+    setLandingVideo();
   }
   
   supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -608,13 +636,16 @@ window.addEventListener("DOMContentLoaded", async () => {
       handleUserSession(session);
     } else {
       authPrompt.classList.remove("hidden");
+      checkoutShell?.classList.add("hidden");
       checkoutContainer.classList.add("hidden");
+      setLandingVideo();
     }
   });
 });
 
 async function handleUserSession(session) {
   authPrompt.classList.add("hidden");
+  checkoutShell?.classList.remove("hidden");
   checkoutContainer.classList.add("hidden");
   const meta = session.user?.user_metadata || {};
   const authUserKey = session.user?.id || session.user?.email || "";

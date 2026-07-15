@@ -17,7 +17,25 @@
   <script src="/book.js?v=auth-pkce-4" defer></script>
 </head>
 <body class="policy-page">
-  <main class="policy-shell">
+  <main id="authPrompt" class="landing hidden">
+    <video class="landing-video" autoplay muted loop playsinline></video>
+    <div class="landing-fallback"></div>
+    <section class="landing-copy">
+      <div class="brand-mark">
+        <img class="brand-logo" src="/brand-logo.png" alt="" aria-hidden="true">
+        <span>Stay@Maredumilli</span>
+      </div>
+      <h1>Escape to Nature</h1>
+      <p>Welcome to Stay@Maredumilli. Continue to explore stays.</p>
+      <button id="loginBtn" class="google-btn" type="button">
+        <span class="google-g">G</span>
+        Continue with Google
+      </button>
+    </section>
+    <img class="landing-watermark-cover" src="/brand-logo.png" alt="" aria-hidden="true">
+  </main>
+
+  <main id="checkoutShell" class="policy-shell">
     <nav class="hotel-detail-nav" style="border-bottom: 1px solid rgba(222,222,222,.75); padding-bottom: 12px; margin-bottom: 24px;">
       <a class="wordmark" href="/" aria-label="Stay@Maredumilli home">
         <img class="brand-logo" src="/brand-logo.png" alt="" aria-hidden="true">
@@ -25,16 +43,6 @@
       </a>
       <a class="ghost-btn" href="/">Cancel & Exit</a>
     </nav>
-
-    <div id="authPrompt" class="panel text-center hidden" style="max-width: 480px; margin: 40px auto; padding: 32px; border-radius: 12px;">
-      <i data-lucide="lock" style="width: 48px; height: 48px; color: var(--accent); margin-bottom: 16px;"></i>
-      <h2 style="font-size: 24px; margin-bottom: 12px;">Login Required</h2>
-      <p style="color: var(--muted); margin-bottom: 24px;">You must sign in with Google to confirm your booking and view live availability.</p>
-      <button id="loginBtn" class="google-btn" type="button" style="width: 100%; justify-content: center; padding: 12px;">
-        <span class="google-g" style="margin-right: 8px;">G</span>
-        Sign in with Google
-      </button>
-    </div>
 
     <div id="checkoutContainer" class="hidden" style="max-width: 720px; margin: 0 auto;">
       <div class="page-head" style="margin-bottom: 20px;">
