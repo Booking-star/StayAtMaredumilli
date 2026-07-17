@@ -77,8 +77,8 @@ module.exports = async function handler(req, res) {
     }
 
     // 4. Return absolute jsDelivr CDN path
-    const filename = path.split("images/rooms/")[1];
-    const cdnUrl = `https://cdn.jsdelivr.net/gh/kandregulaashok15-gif/StayAtMaredumilli/images/rooms/${filename}`;
+    const finalFilename = path.split("images/rooms/")[1];
+    const cdnUrl = `https://cdn.jsdelivr.net/gh/kandregulaashok15-gif/StayAtMaredumilli/images/rooms/${finalFilename}`;
     return res.status(200).json({ url: cdnUrl });
   } catch (err) {
     console.error("Upload error handler:", err);
