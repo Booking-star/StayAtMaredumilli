@@ -90,6 +90,9 @@ function escapeHtml(value) {
 }
 
 function safeUrl(value) {
+  if (typeof value === "string" && value.includes("cdn.jsdelivr.net/gh/kandregulaashok15-gif/StayAtMaredumilli")) {
+    value = value.replace(/^https?:\/\/cdn\.jsdelivr\.net\/gh\/kandregulaashok15-gif\/StayAtMaredumilli/, "");
+  }
   try {
     const url = new URL(value, location.origin);
     return /^https?:$/.test(url.protocol) ? url.href : "";

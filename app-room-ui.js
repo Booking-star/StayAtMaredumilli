@@ -1,5 +1,8 @@
 function displayImage(src, width = 1200, height = 900, quality = 75, resize = "cover") {
   if (!src) return src;
+  if (typeof src === "string" && src.includes("cdn.jsdelivr.net/gh/kandregulaashok15-gif/StayAtMaredumilli")) {
+    src = src.replace(/^https?:\/\/cdn\.jsdelivr\.net\/gh\/kandregulaashok15-gif\/StayAtMaredumilli/, "");
+  }
   const marker = "/storage/v1/object/public/";
   if (!src.includes(marker)) return src;
   try {
