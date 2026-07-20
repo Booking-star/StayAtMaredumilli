@@ -103,6 +103,14 @@ function pageShell({ title, desc, canonical, ogImage, body, jsonLd, noindex = fa
   ${ogImage ? `<meta property="og:image" content="${escapeHtml(ogImage)}">` : ""}
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css?v=hotel-detail">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-D80234C4CM"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-D80234C4CM');
+  </script>
   <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
   ${script}
 </head>
