@@ -550,6 +550,19 @@
             <button class="primary-btn" type="submit">Save Pricing</button>
           </form>
         </section>
+        <section class="panel">
+          <h3>Announcement Toast</h3>
+          <form id="adminAnnouncementForm" class="admin-form">
+            <label>Message
+              <textarea id="announcementText" placeholder="e.g. All rooms are booked for the next 10 days, or check out our special monsoon discount!" rows="3" style="width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 10px; background: #fff; color: var(--text); resize: vertical; margin-top: 4px; font-family: inherit; font-size: 14px;"></textarea>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: 800; cursor: pointer; user-select: none; margin-top: 12px; font-size: 14px;">
+              <input id="announcementActive" type="checkbox" style="width: 20px; height: 20px; margin: 0;">
+              Show announcement toast on customer website
+            </label>
+            <button class="primary-btn" type="submit" style="margin-top: 16px;">Save Announcement</button>
+          </form>
+        </section>
       </div>
 
       <div id="contentCustomers" class="hidden">

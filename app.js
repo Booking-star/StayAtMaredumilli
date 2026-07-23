@@ -1175,6 +1175,20 @@ document.addEventListener("click", event => {
     loginBtn.click();
     return;
   }
+
+  const dismissAnnouncement = event.target.closest(".announcement-toast-close");
+  if (dismissAnnouncement) {
+    sessionStorage.setItem("announcementDismissed", "true");
+    const toast = document.querySelector("#announcementToast");
+    if (toast) {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(12px) scale(0.96)';
+      setTimeout(() => {
+        toast.classList.add("hidden");
+      }, 300);
+    }
+    return;
+  }
   const button = event.target.closest("[data-action]");
   if (!button) return;
 
@@ -1483,7 +1497,8 @@ window.addEventListener("DOMContentLoaded", async () => {
     safeLoad(loadCustomerBookings),
     safeLoad(loadPricingSettings),
     safeLoad(loadPaymentSettings),
-    safeLoad(loadOwnerRooms)
+    safeLoad(loadOwnerRooms),
+    safeLoad(loadAnnouncementSettings)
   ]).then(() => {
     render();
     openPendingBookingIfReady();
@@ -1580,7 +1595,7 @@ function setupRealtime() {
       Promise.all([safeLoad(loadAllBookings), safeLoad(loadOwnerRooms)]).then(render);
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, () => {
-      Promise.all([safeLoad(loadPricingSettings), safeLoad(loadPaymentSettings)]).then(render);
+      Promise.all([safeLoad(loadPricingSettings), safeLoad(loadPaymentSettings), safeLoad(loadAnnouncementSettings)]).then(render);
     })
     .subscribe();
 }
@@ -1596,4 +1611,47 @@ async function loadHighlights() {
     return;
   }
   highlightReels = data || [];
+}
+
+let announcementSettings = { text: "", active: false };
+
+async function loadAnnouncementSettings() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from("site_settings")
+      .select("value")
+      .eq("key", "announcement")
+      .maybeSingle();
+    if (!error && data?.value) {
+      announcementSettings = data.value;
+      showAnnouncementToast();
+    }
+  } catch (err) {
+    console.error("Failed to load announcement:", err);
+  }
+}
+
+function showAnnouncementToast() {
+  const toast = document.querySelector("#announcementToast");
+  if (!toast) return;
+  
+  const isDismissed = sessionStorage.getItem("announcementDismissed") === "true";
+  if (!announcementSettings.active || !announcementSettings.text || isDismissed) {
+    toast.classList.add("hidden");
+    return;
+  }
+  
+  toast.innerHTML = `
+    <span class="announcement-toast-icon"><i data-lucide="bell"></i></span>
+    <p class="announcement-toast-content">${escapeHtml(announcementSettings.text)}</p>
+    <button class="announcement-toast-close" aria-label="Dismiss">&times;</button>
+  `;
+  toast.classList.remove("hidden");
+  
+  // Re-run animations by resetting display layout if needed
+  toast.style.opacity = "";
+  toast.style.transform = "";
+  
+  if (window.lucide) lucide.createIcons();
 }

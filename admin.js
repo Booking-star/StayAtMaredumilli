@@ -793,6 +793,7 @@ function setupAdminTabs() {
   upcomingDaysFilter?.addEventListener("change", loadUpcomingBookings);
   adminPricingForm?.addEventListener("submit", savePricingSettings);
   adminPaymentForm?.addEventListener("submit", savePaymentSettings);
+  document.querySelector("#adminAnnouncementForm")?.addEventListener("submit", saveAnnouncementSettings);
 
   // Sales filters event listeners
   salesHotelFilter?.addEventListener("change", renderSales);

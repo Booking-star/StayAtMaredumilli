@@ -31,6 +31,11 @@ function fillPaymentForm(settings) {
 
 async function loadPricingSettings() {
   fillPricingForm(getStoredPricingSettings());
+  const textInput = document.querySelector("#announcementText");
+  const activeInput = document.querySelector("#announcementActive");
+  if (textInput) textInput.value = "";
+  if (activeInput) activeInput.checked = false;
+
   if (!supabaseClient) return;
   try {
     const { data, error } = await withTimeout(supabaseClient
@@ -56,9 +61,39 @@ async function loadPricingSettings() {
       return;
     }
     fillPaymentForm(paymentData?.value || { mode: "mock" });
+
+    // Load Announcement Settings
+    const { data: announcementData, error: announcementError } = await withTimeout(supabaseClient
+      .from("site_settings")
+      .select("value")
+      .eq("key", "announcement")
+      .maybeSingle(), "Announcement settings are taking too long to load.");
+    if (!announcementError && announcementData?.value) {
+      if (textInput) textInput.value = announcementData.value.text || "";
+      if (activeInput) activeInput.checked = !!announcementData.value.active;
+    }
   } catch (error) {
     notifyAdmin(error.message || "Admin settings are taking too long to load.", true);
   }
+}
+
+async function saveAnnouncementSettings(event) {
+  event.preventDefault();
+  const textInput = document.querySelector("#announcementText");
+  const activeInput = document.querySelector("#announcementActive");
+  const value = {
+    text: textInput?.value?.trim() || "",
+    active: !!activeInput?.checked
+  };
+  if (!supabaseClient) {
+    notifyAdmin("Connection is not ready. Announcement was not saved.", true);
+    return;
+  }
+  const { error } = await withTimeout(supabaseClient
+    .from("site_settings")
+    .upsert({ key: "announcement", value, updated_at: new Date().toISOString() }), "Announcement save is taking too long. Please try again.");
+  if (error) return notifyAdmin("Announcement settings could not be saved.", true);
+  notifyAdmin("Announcement settings saved successfully.");
 }
 
 async function savePricingSettings(event) {
