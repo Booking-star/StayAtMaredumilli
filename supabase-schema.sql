@@ -567,7 +567,7 @@ begin
     end if;
 
     v_occ := case when v_room.available_rooms > 0 then (v_booked + v_held)::numeric / v_room.available_rooms else 0 end;
-    v_website_total := v_website_total + v_web_price + case when v_occ >= 0.9 then v_90 when v_occ >= 0.8 then v_80 else 0 end;
+    v_website_total := v_website_total + v_web_price + case when v_occ >= 0.9 then v_90 when v_occ >= 0.66 then v_80 else 0 end;
     v_owner_total := v_owner_total + v_owner_price;
   end loop;
 
@@ -691,7 +691,7 @@ begin
     end if;
 
     v_occ := case when v_room.available_rooms > 0 then (v_booked + v_held)::numeric / v_room.available_rooms else 0 end;
-    v_website_total := v_website_total + v_web_price + case when v_occ >= 0.9 then v_90 when v_occ >= 0.8 then v_80 else 0 end;
+    v_website_total := v_website_total + v_web_price + case when v_occ >= 0.9 then v_90 when v_occ >= 0.66 then v_80 else 0 end;
     v_owner_total := v_owner_total + v_owner_price;
   end loop;
 

@@ -165,7 +165,7 @@ function occupancySurcharge(roomObj, dateStr) {
   if (!totalRooms) return 0;
   const occupancy = bookedRoomsOnDate(roomObj, dateStr) / totalRooms;
   if (occupancy >= 0.9) return pricingSettings.occupancy90Surcharge;
-  if (occupancy >= 0.8) return pricingSettings.occupancy80Surcharge;
+  if (occupancy >= 0.66) return pricingSettings.occupancy80Surcharge;
   return 0;
 }
 
