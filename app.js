@@ -423,16 +423,19 @@ function roomCard(room, cardIndex = 0) {
             const dayNum = d.getDate();
             
             const isFull = available <= 0;
-            const statusText = isFull ? "Full" : `${available} L`;
+            const statusText = isFull ? "Full" : `${available}`;
             const bgColor = isFull ? "#ffeef0" : "#eefdf4";
             const textColor = isFull ? "#ea384c" : "#10b981";
             const borderColor = isFull ? "#fcd3d7" : "#a7f3d0";
             
+            const pointerStyle = isFull ? "cursor: not-allowed;" : "cursor: pointer;";
+            const hoverClass = isFull ? "" : "class=\"cal-cell\"";
+            
             gridHtml += `
-              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border-radius: 6px; background: ${bgColor}; border: 1px solid ${borderColor}; min-width: 40px; font-size: 11px;">
-                <span style="color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase;">${dayName}</span>
-                <strong style="font-size: 13px; font-weight: 800; color: var(--text); margin: 1px 0;">${dayNum}</strong>
-                <span style="font-size: 9px; font-weight: 800; color: ${textColor}; text-transform: uppercase;">${statusText}</span>
+              <div ${hoverClass} data-action="selectDate" data-date="${dateStr}" data-available="${available}" style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border-radius: 6px; background: ${bgColor}; border: 1px solid ${borderColor}; min-width: 40px; font-size: 11px; ${pointerStyle}">
+                <span style="color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; pointer-events: none;">${dayName}</span>
+                <strong style="font-size: 13px; font-weight: 800; color: var(--text); margin: 1px 0; pointer-events: none;">${dayNum}</strong>
+                <span style="font-size: 9px; font-weight: 800; color: ${textColor}; text-transform: uppercase; pointer-events: none;">${statusText}</span>
               </div>
             `;
           }
@@ -1174,6 +1177,39 @@ document.addEventListener("click", event => {
   }
   const button = event.target.closest("[data-action]");
   if (!button) return;
+
+  if (button.dataset.action === "selectDate") {
+    const selectedDateStr = button.dataset.date;
+    const available = Number(button.dataset.available || 0);
+    if (available > 0) {
+      const fromVal = selectedDateStr;
+      const toVal = getNextDateString(fromVal);
+      
+      const searchFrom = document.querySelector("#searchFrom");
+      const searchTo = document.querySelector("#searchTo");
+      if (searchFrom) searchFrom.value = fromVal;
+      if (searchTo) {
+        searchTo.min = toVal;
+        searchTo.value = toVal;
+      }
+      
+      const details = {
+        from: fromVal,
+        to: toVal,
+        adults: document.querySelector("#searchAdults")?.value || 2,
+        children: document.querySelector("#searchKids")?.value || 0,
+        rooms: 1
+      };
+      
+      if (syncTripDetails(details)) {
+        scheduleAvailabilityRefresh();
+      }
+    } else {
+      alert("This stay is sold out on this date. Please select another date.");
+    }
+    return;
+  }
+
   const room = rooms.find(item => item.id === button.dataset.room);
   if (button.dataset.action === "like") {
     likes = likes.includes(room.id) ? likes.filter(id => id !== room.id) : [...likes, room.id];
